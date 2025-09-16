@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- GA4 (direct gtag usage) — Remove gtag.js below if using GA4 tag in GTM (prevent duplication) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E4PCM4RZWE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-E4PCM4RZWE'); /* automatic page_view sending */
+  </script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BugChain.xyz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Custom slider styles */
+    .slider-thumb{appearance:none;background:transparent;cursor:pointer}
+    .slider-thumb::-webkit-slider-thumb{
+      -webkit-appearance:none;appearance:none;height:16px;width:16px;border-radius:50%;
+      background:#3B82F6;cursor:pointer;border:2px solid #1E293B;box-shadow:0 2px 4px rgba(0,0,0,.2)
+    }
+    .slider-thumb::-moz-range-thumb{
+      height:16px;width:16px;border-radius:50%;background:#3B82F6;cursor:pointer;
+      border:2px solid #1E293B;box-shadow:0 2px 4px rgba(0,0,0,.2)
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar{width:8px}
+    ::-webkit-scrollbar-track{background:#1E293B}
+    ::-webkit-scrollbar-thumb{background:#475569;border-radius:4px}
+    ::-webkit-scrollbar-thumb:hover{background:#64748B}
+    .infinity-symbol{font-size:1.2em;line-height:1;vertical-align:middle}
+  </style>
+
+  <!-- Google Tag Manager (can remove GTM and keep only GA4 if desired) -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-WCWG4KF7');</script>
+  <!-- End Google Tag Manager -->
+</head>
+<body class="min-h-screen bg-slate-900 text-white">
+  <!-- GTM noscript -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WCWG4KF7"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End GTM noscript -->
+
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap gap-3 items-center justify-between py-3">
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-600 p-2 rounded-lg">
+            <i data-lucide="hash" class="w-6 h-6 text-white"></i>
+          </div>
+          <h1 class="text-xl font-bold">BugChain.xyz</h1>
+        </div>
+
+        <div class="flex items-center gap-3 text-sm text-slate-300 w-full sm:w-auto justify-between sm:justify-end">
+          <span id="contract-count" class="truncate">Total Contracts: 0</span>
+          <button id="clear-filters" class="flex items-center gap-1 px-3 py-1 rounded-md hover:bg-slate-700 transition">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Clear</span>
+          </button>
+          <!-- Mobile filter toggle -->
+          <button id="toggle-filters"
+                  class="sm:hidden flex items-center gap-1 px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 transition">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i><span>Filters</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="space-y-6">
+      <!-- Filters -->
+      <section class="bg-slate-800 rounded-lg border border-slate-700">
+        <div class="p-4 sm:p-6">
+          <div class="flex items-center space-x-2 mb-4 sm:mb-6">
+            <i data-lucide="filter" class="w-5 h-5 text-blue-400"></i>
+            <h2 class="text-lg font-semibold">Advanced Filters</h2>
+          </div>
+
+          <div id="filters-panel" class="space-y-6 sm:space-y-6 sm:block">
+            <!-- Search Inputs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Search by Address</label>
+                <div class="relative">
+                  <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                  <input id="address-search" type="text" placeholder="Enter contract address..."
+                         class="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"/>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Search by Contract Name</label>
+                <div class="relative">
+                  <i data-lucide="hash" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                  <input id="name-search" type="text" placeholder="Enter contract name..."
+                         class="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time Range -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
+                <label class="text-sm font-medium text-slate-300">Deployed Time Range:
+                  <span id="time-range-display">1h - 1y ago</span>
+                </label>
+              </div>
+              <div class="relative">
+                <div class="flex justify-between text-xs text-slate-400 mb-2">
+                  <span>Min: 1h</span><span>Max: <span class="infinity-symbol">∞</span></span>
+                </div>
+                <div id="time-slider-container" class="relative h-2 bg-slate-600 rounded-lg">
+                  <!-- Time -->
+                  <input id="time-min" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="12" value="0"/>
+                  <input id="time-max" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="12" value="12"/>
+
+                  <div id="time-range-track" class="absolute h-2 bg-blue-500 rounded-lg"></div>
+                  <div id="time-min-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
+                  <div id="time-max-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fund Range -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="dollar-sign" class="w-4 h-4 text-slate-400"></i>
+                <label class="text-sm font-medium text-slate-300">Fund Range:
+                  <span id="fund-range-display">$0 - $10.0M</span>
+                </label>
+              </div>
+              <div class="relative">
+                <div class="flex justify-between text-xs text-slate-400 mb-2">
+                  <span>Min: $0</span><span>Max: <span class="infinity-symbol">∞</span></span>
+                </div>
+                <div id="fund-slider-container" class="relative h-2 bg-slate-600 rounded-lg">
+                  <!-- Fund -->
+                  <input id="fund-min" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="10000000" value="0"/>
+                  <input id="fund-max" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="10000000" value="10000000"/>
+                  <div id="fund-range-track" class="absolute h-2 bg-blue-500 rounded-lg"></div>
+                  <div id="fund-min-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
+                  <div id="fund-max-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Networks -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="network" class="w-4 h-4 text-slate-400"></i>
+                <label class="text-sm font-medium text-slate-300">Networks</label>
+              </div>
+              <div id="network-buttons" class="flex flex-wrap gap-2">
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="ethereum">Ethereum</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="binance">Binance</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="optimism">Optimism</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="base">Base</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="arbitrum">Arbitrum</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="polygon">Polygon</button>
+                              <!-- Additional networks -->
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="avalanche">Avalanche</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="fantom">Fantom</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="gnosis">Gnosis</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="linea">Linea</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="scroll">Scroll</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="mantle">Mantle</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="opbnb">opBNB</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="polygon-zkevm">Polygon zkEVM</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="arbitrum-nova">Arbitrum Nova</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="celo">Celo</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="cronos">Cronos</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="moonbeam">Moonbeam</button>
+                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="moonriver">Moonriver</button>
+              </div>
+            </div>
+
+            <!-- Search Button -->
+            <div class="pt-2 flex items-center gap-2 flex-wrap">
+              <button id="search-button"
+                      class="w-full sm:w-auto sm:min-w-[220px] bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition flex items-center justify-center gap-2">
+                <i data-lucide="search" class="w-4 h-4"></i><span>Search Contracts</span>
+              </button>
+              <div class="flex items-center gap-2">
+                <button id="select-all-networks" title="Select all networks"
+                        class="px-3 py-2 rounded-md border border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 transition flex items-center gap-1">
+                  <i data-lucide="check-square" class="w-4 h-4"></i><span class="text-sm">All networks</span>
+                </button>
+                <button id="clear-all-networks" title="Clear all networks"
+                        class="px-3 py-2 rounded-md border border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 transition flex items-center gap-1">
+                  <i data-lucide="x-square" class="w-4 h-4"></i><span class="text-sm">None</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="results-section">
+        <div class="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+          <div class="text-slate-400 mb-4">
+            <i data-lucide="shield" class="w-12 h-12 mx-auto mb-2"></i>
+            <h3 class="text-lg font-semibold text-white">No Contracts Found</h3>
+            <p class="text-sm mt-2">Try adjusting your search filters to find more results.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // =========================
+    // GA4 Helper & Debounce
+    // =========================
+    const gaEvent = (name, params = {}) => {
+      try {
+        if (typeof gtag === 'function') {
+          gtag('event', name, params);
+        } else if (window.dataLayer) {
+          // Safely push to dataLayer when only GTM is present
+          window.dataLayer.push({ event: name, ...params });
+        }
+      } catch (e) {
+        console.warn('GA event failed', name, params, e);
+      }
+    };
+    const debounce = (fn, wait = 500) => {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+    };
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    const timeRanges = {
+      0:'1h', 1:'6h', 2:'1d',
+      3:'1w', 4:'2w', 5:'3w',
+      6:'1m', 7:'2m', 8:'3m',
+      9:'6m', 10:'1y', 11:'2y', 12:'∞'
+    };
+
+    // Selected filters
+    let filters = { address:'', name:'', timeMin:0, timeMax:12, fundMin:0, fundMax:10000000, networks:[] };
+
+    // DOM
+    const addressSearch=document.getElementById('address-search');
+    const nameSearch=document.getElementById('name-search');
+    const timeMin=document.getElementById('time-min');
+    const timeMax=document.getElementById('time-max');
+    const fundMin=document.getElementById('fund-min');
+    const fundMax=document.getElementById('fund-max');
+    const timeRangeDisplay=document.getElementById('time-range-display');
+    const fundRangeDisplay=document.getElementById('fund-range-display');
+    const searchButton=document.getElementById('search-button');
+    const clearFiltersButton=document.getElementById('clear-filters');
+    
+const networkButtons=document.querySelectorAll('#network-buttons button[data-network]');
+    const selectAllBtn=document.getElementById('select-all-networks');
+    const clearAllBtn=document.getElementById('clear-all-networks');
+    // Default network selection: Set all networks as default selected state
+    (function selectAllNetworksByDefault(){
+      const all = Array.from(networkButtons).map(b => b.dataset.network).filter(Boolean);
+      filters.networks = all.slice();
+      networkButtons.forEach(btn => {
+        btn.classList.remove('bg-slate-700','text-slate-300');
+        btn.classList.add('bg-blue-600','text-white');
+      });
+    })();
+    const networkColors = {
+      ethereum:'#059669', binance:'#EAB308', optimism:'#DC2626', base:'#0284C7', arbitrum:'#06B6D4', polygon:'#7C3AED',
+      avalanche:'#E11D48', fantom:'#4F46E5', gnosis:'#16A34A', linea:'#0D9488', scroll:'#65A30D', mantle:'#D97706',
+      opbnb:'#22C55E', 'polygon-zkevm':'#A21CAF', 'arbitrum-nova':'#22D3EE', celo:'#10B981', cronos:'#1D4ED8',
+      moonbeam:'#DB2777', moonriver:'#EA580C'
+    };
+    async function highlightNetworksWithData(){
+      try{
+        const res = await fetch('/networkCounts');
+        const json = await res.json();
+        const counts = json?.networks || {};
+        networkButtons.forEach(btn => {
+          const net = btn.dataset.network;
+          const c = counts[net] || 0;
+          if (c > 0) {
+            const color = networkColors[net] || '#3B82F6';
+            btn.style.borderWidth = '1px';
+            btn.style.borderColor = color;
+            btn.style.boxShadow = `0 0 0 2px ${color}22`;
+          }
+        });
+      }catch(e){ console.warn('networkCounts fetch failed', e); }
+    }
+    const resultsSection=document.getElementById('results-section');
+    const contractCount=document.getElementById('contract-count');
+    const toggleFiltersBtn=document.getElementById('toggle-filters');
+    const filtersPanel=document.getElementById('filters-panel');
+
+    // Build common GA params snapshot
+    const currentFilterParams = () => ({
+      address_query: filters.address || null,
+      name_query: filters.name || null,
+      time_min_index: filters.timeMin,
+      time_max_index: filters.timeMax,
+      time_min_label: timeRanges[filters.timeMin],
+      time_max_label: timeRanges[filters.timeMax],
+      fund_min: filters.fundMin,
+      fund_max: (filters.fundMax >= 10000000) ? null : filters.fundMax,
+      networks: (filters.networks && filters.networks.length) ? filters.networks.join(',') : 'all'
+    });
+
+    // Mobile Filters Toggle
+    if (toggleFiltersBtn) {
+      filtersPanel.classList.add('hidden','sm:block'); // mobile hidden, >=sm block
+      toggleFiltersBtn.addEventListener('click',()=>{
+        const willShow = filtersPanel.classList.contains('hidden');
+        filtersPanel.classList.toggle('hidden');
+        gaEvent('toggle_filters', { visible: willShow });
+      });
+    }
+
+    // ===== Inputs → GA (debounced) =====
+    const fireFilterChange = debounce((name, extra = {}) => {
+      gaEvent('filter_change', { filter_name: name, ...currentFilterParams(), ...extra });
+    }, 600);
+
+    // Events
+    addressSearch.addEventListener('input',e=>{
+      filters.address=e.target.value;
+      fireFilterChange('address', { value_length: (e.target.value||'').length });
+    });
+    nameSearch.addEventListener('input',e=>{
+      filters.name=e.target.value;
+      fireFilterChange('name', { value_length: (e.target.value||'').length });
+    });
+    timeMin.addEventListener('input',e=>{
+      filters.timeMin=parseInt(e.target.value);
+      updateTimeRangeDisplay();
+      fireFilterChange('time_min', { index: filters.timeMin, label: timeRanges[filters.timeMin] });
+    });
+    timeMax.addEventListener('input',e=>{
+      filters.timeMax=parseInt(e.target.value);
+      updateTimeRangeDisplay();
+      fireFilterChange('time_max', { index: filters.timeMax, label: timeRanges[filters.timeMax] });
+    });
+
+    // fundMin / fundMax input event (snap + clamp)
+    fundMin.addEventListener('input', (e) => {
+      let raw = parseInt(e.target.value) || 0;
+      const step = fundStepFor(raw);
+      let snapped = Math.round(raw / step) * step;
+      if (snapped > filters.fundMax) snapped = filters.fundMax;
+      e.target.value = snapped;
+      filters.fundMin = snapped;
+      updateFundRangeDisplay();
+      fireFilterChange('fund_min', { value: filters.fundMin });
+    });
+
+    fundMax.addEventListener('input', (e) => {
+      let raw = parseInt(e.target.value) || 0;
+      const step = fundStepFor(raw);
+      let snapped = Math.round(raw / step) * step;
+      if (snapped < filters.fundMin) snapped = filters.fundMin;
+      e.target.value = snapped;
+      filters.fundMax = snapped;
+      updateFundRangeDisplay();
+      fireFilterChange('fund_max', { value: filters.fundMax });
+    });
+
+    networkButtons.forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        const n=e.target.dataset.network;
+        if (filters.networks.includes(n)){
+          filters.networks=filters.networks.filter(x=>x!==n);
+          e.target.classList.remove('bg-blue-600','text-white');
+          e.target.classList.add('bg-slate-700','text-slate-300');
+          gaEvent('select_network', { network: n, selected: false, selected_networks: filters.networks.join(',') || 'none' });
+        } else {
+          filters.networks.push(n);
+          e.target.classList.remove('bg-slate-700','text-slate-300');
+          e.target.classList.add('bg-blue-600','text-white');
+          gaEvent('select_network', { network: n, selected: true, selected_networks: filters.networks.join(',') });
+        }
+      })
+
+
+    // Select/Deselect all controls
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', () => {
+        const all = Array.from(networkButtons).map(b => b.dataset.network).filter(Boolean);
+        filters.networks = all.slice();
+        networkButtons.forEach(btn => {
+          btn.classList.remove('bg-slate-700','text-slate-300');
+          btn.classList.add('bg-blue-600','text-white');
+        });
+        gaEvent('select_all_networks', { networks: filters.networks.join(',') });
+      });
+    }
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', () => {
+        filters.networks = [];
+        networkButtons.forEach(btn => {
+          btn.classList.remove('bg-blue-600','text-white');
+          btn.classList.add('bg-slate-700','text-slate-300');
+        });
+        gaEvent('clear_all_networks', {});
+      });
+    }
+    });
+
+    searchButton.addEventListener('click',()=>{
+      gaEvent('search', {
+        search_term: (filters.address || filters.name || '(filters only)'),
+        ...currentFilterParams()
+      });
+      searchContracts();
+    });
+    clearFiltersButton.addEventListener('click',()=>{
+      gaEvent('filter_reset', { ...currentFilterParams() });
+      clearFilters();
+    });
+
+    // Slider visuals
+    const timeMinThumb=document.getElementById('time-min-thumb');
+    const timeMaxThumb=document.getElementById('time-max-thumb');
+    const timeRangeTrack=document.getElementById('time-range-track');
+    const fundMinThumb=document.getElementById('fund-min-thumb');
+    const fundMaxThumb=document.getElementById('fund-max-thumb');
+    const fundRangeTrack=document.getElementById('fund-range-track');
+
+    // Increase step as value gets larger
+    function fundStepFor(val) {
+      if (val < 1_000_000) return 20_000;     // < 1M  → 20K
+      if (val < 2_000_000) return 200_000;    // < 2M  → 200K
+      if (val < 3_000_000) return 500_000;    // < 5M  → 500K
+      return 1_000_000;                       // ≥ 5M  → 1M
+    }
+
+    function updateSliderPositions(){
+      // time
+      const tMaxIndex = parseInt(timeMin.max, 10);
+      const tMin = (filters.timeMin / tMaxIndex) * 100;
+      const tMax = (filters.timeMax / tMaxIndex) * 100;
+      timeMinThumb.style.left = `${tMin}%`;
+      timeMaxThumb.style.left = `${tMax}%`;
+      timeRangeTrack.style.left = `${tMin}%`;
+      timeRangeTrack.style.width = `${tMax - tMin}%`;
+
+      // fund
+      const fMin = (filters.fundMin/10000000)*100, fMax=(filters.fundMax/10000000)*100;
+      fundMinThumb.style.left=`${fMin}%`; fundMaxThumb.style.left=`${fMax}%`;
+      fundRangeTrack.style.left=`${fMin}%`; fundRangeTrack.style.width=`${fMax-fMin}%`;
+    }
+
+    function updateTimeRangeDisplay(){
+      updateSliderPositions();
+    highlightNetworksWithData();
+      const minDisplay=timeRanges[filters.timeMin];
+      const maxDisplay=timeRanges[filters.timeMax];
+      timeRangeDisplay.innerHTML=`${minDisplay} - ${maxDisplay} ago`;
+    }
+
+    function updateFundRangeDisplay(){
+      updateSliderPositions();
+    highlightNetworksWithData();
+      const fmt=a=>{
+        if (a>=10000000) return '∞';
+        if (a>=1000000) return `${(a/1000000).toFixed(1)}M`;
+        if (a>=1000) return `${(a/1000).toFixed(1)}K`;
+        return `${a}`;
+      }
+      fundRangeDisplay.innerHTML=`$${fmt(filters.fundMin)} - $${fmt(filters.fundMax)}`;
+    }
+
+    function clearFilters(){
+      // Restore to default values
+      filters={ address:'', name:'', timeMin:0, timeMax:12, fundMin:0, fundMax:10000000, networks:[] };
+      addressSearch.value=''; nameSearch.value='';
+      // Revert slider input values
+      timeMin.value=0; timeMax.value=12; fundMin.value=0; fundMax.value=10000000;
+      updateTimeRangeDisplay(); updateFundRangeDisplay(); updateSliderPositions();
+      // Select all networks
+      const all = Array.from(networkButtons).map(b => b.dataset.network).filter(Boolean);
+      filters.networks = all.slice();
+      networkButtons.forEach(btn => {
+        btn.classList.remove('bg-slate-700','text-slate-300');
+        btn.classList.add('bg-blue-600','text-white');
+      });
+      // Initialize page state as well
+      pageLimit = 50; // default page size
+      cursorStack = [];
+      currentCursor = null;
+      nextCursorFromLastResult = null;
+      totalCount = null;
+      totalPages = null;
+      hasSearched = false;
+      highlightNetworksWithData();
+      showEmptyState();
+      renderPager();
+    }
+    function timeIndexToSeconds(idx){
+      switch(idx){
+        case 0:  return 3600;       // 1h
+        case 1:  return 21600;      // 6h
+        case 2:  return 86400;      // 1d
+        case 3:  return 604800;     // 1w
+        case 4:  return 1209600;    // 2w
+        case 5:  return 1814400;    // 3w
+        case 6:  return 2592000;    // 1m (30d)
+        case 7:  return 5184000;    // 2m
+        case 8:  return 7776000;    // 3m
+        case 9:  return 15552000;   // 6m
+        case 10: return 31536000;   // 1y
+        case 11: return 63072000;   // 2y
+        case 12: return Infinity;   // ∞
+        default: return Infinity;
+      }
+    }
+
+    // ===== Results render + GA =====
+    function renderResults(rows){
+      if (!rows || rows.length===0){ showEmptyState(); return; }
+
+      // counts (totalCount/totalPages set externally if available)
+      if (typeof totalCount!=='undefined' && totalCount!=null){
+        contractCount.textContent=`Total Contracts: ${totalCount}` + (totalPages?` (pages: ${totalPages})`:``);
+      } else {
+        contractCount.textContent=`Contracts (this page): ${rows.length}`;
+      }
+
+      // explorers + color
+      const explorerMap={
+        ethereum:"https://etherscan.io/address/",
+        binance:"https://bscscan.com/address/",
+        optimism:"https://optimistic.etherscan.io/address/",
+        arbitrum:"https://arbiscan.io/address/",
+        polygon:"https://polygonscan.com/address/",
+        base:"https://basescan.org/address/",
+        avalanche:"https://snowtrace.io/address/",
+        fantom:"https://ftmscan.com/address/",
+        gnosis:"https://gnosisscan.io/address/",
+        linea:"https://lineascan.build/address/",
+        scroll:"https://scrollscan.com/address/",
+        mantle:"https://mantlescan.xyz/address/",
+        opbnb:"https://opbnbscan.com/address/",
+        'polygon-zkevm':"https://zkevm.polygonscan.com/address/",
+        'arbitrum-nova':"https://nova.arbiscan.io/address/",
+        celo:"https://celoscan.io/address/",
+        cronos:"https://cronoscan.com/address/",
+        moonbeam:"https://moonscan.io/address/",
+        moonriver:"https://moonriver.moonscan.io/address/"
+      };
+      const networkColors={
+        ethereum:'bg-blue-500', binance:'bg-yellow-500', optimism:'bg-red-500',
+        base:'bg-sky-500', arbitrum:'bg-blue-600', polygon:'bg-purple-500',
+        avalanche:'bg-rose-600', fantom:'bg-indigo-600', gnosis:'bg-emerald-600',
+        linea:'bg-teal-600', scroll:'bg-lime-600', mantle:'bg-amber-600',
+        opbnb:'bg-green-500', 'polygon-zkevm':'bg-fuchsia-600', 'arbitrum-nova':'bg-cyan-500',
+        celo:'bg-emerald-500', cronos:'bg-blue-700', moonbeam:'bg-pink-600', moonriver:'bg-orange-600'
+      };
+      const networkEmojis={
+        ethereum:'Ξ', binance:'🔶', optimism:'🟥', base:'🟦', arbitrum:'🌀', polygon:'🔺',
+        avalanche:'🟥', fantom:'👻', gnosis:'🟩', linea:'🟪', scroll:'🟩', mantle:'🟧',
+        opbnb:'🟩', 'polygon-zkevm':'🟣', 'arbitrum-nova':'🟦', celo:'🟩', cronos:'🌀', moonbeam:'🌙', moonriver:'🌙'
+      };
+      const networkLogos={
+        ethereum:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/ethereum/info/logo.png',
+        binance:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/smartchain/info/logo.png',
+        optimism:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/optimism/info/logo.png',
+        base:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/base/info/logo.png',
+        arbitrum:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/arbitrum/info/logo.png',
+        polygon:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/polygon/info/logo.png',
+        avalanche:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/avalanche/info/logo.png',
+        fantom:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/fantom/info/logo.png',
+        gnosis:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/gnosis/info/logo.png',
+        // Etherscan family favicon fallbacks for chains without TrustWallet entries
+        linea:'https://lineascan.build/images/favicon-32x32.png',
+        scroll:'https://scrollscan.com/images/favicon-32x32.png',
+        mantle:'https://mantlescan.xyz/images/favicon-32x32.png',
+        opbnb:'https://opbnbscan.com/images/favicon-32x32.png',
+        'polygon-zkevm':'https://zkevm.polygonscan.com/images/favicon-32x32.png',
+        'arbitrum-nova':'https://nova.arbiscan.io/images/favicon-32x32.png',
+        celo:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/celo/info/logo.png',
+        cronos:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/cronos/info/logo.png',
+        moonbeam:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/moonbeam/info/logo.png',
+        moonriver:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/moonriver/info/logo.png'
+      };
+      const fmtFund=n=>{
+        if (n==null) return '';
+        const v=Number(n); if (v>=1_000_000) return `$${(v/1_000_000).toFixed(1)}M`;
+        if (v>=1_000) return `$${(v/1_000).toFixed(0)}K`; return `$${v}`;
+      };
+
+      // Table rows (desktop)
+      const tableRows=rows.map(r=>{
+        const short=r.address?`${r.address.slice(0,6)}...${r.address.slice(-6)}`:'';
+        const base=explorerMap[r.network?.toLowerCase()];
+        const href = base ? `${base}${r.address}` : '#';
+        const link = base
+          ? `<a href="${href}" target="_blank" rel="noopener noreferrer"
+                class="text-blue-400 hover:underline"
+                data-ga-item="explorer-link"
+                data-ui="table"
+                data-address="${r.address||''}"
+                data-name="${(r.contract_name||'').replace(/"/g,'&quot;')}"
+                data-network="${r.network||''}"
+                data-fund="${r.fund||''}"
+             >${short}</a>`
+          : `<span class="text-slate-300">${short}</span>`;
+        const netKey=r.network?.toLowerCase();
+        const netColor=networkColors[netKey]||'bg-slate-600';
+        const icon = networkEmojis[netKey]||'⛓️';
+        const logo = networkLogos[netKey]||null;
+        const logoImg = logo?`<img src="${logo}" alt="${r.network} logo" class="inline-block w-3 h-3 mr-1 align-middle rounded-full bg-white" onerror="this.style.display='none'">`:`<span class=\"mr-1 align-middle\">${icon}</span>`;
+        const badge=r.network?`<span class="px-2 py-1 rounded-full text-xs font-medium text-white ${netColor}">${logoImg}${r.network}</span>`:'';
+        const deployed=r.deployed?new Date(r.deployed*1000).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):'';
+        return `
+          <tr class="border-b border-slate-700/60 hover:bg-slate-800/50">
+            <td class="px-4 py-2 font-mono text-xs whitespace-nowrap">${link}</td>
+            <td class="px-4 py-2 truncate max-w-[16rem]">${r.contract_name ?? ''}</td>
+            <td class="px-4 py-2 whitespace-nowrap">${badge}</td>
+            <td class="px-4 py-2 text-right whitespace-nowrap">${deployed}</td>
+            <td class="px-4 py-2 text-right whitespace-nowrap"><span class="text-green-400 font-semibold">${fmtFund(r.fund)}</span></td>
+          </tr>`;
+      }).join('');
+
+      // Card list (mobile)
+      const cards=rows.map(r=>{
+        const base=explorerMap[r.network?.toLowerCase()];
+        const full=r.address||'';
+        const short=full?`${full.slice(0,6)}...${full.slice(-6)}`:'';
+        const link=base?`${base}${full}`:'#';
+        const netKey=r.network?.toLowerCase();
+        const netColor=networkColors[netKey]||'bg-slate-600';
+        const icon = networkEmojis[netKey]||'⛓️';
+        const logo = networkLogos[netKey]||null;
+        const logoImg = logo?`<img src=\"${logo}\" alt=\"${r.network} logo\" class=\"inline-block w-3 h-3 mr-1 align-middle rounded-full bg-white\" onerror=\"this.style.display='none'\">`:`<span class=\"mr-1 align-middle\">${icon}</span>`;
+        const deployed=r.deployed?new Date(r.deployed*1000).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):'';
+        return `
+          <div class="p-4 rounded-xl border border-slate-700 bg-slate-800 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+              <a href="${link}" target="_blank" rel="noopener noreferrer"
+                 class="font-mono text-xs text-blue-400 hover:underline break-all"
+                 data-ga-item="explorer-link"
+                 data-ui="card"
+                 data-address="${full}"
+                 data-name="${(r.contract_name||'').replace(/"/g,'&quot;')}"
+                 data-network="${r.network||''}"
+                 data-fund="${r.fund||''}"
+              >${short}</a>
+              ${r.network?`<span class="px-2 py-1 rounded-full text-xs font-medium text-white ${netColor}">${logoImg}${r.network}</span>`:''}
+            </div>
+            <div class="mt-2 text-sm text-slate-200 truncate">${r.contract_name ?? ''}</div>
+            <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div class="flex items-center justify-between bg-slate-900/40 rounded-md px-2 py-1">
+                <span class="text-slate-400">Deployed</span>
+                <span class="text-slate-200">${deployed || '-'}</span>
+              </div>
+              <div class="flex items-center justify-between bg-slate-900/40 rounded-md px-2 py-1">
+                <span class="text-slate-400">Fund</span>
+                <span class="text-green-400 font-semibold">${fmtFund(r.fund)}</span>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      resultsSection.innerHTML=`
+        <div class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+          <!-- Desktop table -->
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-900/40">
+                <tr>
+                  <th class="px-4 py-2 text-left">Address</th>
+                  <th class="px-4 py-2 text-left">Contract Name</th>
+                  <th class="px-4 py-2 text-left">Network</th>
+                  <th class="px-4 py-2 text-right">Deployed</th>
+                  <th class="px-4 py-2 text-right">Fund</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+
+          <!-- Mobile cards -->
+          <div class="sm:hidden p-3 grid grid-cols-1 gap-3">
+            ${cards}
+          </div>
+        </div>`;
+      lucide.createIcons();
+
+      // GA: result exposure event (standard)
+      const page_index = (cursorStack?.length || 0) + 1;
+      gaEvent('view_search_results', {
+        search_term: (filters.address || filters.name || '(filters only)'),
+        results_count: rows.length,
+        page_index,
+        page_size: pageLimit,
+        total_count: (totalCount!=null ? totalCount : null),
+        ...currentFilterParams()
+      });
+
+      // GA: track explorer link clicks
+      resultsSection.querySelectorAll('a[data-ga-item="explorer-link"]').forEach(a=>{
+        a.addEventListener('click', (e) => {
+          const el = e.currentTarget;
+          gaEvent('select_item', {
+            item_id: el.dataset.address || '',
+            item_name: el.dataset.name || '',
+            item_category: 'contract',
+            item_list_name: el.dataset.network || '',
+            item_variant: el.dataset.ui || '',
+            link_url: el.href
+          });
+        });
+      });
+    }
+
+    const server='https://api.bugchain.xyz';
+    function encodeCursor(cur){ if(!cur)return null; return btoa(unescape(encodeURIComponent(JSON.stringify(cur)))); }
+    function decodeCursor(s){ try{ return JSON.parse(decodeURIComponent(escape(atob(s)))) }catch{ return null } }
+
+    // cursor state
+    let pageLimit=50, cursorStack=[], currentCursor=null, nextCursorFromLastResult=null;
+    let totalCount=null,totalPages=null;
+
+    // Pager state (create only when needed)
+    let hasSearched = false;
+    let pagerEl = document.getElementById('pager') || null;
+
+    function ensurePagerEl() {
+      if (!pagerEl) {
+        pagerEl = document.createElement('div');
+        pagerEl.id = 'pager';
+        pagerEl.className = 'mt-4 flex items-center justify-between';
+        resultsSection.after(pagerEl);
+      }
+      return pagerEl;
+    }
+
+    function destroyPagerEl() {
+      if (pagerEl && pagerEl.parentNode) {
+        pagerEl.parentNode.removeChild(pagerEl);
+      }
+      pagerEl = null;
+    }
+
+    function renderPager(){
+      // Do not show bottom pager in initial or reset state
+      if (!hasSearched) { destroyPagerEl(); return; }
+      const el = ensurePagerEl();
+      
+      pagerEl.innerHTML=`
+        <div class="flex items-center gap-2">
+          <button id="prev-page" class="px-3 py-1 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500">Prev</button>
+          <button id="next-page" class="px-3 py-1 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500">Next</button>
+        </div>
+        <div class="text-sm text-slate-400 flex-1 text-right">
+          <span class="whitespace-nowrap">Page size: ${pageLimit}${currentCursor?'':' (first page)'}</span>
+          ${totalCount!=null?`<span class="ml-2 whitespace-nowrap">• Total: ${totalCount}${totalPages?` • Pages: ${totalPages}`:''}</span>`:''}
+        </div>`;
+      const prevBtn=document.getElementById('prev-page');
+      const nextBtn=document.getElementById('next-page');
+      prevBtn.disabled=cursorStack.length===0;
+      nextBtn.disabled=!nextCursorFromLastResult;
+
+      prevBtn.onclick=async()=>{
+        if(cursorStack.length===0)return;
+        gaEvent('paginate_results', { direction:'prev', from_page:(cursorStack.length+1) });
+        currentCursor=cursorStack.pop()||null;
+        await searchContracts({useExistingCursor:true});
+      };
+      nextBtn.onclick=async()=>{
+        if(!nextCursorFromLastResult)return;
+        gaEvent('paginate_results', { direction:'next', from_page:(cursorStack.length+1) });
+        cursorStack.push(currentCursor);
+        currentCursor=nextCursorFromLastResult;
+        await searchContracts({useExistingCursor:true});
+      };
+    }
+
+    async function searchContracts(opts={}){
+      try{
+        hasSearched = true;
+        const {useExistingCursor=false}=opts;
+        searchButton.disabled=true;
+        searchButton.innerHTML='<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Searching...</span>';
+        lucide.createIcons();
+
+        const nowSec=Math.floor(Date.now()/1000);
+        const minAgo=timeIndexToSeconds(filters.timeMin);
+        const maxAgo=timeIndexToSeconds(filters.timeMax);
+        const deployedTo=(minAgo===3600)?null:(nowSec-minAgo);
+        const deployedFrom=(maxAgo===Infinity)?null:(nowSec-maxAgo);
+
+        const FUND_UI_MAX=10000000;
+        const fundFrom = filters.fundMin != 0 ? filters.fundMin : null;
+        const fundTo=(filters.fundMax>=FUND_UI_MAX)?null:filters.fundMax;
+
+        if(!useExistingCursor){ currentCursor=null; cursorStack=[]; }
+
+        const qp=new URLSearchParams();
+        if(deployedFrom!==null) qp.set('deployedFrom',String(deployedFrom));
+        if(deployedTo!==null)   qp.set('deployedTo',String(deployedTo));
+        if(fundFrom!==null)     qp.set('fundFrom',String(fundFrom));
+        if(fundTo!==null)       qp.set('fundTo',String(fundTo));
+        if(filters.address?.trim()) qp.set('address',filters.address.trim());
+        if(filters.name?.trim())    qp.set('contractName',filters.name.trim());
+        if(filters.networks?.length) qp.set('networks',filters.networks.join(','));
+        qp.set('limit',String(pageLimit));
+        const enc=encodeCursor(currentCursor); if(enc) qp.set('cursor',enc);
+        qp.set('includeTotal',(!useExistingCursor).toString());
+
+        const resp=await fetch(`${server}/getAddressesByFilter?${qp.toString()}`,{method:'GET'});
+        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json=await resp.json();
+
+        const rows=Array.isArray(json?.data)?json.data:(Array.isArray(json)?json:[]);
+        nextCursorFromLastResult=json?.nextCursor ?? null;
+        if(json?.totalCount!=null){ totalCount=Number(json.totalCount); totalPages=json?.totalPages!=null?Number(json.totalPages):null; }
+
+        if(rows.length===0){ showEmptyState(); renderPager(); return; }
+        renderResults(rows); renderPager();
+      }catch(err){
+        console.error('searchContracts failed:',err);
+        showEmptyState(); nextCursorFromLastResult=null; renderPager();
+      }finally{
+        searchButton.disabled=false;
+        searchButton.innerHTML='<i data-lucide="search" class="w-4 h-4"></i><span>Search Contracts</span>';
+        lucide.createIcons();
+      }
+    }
+
+    function showEmptyState(){
+      resultsSection.innerHTML=`
+        <div class="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+          <div class="text-slate-400 mb-4">
+            <i data-lucide="shield" class="w-12 h-12 mx-auto mb-2"></i>
+            <h3 class="text-lg font-semibold text-white">No Contracts Found</h3>
+            <p class="text-sm mt-2">Try adjusting your search filters to find more results.</p>
+          </div>
+        </div>`;
+      lucide.createIcons();
+      contractCount.textContent='Total Contracts: 0';
+
+      // Leave empty result exposure as event for convenience
+      gaEvent('view_search_results', {
+        search_term: (filters.address || filters.name || '(filters only)'),
+        results_count: 0,
+        page_index: (cursorStack?.length || 0) + 1,
+        page_size: pageLimit,
+        total_count: (totalCount!=null ? totalCount : null),
+        ...currentFilterParams()
+      });
+    }
+
+    // Custom drag handle (maintain existing)
+    function setupThumbDrag(thumb, sliderContainer, input, isMin){
+      let isDragging = false;
+
+      const onPointerMove = (clientX) => {
+        const rect = sliderContainer.getBoundingClientRect();
+        let pos = (clientX - rect.left) / rect.width;
+        pos = Math.max(0, Math.min(1, pos));
+        const maxPos = parseInt(input.max), minPos = parseInt(input.min);
+        const value = Math.round(pos * (maxPos - minPos) + minPos);
+
+        if (isMin) {
+          const other = input.id.includes('time') ? timeMax : fundMax;
+          input.value = Math.min(value, parseInt(other.value));
+        } else {
+          const other = input.id.includes('time') ? timeMin : fundMin;
+          input.value = Math.max(value, parseInt(other.value));
+        }
+        input.dispatchEvent(new Event('input'));
+      };
+
+      const onMouseMove = (e) => onPointerMove(e.clientX);
+      const onTouchMove = (e) => {
+        if (!e.touches || !e.touches[0]) return;
+        onPointerMove(e.touches[0].clientX);
+      };
+
+      const stop = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', stop);
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', stop);
+        document.removeEventListener('touchcancel', stop);
+        // Fire filter change event only once at drag end
+        if (input.id.includes('time')) {
+          gaEvent('filter_change', { filter_name: 'time_range', ...currentFilterParams() });
+        } else {
+          gaEvent('filter_change', { filter_name: 'fund_range', ...currentFilterParams() });
+        }
+      };
+
+      const start = (clientX) => {
+        isDragging = true;
+        onPointerMove(clientX);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', stop);
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', stop);
+        document.addEventListener('touchcancel', stop);
+      };
+
+      thumb.addEventListener('mousedown', (e) => { e.preventDefault(); start(e.clientX); });
+      thumb.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : null;
+        if (x != null) start(x);
+      }, { passive: false });
+    }
+
+    setupThumbDrag(timeMinThumb,document.getElementById('time-slider-container'),timeMin,true);
+    setupThumbDrag(timeMaxThumb,document.getElementById('time-slider-container'),timeMax,false);
+    setupThumbDrag(fundMinThumb,document.getElementById('fund-slider-container'),fundMin,true);
+    setupThumbDrag(fundMaxThumb,document.getElementById('fund-slider-container'),fundMax,false);
+
+    // Init
+    updateTimeRangeDisplay();
+    updateFundRangeDisplay();
+    updateSliderPositions();
+    highlightNetworksWithData();
+
+    // Footer social link clicks → GA
+    document.querySelectorAll('a[aria-label="Twitter"], a[aria-label="LinkedIn"]').forEach(a=>{
+      a.addEventListener('click', (e)=>{
+        const label = a.getAttribute('aria-label') || 'social';
+        gaEvent('social_click', { platform: label, link_url: a.href });
+      });
+    });
+  </script>
+
+  <!-- Footer: put this right after </main> and before </body> -->
+  <footer class="border-t border-slate-700 bg-slate-800/70">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 py-4">
+        <p class="text-xs text-slate-400">
+          © <span id="year"></span> BugChain.xyz
+        </p>
+
+        <div class="flex items-center gap-3">
+          <!-- Twitter / X -->
+          <a
+            href="https://twitter.com/gegul_"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 transition"
+            aria-label="Twitter"
+            title="Follow on Twitter"
+          >
+            <i data-lucide="twitter" class="w-4 h-4"></i>
+            <span class="text-sm hidden sm:inline">Twitter</span>
+          </a>
+
+          <!-- LinkedIn -->
+          <a
+            href="https://www.linkedin.com/in/soon-chan-hwang-50b353152/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 transition"
+            aria-label="LinkedIn"
+            title="Connect on LinkedIn"
+          >
+            <i data-lucide="linkedin" class="w-4 h-4"></i>
+            <span class="text-sm hidden sm:inline">LinkedIn</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Automatic year update
+    (function(){
+      const y = document.getElementById('year');
+      if (y) y.textContent = new Date().getFullYear();
+    })();
+    if (window.lucide?.createIcons) lucide.createIcons();
+  </script>
+
+</body>
+</html>

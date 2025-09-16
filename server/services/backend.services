@@ -1,0 +1,17 @@
+[Unit]
+Description=My Node.js App
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node index.js
+WorkingDirectory=/root/onchainScanner/server/backend
+Restart=always
+RestartSec=10
+User=root
+Environment=NODE_ENV=production
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=node-app
+
+[Install]
+WantedBy=multi-user.target

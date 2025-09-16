@@ -1,0 +1,38 @@
+{
+  "name": "onchain-scanner-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for OnchainScanner blockchain analysis",
+  "main": "scripts/direct-deploy.js",
+  "scripts": {
+    "deploy": "node scripts/direct-deploy.js",
+    "validate": "node scripts/validate-contracts.js",
+    "compile": "forge build",
+    "test": "forge test",
+    "clean": "forge clean"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "smart-contracts",
+    "gelato",
+    "cross-chain"
+  ],
+  "dependencies": {
+    "@gelatonetwork/relay-sdk": "^5.0.0",
+    "@gelatonetwork/automate-sdk": "^2.0.0",
+    "ethers": "^5.7.2",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/onchainScanner.git"
+  },
+  "author": "OnchainScanner Team",
+  "license": "MIT"
+}

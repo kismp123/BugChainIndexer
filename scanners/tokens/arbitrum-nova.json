@@ -1,0 +1,67 @@
+ {
+  "fetchedAt": "2025-08-31T21:55:25.438Z",
+  "source": "https://nova.arbiscan.io/tokens",
+  "explorer": "nova.arbiscan.io",
+  "tokens": [
+    {
+      "name": "USD Coin",
+      "address": "0x750ba8b76187092b0d1e87e28daaf484d1b5273b"
+    },
+    {
+      "name": "Wrapped BTC",
+      "address": "0x1d05e4e72cd994cdf976181cfb0707345763564d"
+    },
+    {
+      "name": "WETH",
+      "address": "0x765277eebeca2e31912c9946eae1021199b39c61"
+    },
+    {
+      "name": "Dai Stablecoin",
+      "address": "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
+    },
+    {
+      "name": "Arbitrum",
+      "address": "0xf823c3cd3cebe0a1fa952ba88dc9eef8e0bf46ad"
+    },
+    {
+      "name": "Moons",
+      "address": "0x0057ac2d777797d31cd3f8f13bf5e927571d6ad0"
+    },
+    {
+      "name": "Arbius",
+      "address": "0x8afe4055ebc86bd2afb3940c0095c9aca511d852"
+    },
+    {
+      "name": "Polkamon",
+      "address": "0x64ce88ae0b90db03710d265d9786765d2f8efa8b"
+    },
+    {
+      "name": "Godcoin",
+      "address": "0xb5130F4767AB0ACC579f25a76e8f9E977CB3F948"
+    },
+    {
+      "name": "GG",
+      "address": "0x000000000026839b3f4181f2cf69336af6153b99"
+    },
+    {
+      "name": "MoonsDust",
+      "address": "0x4b2576bc44310d6dfb4cfcf2630f25190fc60803"
+    },
+    {
+      "name": "NFTEarthOFT",
+      "address": "0x90aec282ed4cdcaab0934519de08b56f1f2ab4d7"
+    },
+    {
+      "name": "DPS Rum",
+      "address": "0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8"
+    },
+    {
+      "name": "TreasureMaps",
+      "address": "0x80a16016cc4a2e6a2caca8a4a498b1699ff0f844"
+    },
+    {
+      "name": "DPSDoubloon",
+      "address": "0xefaeee334f0fd1712f9a8cc375f427d9cdd40d73"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+ {
+  "fetchedAt": "2025-08-31T21:59:50.415Z",
+  "source": "https://moonriver.moonscan.io/tokens?ps=100",
+  "explorer": "moonriver.moonscan.io",
+  "tokens": [
+    {
+      "name": "BitcoinBR",
+      "address": "0xe57425f1598f9b0d6219706b77f4b3da573a3695"
+    },
+    {
+      "name": "USD Coin",
+      "address": "0xe3f5a90f9cb311505cd691a46596599aa1a0ad7d"
+    },
+    {
+      "name": "Frax",
+      "address": "0x1a93b23281cc1cde4c4741353f3064709a16197d"
+    },
+    {
+      "name": "RiverBoat",
+      "address": "0xbd90a6125a84e5c512129d622a75cdde176ade5e"
+    },
+    {
+      "name": "Tether USD",
+      "address": "0xb44a9b6905af7c801311e8f4e76932ee959c663c"
+    },
+    {
+      "name": "Dai Stablecoin",
+      "address": "0x80a16016cc4a2e6a2caca8a4a498b1699ff0f844"
+    },
+    {
+      "name": "xcKSM",
+      "address": "0xffffffff1fcacbd218edc0eba20fc2308c778080"
+    },
+    {
+      "name": "Wrapped MOVR",
+      "address": "0x98878b06940ae243284ca214f92bb71a2b032b8a"
+    },
+    {
+      "name": "Fantohm",
+      "address": "0xfa1fbb8ef55a4855e5688c0ee13ac3f202486286"
+    },
+    {
+      "name": "Frax Share",
+      "address": "0x6f1d1ee50846fcbc3de91723e61cb68cfa6d0e98"
+    },
+    {
+      "name": "MAI",
+      "address": "0x7f5a79576620c046a293f54ffcdbd8f2468174f1"
+    },
+    {
+      "name": "SolarBeam Token",
+      "address": "0x6bd193ee6d2104f14f94e2ca6efefae561a4334b"
+    },
+    {
+      "name": "Moonscape",
+      "address": "0x5c22ba65f65adffadfc0947382f2e7c286a0fe45"
+    },
+    {
+      "name": "Crowns",
+      "address": "0x6fc9651f45b262ae6338a701d563ab118b1ec0ce"
+    },
+    {
+      "name": "Zenlink Network Token",
+      "address": "0x0f47ba9d9bde3442b42175e51d6a367928a1173b"
+    },
+    {
+      "name": "beefy.finance",
+      "address": "0x173fd7434B8B50dF08e3298f173487ebDB35FD14"
+    },
+    {
+      "name": "HYDRO TOKEN",
+      "address": "0x946112efab61c3636cbd52de2e1392d7a75a6f01"
+    },
+    {
+      "name": "Bifrost Voucher MOVR",
+      "address": "0xffffffff98e37bf6a393504b5adc5b53b4d0ba11"
+    },
+    {
+      "name": "Voucher Ethereum",
+      "address": "0x3b25bc1dc591d24d60560d0135d6750a561d4764"
+    },
+    {
+      "name": "MoonBeans",
+      "address": "0xc2392dd3e3fed2c8ed9f7f0bdf6026fcd1348453"
+    },
+    {
+      "name": "Impossible Decentralized Incubator Access Token",
+      "address": "0x2d28AA28fA1E5e6bF121CF688309Bf3faAAe3C70"
+    },
+    {
+      "name": "Bifrost Voucher KSM",
+      "address": "0xffffffffc6deec7fc8b11a2c8dde9a59f8c62efe"
+    },
+    {
+      "name": "Space Token",
+      "address": "0x55af5865807b196bd0197e0902746f31fbccfa58"
+    }
+  ]
+}

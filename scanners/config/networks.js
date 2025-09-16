@@ -1,0 +1,387 @@
+/**
+ * Simplified Network Configuration
+ * Centralized network settings with environment override support
+ */
+
+// Load environment variables from .env file
+require('dotenv').config();
+
+// Environment variable helper for arrays
+const envArray = (name, fallback = []) => {
+  const value = process.env[name];
+  return value ? value.split(/[,\s]+/).filter(Boolean) : fallback;
+};
+
+// Default API keys - now loaded from environment variables
+const DEFAULT_ETHERSCAN_KEYS = envArray('DEFAULT_ETHERSCAN_KEYS', []);
+
+// Default CoinGecko API key - now loaded from environment variable  
+const DEFAULT_COINGECKO_KEY = process.env.DEFAULT_COINGECKO_KEY || '';
+
+// Script timeout settings (seconds)
+const TIMEOUT_SECONDS = 7200;
+const TIMEOUT_KILL_AFTER = 15;
+
+// Network configurations
+const NETWORKS = {
+  ethereum: {
+    chainId: 1,
+    name: 'Ethereum Mainnet',
+
+    rpcUrls: envArray('ETHEREUM_RPC_URL', [
+      'https://eth.llamarpc.com',
+      'https://ethereum-rpc.publicnode.com',
+      'https://1rpc.io/eth',
+      'https://rpc.mevblocker.io',
+      'https://rpc.flashbots.net',
+      'https://eth.meowrpc.com',
+      'https://eth.drpc.org',
+      'https://endpoints.omniatech.io/v1/eth/mainnet/public'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0xfE53a230a2AEd6E52f2dEf488DA408d47a80A8bF',
+    BalanceHelper: '0x5CD47B1F62e3BD40C669024CA52B40946C8b641b',
+    nativeCurrency: 'ETH'
+  },
+
+  binance: {
+    chainId: 56,
+    name: 'BNB Smart Chain',
+
+    rpcUrls: envArray('BSC_RPC_URL', [
+      'https://1rpc.io/bnb',
+      'https://bsc.meowrpc.com',
+      'https://bsc-rpc.publicnode.com',
+      'https://endpoints.omniatech.io/v1/bsc/mainnet/public',
+      'https://rpc.polysplit.cloud/v1/chain/56',
+      'https://binance.llamarpc.com',
+      'https://bsc.blockpi.network/v1/rpc/private',
+      'https://bnb.api.onfinality.io/public'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0x91Ce20223F35b82E34aC4913615845C7AaA0e2B7',
+    BalanceHelper: '0x5B9a623Fc8eDFE96B9504B6B801EF439c8acc333',
+    nativeCurrency: 'BNB'
+  },
+
+  polygon: {
+    chainId: 137,
+    name: 'Polygon',
+
+    rpcUrls: envArray('POLYGON_RPC_URL', [
+      'https://1rpc.io/matic',
+      'https://polygon-bor-rpc.publicnode.com',
+      'https://polygon.drpc.org',
+      'https://polygon.meowrpc.com',
+      'https://endpoints.omniatech.io/v1/matic/mainnet/public',
+      'https://rpc.ankr.com/polygon',
+      'https://polygon-public.nodies.app',
+      'https://polygon-mainnet.public.blastapi.io'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0xC7bAd40fE8c4B8aA380cBfAE63B9b39a9684F8B4',
+    BalanceHelper: '0x1af03A9a9c7F1D3Ed1E7900d9f76F09EE01B0344',
+    nativeCurrency: 'MATIC'
+  },
+
+  arbitrum: {
+    chainId: 42161,
+    name: 'Arbitrum One',
+
+    rpcUrls: envArray('ARBITRUM_RPC_URL', [
+      'https://1rpc.io/arb',
+      'https://arbitrum-one-rpc.publicnode.com',
+      'https://arbitrum.meowrpc.com',
+      'https://arbitrum.drpc.org',
+      'https://api.stateless.solutions/arbitrum-one/v1/demo',
+      'https://arbitrum-one.public.nodies.app',
+      'https://arbitrum.public.blockpi.network/v1/rpc/public',
+      'https://arbitrum-one.public.blastapi.io'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0x20f776Bd5FA50822fb872573C80453dA18A8CA34',
+    BalanceHelper: '0x04eD457F1A445f2a90132028C2A0Cfa09e823bEc',
+    nativeCurrency: 'ETH'
+  },
+
+  optimism: {
+    chainId: 10,
+    name: 'Optimism',
+
+    rpcUrls: envArray('OPTIMISM_RPC_URL', [
+      'https://1rpc.io/op',
+      'https://optimism-rpc.publicnode.com',
+      'https://optimism.meowrpc.com',
+      'https://api.stateless.solutions/optimism/v1/demo',
+      'https://endpoints.omniatech.io/v1/op/mainnet/public',
+      'https://optimism.public.blastapi.io',
+      'https://optimism-public.nodies.app',
+      'https://optimism.api.onfinality.io/public'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
+    BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
+    nativeCurrency: 'ETH'
+  },
+
+  base: {
+    chainId: 8453,
+    name: 'Base',
+
+    rpcUrls: envArray('BASE_RPC_URL', [
+      'https://base.llamarpc.com',
+      'https://1rpc.io/base',
+      'https://base.meowrpc.com',
+      'https://base-rpc.publicnode.com',
+      'https://base.drpc.org',
+      'https://base.public.blockpi.network/v1/rpc/public',
+      'https://base-public.nodies.app',
+      'https://base.gateway.tenderly.co'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
+    BalanceHelper: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
+    nativeCurrency: 'ETH'
+  },
+
+  avalanche: {
+    chainId: 43114,
+    name: 'Avalanche C-Chain',
+
+    rpcUrls: envArray('AVALANCHE_RPC_URL', [
+      'https://api.avax.network/ext/bc/C/rpc',
+      'https://avalanche.public-rpc.com',
+      'https://avalanche-c-chain-rpc.publicnode.com',
+      'https://1rpc.io/avax/c',
+      'https://endpoints.omniatech.io/v1/avax/mainnet/public',
+      'https://avax.meowrpc.com',
+      'https://avalanche.drpc.org'
+    ]),
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc', // Fixed: corrected swap
+    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384', // Fixed: corrected swap
+    nativeCurrency: 'AVAX'
+  }
+};
+
+// Additional networks with proper configurations
+const ADDITIONAL_NETWORKS = {
+  gnosis: {
+    chainId: 100,
+    name: 'Gnosis Chain',
+
+    rpcUrls: envArray('GNOSIS_RPC_URL', [
+      'https://gnosis.drpc.org',
+      'https://endpoints.omniatech.io/v1/gnosis/mainnet/public',
+      'https://gnosis-rpc.publicnode.com',
+      'https://1rpc.io/gnosis',
+      'https://gnosis-public.nodies.app',
+      'https://gnosis.blockpi.network/v1/rpc/public',
+      'https://gnosis.therpc.io'
+    ]),
+    nativeCurrency: 'xDAI',
+    contractValidator: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A', // Fixed: corrected swap 
+    BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550', // Fixed: corrected swap
+
+  },
+  
+  linea: {
+    chainId: 59144,
+    name: 'Linea',
+
+    rpcUrls: envArray('LINEA_RPC_URL', [
+      'https://rpc.linea.build',
+      'https://1rpc.io/linea',
+      'https://linea.drpc.org',
+      'https://linea.decubate.com',
+      'https://linea.publicnode.com'
+    ]),
+    nativeCurrency: 'ETH',   
+    BalanceHelper: '0xa3ba28ccdda4ba986f20e395d41f5bb37f8f900d', 
+    contractValidator: '0xeabb01920c41e1c010ba74628996eea65df03550',
+  },
+  
+  scroll: {
+    chainId: 534352,
+    name: 'Scroll',
+
+    rpcUrls: envArray('SCROLL_RPC_URL', [
+      'https://rpc.scroll.io',
+      'https://1rpc.io/scroll',
+      'https://scroll.drpc.org',
+      'https://rpc.ankr.com/scroll',
+      'https://endpoints.omniatech.io/v1/scroll/mainnet/public',
+      'https://scroll-mainnet.public.blastapi.io',
+      'https://scroll-mainnet.unifra.io'
+    ]),
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
+    contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
+  },
+  
+  mantle: {
+    chainId: 5000,
+    name: 'Mantle',
+
+    rpcUrls: envArray('MANTLE_RPC_URL', [
+      'https://rpc.mantle.xyz',
+      'https://mantle-rpc.publicnode.com',
+      'https://mantle.drpc.org',
+      'https://1rpc.io/mantle',
+      'https://endpoints.omniatech.io/v1/mantle/mainnet/public'
+    ]),
+    nativeCurrency: 'MNT',
+    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
+    BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
+  },
+  
+  opbnb: {
+    chainId: 204,
+    name: 'opBNB',
+
+    rpcUrls: envArray('OPBNB_RPC_URL', [
+      'https://opbnb-mainnet-rpc.bnbchain.org',
+      'https://opbnb-rpc.publicnode.com',
+      'https://1rpc.io/opbnb',
+      'https://opbnb.drpc.org',
+      'https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3'
+    ]),
+    nativeCurrency: 'BNB',
+    contractValidator: '0xa3ba28ccdda4ba986f20e395d41f5bb37f8f900d',
+    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384'
+  },
+  
+  'polygon-zkevm': {
+    chainId: 1101,
+    name: 'Polygon zkEVM',
+
+    rpcUrls: envArray('POLYGON_ZKEVM_RPC_URL', [
+      'https://1rpc.io/polygon/zkevm',
+      'https://polygon-zkevm.drpc.org',
+      'https://node.histori.xyz/polygon-zkevm-mainnet/8ry9f6t9dct1se2hlagxnd9n2a',
+      'https://endpoints.omniatech.io/v1/polygon-zkevm/mainnet/public',
+      'https://polygon-zkevm-public.nodies.app',
+      'https://polygon-zkevm-mainnet.public.blastapi.io'
+    ]),
+    nativeCurrency: 'ETH'
+  },
+  
+  'arbitrum-nova': {
+    chainId: 42170,
+    name: 'Arbitrum Nova',
+
+    rpcUrls: envArray('ARBITRUM_NOVA_RPC_URL', [
+      'https://arbitrum-nova-rpc.publicnode.com',
+      'https://arbitrum-nova.drpc.org',
+      'https://arbitrum-nova.public.blastapi.io',
+      'https://nova.arbitrum.io/rpc'
+    ]),
+    nativeCurrency: 'ETH'
+  },
+  
+  celo: {
+    chainId: 42220,
+    name: 'Celo',
+
+    rpcUrls: envArray('CELO_RPC_URL', [
+      'https://forno.celo.org',
+      'https://rpc.ankr.com/celo',
+      'https://celo.drpc.org',
+      'https://celo-json-rpc.stakely.io',
+      'https://celo.api.onfinality.io/public'
+    ]),
+    nativeCurrency: 'CELO'
+  },
+  
+  cronos: {
+    chainId: 25,
+    name: 'Cronos',
+
+    rpcUrls: envArray('CRONOS_RPC_URL', [
+      'https://evm.cronos.org',
+      'https://cronos-rpc.elk.finance',
+      'https://cronos-evm-rpc.publicnode.com',
+      'https://1rpc.io/cro',
+      'https://cronos.drpc.org',
+      'https://rpc.vvs.finance',
+      'https://mmf-rpc.xstaking.sg'
+    ]),
+    nativeCurrency: 'CRO'
+  },
+  
+  moonbeam: {
+    chainId: 1284,
+    name: 'Moonbeam',
+
+    rpcUrls: envArray('MOONBEAM_RPC_URL', [
+      'https://rpc.api.moonbeam.network',
+      'https://moonbeam.api.onfinality.io/public',
+      'https://moonbeam.unitedbloc.com',
+      'https://1rpc.io/glmr',
+      'https://moonbeam-rpc.dwellir.com',
+      'https://moonbeam.drpc.org',
+      'https://moonbeam.therpc.io'
+    ]),
+    nativeCurrency: 'GLMR'
+  },
+  
+  moonriver: {
+    chainId: 1285,
+    name: 'Moonriver',
+
+    rpcUrls: envArray('MOONRIVER_RPC_URL', [
+      'https://rpc.api.moonriver.moonbeam.network',
+      'https://moonriver.api.onfinality.io/public',
+      'https://moonriver-rpc.dwellir.com',
+      'https://moonriver-rpc.publicnode.com',
+      'https://moonriver.drpc.org',
+      'https://moonriver.unitedbloc.com'
+    ]),
+    nativeCurrency: 'MOVR'
+  }
+};
+
+// Apply configuration to additional networks
+Object.entries(ADDITIONAL_NETWORKS).forEach(([key, config]) => {
+  const upperKey = key.toUpperCase().replace('-', '_');
+  NETWORKS[key] = {
+    ...config,
+    apiKeys: DEFAULT_ETHERSCAN_KEYS,
+    // Keep existing contract addresses if set, otherwise null
+    contractValidator: config.contractValidator || null,
+    BalanceHelper: config.BalanceHelper || null
+  };
+});
+
+// Global settings
+const CONFIG = {
+  // Time settings (in hours/days) - can be overridden by env vars
+  TIMEDELAY: parseInt(process.env.TIMEDELAY_HOURS || '4', 10),
+  FUNDUPDATEDELAY: parseInt(process.env.FUNDUPDATEDELAY_DAYS || '7', 10),
+  
+  // Script timeout settings
+  TIMEOUT_SECONDS: parseInt(process.env.TIMEOUT_SECONDS || TIMEOUT_SECONDS.toString(), 10),
+  TIMEOUT_KILL_AFTER: parseInt(process.env.TIMEOUT_KILL_AFTER || TIMEOUT_KILL_AFTER.toString(), 10),
+  
+  // API settings
+  coinGeckoAPI: process.env.COINGECKO_API_KEY || DEFAULT_COINGECKO_KEY,
+  etherscanApiKeys: DEFAULT_ETHERSCAN_KEYS,
+  
+  // Database settings (still from env vars for security)
+  database: {
+    host: process.env.PGHOST || 'localhost',
+    port: parseInt(process.env.PGPORT || '5432', 10),
+    database: process.env.PGDATABASE || 'bugchain_indexer', 
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || ''
+  },
+  
+  // Advanced options
+  runFixDeployed: process.env.RUN_FIX_DEPLOYED === 'true',
+  runVerifyContracts: process.env.RUN_VERIFY_CONTRACTS !== 'false', // Default true
+  
+  // Add all networks
+  ...NETWORKS
+};
+
+module.exports = { NETWORKS, CONFIG };

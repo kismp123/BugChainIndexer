@@ -1,0 +1,407 @@
+{
+  "fetchedAt": "2025-08-31T21:54:26.304Z",
+  "source": "https://arbiscan.io/tokens?ps=100",
+  "explorer": "arbiscan.io",
+  "tokens": [
+    {
+      "name": "Bridged USDC",
+      "address": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"
+    },
+    {
+      "name": "USD Coin",
+      "address": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+    },
+    {
+      "name": "Wrapped liquid staked Ether 2.0",
+      "address": "0x0fBcbaEA96Ce0cF7Ee00A8c19c3ab6f5Dc8E1921"
+    },
+    {
+      "name": "ChainLink Token",
+      "address": "0xf97f4df75117a78c1a5a0dbb814af92458539fb4"
+    },
+    {
+      "name": "Wrapped BTC",
+      "address": "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f"
+    },
+    {
+      "name": "USDe",
+      "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+    },
+    {
+      "name": "Wrapped Ether",
+      "address": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+    },
+    {
+      "name": "USDS Stablecoin",
+      "address": "0x6491c05a82219b8d1479057361ff1654749b876b"
+    },
+    {
+      "name": "Coinbase Wrapped BTC",
+      "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"
+    },
+    {
+      "name": "Uniswap",
+      "address": "0xfa7f8980b0f1e64a2062791cc3b0871572f1f7f0"
+    },
+    {
+      "name": "Polkadot Token (Relay Chain)",
+      "address": "0x8d010bf9c26881788b4e6bf5fd1bdc358c8f90b8"
+    },
+    {
+      "name": "Staked USDe",
+      "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
+    },
+    {
+      "name": "Dai Stablecoin",
+      "address": "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
+    },
+    {
+      "name": "ENA",
+      "address": "0x58538e6a46e07434d7e7375bc268d3cb839c0133"
+    },
+    {
+      "name": "Pepe",
+      "address": "0x25d887ce7a35172c62febfd67a1856f20faebb00"
+    },
+    {
+      "name": "USD₮0",
+      "address": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
+    },
+    {
+      "name": "Arbitrum",
+      "address": "0x912ce59144191c1204e64559fe8253a0e49e6548"
+    },
+    {
+      "name": "BlackRock USD Institutional Digital Liquidity Fund",
+      "address": "0xa6525ae43edcd03dc08e775774dcabd3bb925872"
+    },
+    {
+      "name": "Savings USDS",
+      "address": "0xddb46999f8891663a8f2828d25298f70416d7610"
+    },
+    {
+      "name": "Spark USDC Vault",
+      "address": "0x940098b108fb7d0a7e374f6eded7760787464609"
+    },
+    {
+      "name": "Renzo Restaked ETH",
+      "address": "0x2416092f143378750bb29b79ed961ab195cceea5"
+    },
+    {
+      "name": "PayPal USD",
+      "address": "0x46850ad61c2b7d64d08c9c754f45254596696984"
+    },
+    {
+      "name": "First Digital USD",
+      "address": "0x93C9932E4afa59201F0B5E63f7d816516F1669fE"
+    },
+    {
+      "name": "Solv BTC",
+      "address": "0x3647c54c4c2c65bc7a2d63c0da2809b399dbbdc0"
+    },
+    {
+      "name": "Lido DAO Token",
+      "address": "0x13ad51ed4f1b7e9dc168d8a00cb3f4ddd85efa60"
+    },
+    {
+      "name": "Curve DAO Token",
+      "address": "0x11cdb42b0eb46d95f990bedd4695a6e3fa034978"
+    },
+    {
+      "name": "Pyth Network",
+      "address": "0xE4D5c6aE46ADFAF04313081e8C0052A30b6Dd724"
+    },
+    {
+      "name": "Graph Token",
+      "address": "0x9623063377ad1b27544c965ccd7342f7ea7e88c7"
+    },
+    {
+      "name": "Wrapped eETH",
+      "address": "0x35751007a407ca6feffe80b3cb397736d2cf4dbe"
+    },
+    {
+      "name": "PancakeSwap Token",
+      "address": "0x1b896893dfc86bb67Cf57767298b9073D2c1bA2c"
+    },
+    {
+      "name": "Pendle",
+      "address": "0x0c880f6761f1af8d9aa9c466984b80dab9a8c9e8"
+    },
+    {
+      "name": "USDX",
+      "address": "0xf3527ef8de265eaa3716fb312c12847bfba66cef"
+    },
+    {
+      "name": "Ondo U.S. Dollar Yield",
+      "address": "0x35e050d3C0eC2d29D269a8EcEa763a183bDF9A9D"
+    },
+    {
+      "name": "Morpho Token",
+      "address": "0x40bd670a58238e6e230c430bbb5ce6ec0d40df48"
+    },
+    {
+      "name": "Arbitrum tBTC v2",
+      "address": "0x6c84a8f1c29108F47a79964b5Fe888D4f4D0dE40"
+    },
+    {
+      "name": "Usual USD",
+      "address": "0x35f1C5cB7Fb977E669fD244C567Da99d8a3a6850"
+    },
+    {
+      "name": "Vision",
+      "address": "0x6fbbbd8bfb1cd3986b1d05e7861a0f62f87db74b"
+    },
+    {
+      "name": "ether.fi governance token",
+      "address": "0x7189fb5b6504bbff6a852b13b7b82a3c118fdc27"
+    },
+    {
+      "name": "Frax Ether",
+      "address": "0x43edd7f3831b08fe70b7555ddd373c8bf65a9050"
+    },
+    {
+      "name": "Frax Ether",
+      "address": "0x178412e79c25968a32e89b11f63b33f733770c2a"
+    },
+    {
+      "name": "TrueUSD",
+      "address": "0x4d15a3a2286d883af0aa1b3f21367843fac63e07"
+    },
+    {
+      "name": "ApeCoin",
+      "address": "0x7f9fbf9bdd3f4105c478b996b648fe6e828a1e98"
+    },
+    {
+      "name": "Decentralized USD",
+      "address": "0x680447595e8b7b3aa1b43beb9f6098c79ac2ab3f"
+    },
+    {
+      "name": "Fluid",
+      "address": "0x61e030a56d33e8260fdd81f03b162a79fe3449cd"
+    },
+    {
+      "name": "Compound",
+      "address": "0x354a6da3fcde098f8389cad84b0182725c6c91de"
+    },
+    {
+      "name": "Wormhole Token",
+      "address": "0xb0ffa8000886e57f86dd5264b9582b2ad87b2b91"
+    },
+    {
+      "name": "Olympus",
+      "address": "0x6e6a3d8f1affac703b1aef1f43b8d2321be40043"
+    },
+    {
+      "name": "Aethir Token",
+      "address": "0xc87B37a581ec3257B734886d9d3a581F5A9d056c"
+    },
+    {
+      "name": "Aave Arbitrum GHO",
+      "address": "0xebe517846d0f36eced99c735cbf6131e1feb775d"
+    },
+    {
+      "name": "GHO Token",
+      "address": "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33"
+    },
+    {
+      "name": "Staked Frax Ether",
+      "address": "0x3Ec3849C33291a9eF4c5dB86De593EB4A37fDe45"
+    },
+    {
+      "name": "Staked Frax Ether",
+      "address": "0x95ab45875cffdba1e5f451b950bc2e42c0053f39"
+    },
+    {
+      "name": "1INCH Token",
+      "address": "0x6314c31a7a1652ce482cffe247e9cb7c3f4bb9af"
+    },
+    {
+      "name": "Gnosis Token",
+      "address": "0xa0b862f60edef4452f25b4160f177db44deb6cf1"
+    },
+    {
+      "name": "EverValueCoin",
+      "address": "0x45d9831d8751b2325f3dbf48db748723726e1c8c"
+    },
+    {
+      "name": "Spiko EU T-Bills Money Market Fund",
+      "address": "0xcbeb19549054cc0a6257a77736fc78c367216ce7"
+    },
+    {
+      "name": "LUNC",
+      "address": "0x1A4dA80967373fd929961e976b4b53ceeC063a15"
+    },
+    {
+      "name": "Axelar",
+      "address": "0x23ee2343b892b1bb63503a4fabc840e0e2c6810f"
+    },
+    {
+      "name": "Livepeer Token",
+      "address": "0x289ba1701c2f088cf0faf8b3705246331cb8a839"
+    },
+    {
+      "name": "Frax",
+      "address": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f"
+    },
+    {
+      "name": "ether.fi BTC",
+      "address": "0x657e8c867d8b37dcc18fa4caead9c45eb088c642"
+    },
+    {
+      "name": "Staked USDX",
+      "address": "0x7788a3538c5fc7f9c7c8a74eac4c898fc8d87d92"
+    },
+    {
+      "name": "Frax Share",
+      "address": "0x9d2f299715d94d8a7e6f5eaa8e654e8c74a988a7"
+    },
+    {
+      "name": "uniBTC",
+      "address": "0x6b2a01a5f79deb4c2f3c0eda7b01df456fbd726a"
+    },
+    {
+      "name": "LayerZero",
+      "address": "0x6985884c4392d348587b19cb9eaaf157f13271cd"
+    },
+    {
+      "name": "AUSD",
+      "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"
+    },
+    {
+      "name": "Euler",
+      "address": "0x462cd9e0247b2e63831c3189ae738e5e9a5a4b64"
+    },
+    {
+      "name": "Celo native asset",
+      "address": "0x4e51ac49bc5e2d87e0ef713e9e5ab2d71ef4f336"
+    },
+    {
+      "name": "yearn.finance",
+      "address": "0x82e3a8f066a6989666b031d916c43672085b1582"
+    },
+    {
+      "name": "CoW Protocol Token",
+      "address": "0xcb8b5cd20bdcaea9a010ac1f8d835824f5c87a04"
+    },
+    {
+      "name": "HoloToken",
+      "address": "0x17e1e5c6bc9ebb11647c94e1c5e3ba619f2781ea"
+    },
+    {
+      "name": "StargateToken",
+      "address": "0x6694340fc020c5e6b96567843da2df01b2ce1eb6"
+    },
+    {
+      "name": "UXLINK Token",
+      "address": "0x1a6b3a62391eccaaa992ade44cd4afe6bec8cff1"
+    },
+    {
+      "name": "GMX",
+      "address": "0xfc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a"
+    },
+    {
+      "name": "YieldFi yUSD",
+      "address": "0x4772d2e014f9fc3a820c444e3313968e9a5c8121"
+    },
+    {
+      "name": "SushiToken",
+      "address": "0xd4d42f0b6def4ce0383636770ef773390d85c61a"
+    },
+    {
+      "name": "Spiko US T-Bills Money Market Fund",
+      "address": "0x021289588cd81dC1AC87ea91e91607eEF68303F5"
+    },
+    {
+      "name": "WOO",
+      "address": "0xcafcd85d8ca7ad1e1c6f82f651fa15e33aefd07b"
+    },
+    {
+      "name": "LoopringCoin V2",
+      "address": "0x46d0ce7de6247b0a95f67b43b589b4041bae7fbe"
+    },
+    {
+      "name": "Dola USD Stablecoin",
+      "address": "0x6a7661795c374c0bfc635934efaddff3a7ee23b6"
+    },
+    {
+      "name": "UMA Voting Token v1",
+      "address": "0xd693ec944a85eeca4247ec1c3b130dca9b0c3b22"
+    },
+    {
+      "name": "WorldMobileToken",
+      "address": "0xdbb5cf12408a3ac17d668037ce289f9ea75439d7"
+    },
+    {
+      "name": "COTI Token",
+      "address": "0x6fe14d3cc2f7bddffba5cdb3bbe7467dd81ea101"
+    },
+    {
+      "name": "Lorenzo stBTC",
+      "address": "0xf6718b2701d4a6498ef77d7c152b2137ab28b8a3"
+    },
+    {
+      "name": "Across Protocol Token",
+      "address": "0x53691596d1bce8cea565b84d4915e69e03d9c99d"
+    },
+    {
+      "name": "Tellor Tributes",
+      "address": "0xd58d345fd9c82262e087d2d0607624b410d88242"
+    },
+    {
+      "name": "Orbs",
+      "address": "0xf3c091ed43de9c270593445163a41a876a0bb3dd"
+    },
+    {
+      "name": "DIAToken",
+      "address": "0x39f91452a6e9994762876e1edd87be28a46d5c99"
+    },
+    {
+      "name": "Tokenlon",
+      "address": "0x55678cd083fcdc2947a0df635c93c838c89454a3"
+    },
+    {
+      "name": "Balancer",
+      "address": "0x040d1edc9569d4bab2d15287dc5a4f10f56a56b8"
+    },
+    {
+      "name": "Spell Token",
+      "address": "0x3e6648c5a70a150a88bce65f4ad4d506fe15d2af"
+    },
+    {
+      "name": "TerraUSD",
+      "address": "0x13780E6d5696DD91454F6d3BbC2616687fEa43d0"
+    },
+    {
+      "name": "JoeToken",
+      "address": "0x371c7ec6d8039ff7933a2aa28eb827ffe1f52f07"
+    },
+    {
+      "name": "MiL.k",
+      "address": "0x374c5fb7979d5fdbaad2d95409e235e5cbdfd43c"
+    },
+    {
+      "name": "Marlin POND",
+      "address": "0xda0a57b710768ae17941a9fa33f8b720c8bd9ddd"
+    },
+    {
+      "name": "Subsquid",
+      "address": "0x1337420ded5adb9980cfc35f8f2b054ea86f8ab1"
+    },
+    {
+      "name": "Cartesi Token",
+      "address": "0x319f865b287fcc10b30d8ce6144e8b6d1b476999"
+    },
+    {
+      "name": "USUAL",
+      "address": "0x6a5d904519a2b605da2d5da7137ed5f4184f6513"
+    },
+    {
+      "name": "Frax USD",
+      "address": "0x80eede496655fb9047dd39d9f418d5483ed600df"
+    },
+    {
+      "name": "Kyber Network Crystal v2",
+      "address": "0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb"
+    }
+  ]
+}

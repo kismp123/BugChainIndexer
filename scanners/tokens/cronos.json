@@ -1,0 +1,407 @@
+{
+  "fetchedAt": "2025-08-31T21:57:02.446Z",
+  "source": "https://cronoscan.com/tokens?ps=100",
+  "explorer": "cronoscan.com",
+  "tokens": [
+    {
+      "name": "Tether USD",
+      "address": "0x66e428c3f67a68878562e79a0234c1f83c208770"
+    },
+    {
+      "name": "XRP",
+      "address": "0xb9ce0dd29c91e02d4620f57a66700fc5e41d6d15"
+    },
+    {
+      "name": "Binance",
+      "address": "0xfa9343c3897324496a05fc75abed6bac29f8a40f"
+    },
+    {
+      "name": "SOL",
+      "address": "0xc9de0f3e08162312528ff72559db82590b481800"
+    },
+    {
+      "name": "USD Coin",
+      "address": "0xc21223249ca28397b4b6541dffaecc539bff0c59"
+    },
+    {
+      "name": "Dogecoin",
+      "address": "0x1a8e39ae59e5556b56b76fcba98d22c9ae557396"
+    },
+    {
+      "name": "ADA",
+      "address": "0x0e517979c2c1c1522ddb0c73905e0d39b3f990c0"
+    },
+    {
+      "name": "ChainLink Token",
+      "address": "0xbc6f24649ccd67ec42342accdceccb2efa27c9d9"
+    },
+    {
+      "name": "Wrapped BTC",
+      "address": "0x062e66477faf219f25d27dced647bf57c3107d52"
+    },
+    {
+      "name": "XLM",
+      "address": "0x747d6c858168b8cd6e537160320b5de58fd3367c"
+    },
+    {
+      "name": "BCH",
+      "address": "0x7589B70aBb83427bb7049e08ee9fC6479ccB7a23"
+    },
+    {
+      "name": "AVAX",
+      "address": "0x8d58088D4E8Ffe75A8b6357ba5ff17B93B912640"
+    },
+    {
+      "name": "Wrapped Ether",
+      "address": "0xe44fd7fcb2b1581822d0c862b68222998a0c299a"
+    },
+    {
+      "name": "HBAR",
+      "address": "0xe0C7226a58f54db71eDc6289Ba2dc80349B41974"
+    },
+    {
+      "name": "LTC",
+      "address": "0x9d97Be214b68C7051215BB61059B4e299Cd792c3"
+    },
+    {
+      "name": "SHIBA INU",
+      "address": "0xbed48612bc69fa1cab67052b42a95fb30c1bcfee"
+    },
+    {
+      "name": "DOT",
+      "address": "0x994047fe66406cbd646cd85b990e11d7f5db8fc7"
+    },
+    {
+      "name": "Dai Stablecoin",
+      "address": "0xf2001b145b43032aaf5ee2884e456ccd805f677d"
+    },
+    {
+      "name": "ETC",
+      "address": "0xd9ce64C200721a98103102f9ea8e894E347EA287"
+    },
+    {
+      "name": "NEAR",
+      "address": "0xAFE470AE215e48c144c7158EAe3CcF0C451cb0CB"
+    },
+    {
+      "name": "ICP",
+      "address": "0x8Bf3E654075E269c1C415e4889C12D9837452be0"
+    },
+    {
+      "name": "ATOM",
+      "address": "0xb888d8dd1733d72681b30c00ee76bde93ae7aa93"
+    },
+    {
+      "name": "VET",
+      "address": "0xc9b5b981e7ffd630f456614d75230022f46fd03d"
+    },
+    {
+      "name": "ALGO",
+      "address": "0x2fEfe47989214c2e74A6319076c138d395681407"
+    },
+    {
+      "name": "BONK",
+      "address": "0xa09e39d0d621fcd92d0b32dfeddd7396d0e4dcc7"
+    },
+    {
+      "name": "FIL",
+      "address": "0x7d7130B0B4733D603Cea12628b52067ce8458058"
+    },
+    {
+      "name": "OP",
+      "address": "0x4907c3Fa905103b443C3a3c659caC1B703a235BD"
+    },
+    {
+      "name": "TIA",
+      "address": "0x982b59aae4f0bc66960b4bf06d6fe96b9f33d3f7"
+    },
+    {
+      "name": "STX",
+      "address": "0x30BBA7b57952E7028c47d5c6AB295D0Da7139eF9"
+    },
+    {
+      "name": "Curve DAO Token",
+      "address": "0xfEf44a0C77eca218F443382d3128a7A251a8C542"
+    },
+    {
+      "name": "WIF",
+      "address": "0x25e8c72d267b96e757875d8b565a42c0e3b8f12f"
+    },
+    {
+      "name": "THETA",
+      "address": "0x73B6FcF8Ed6daEfE3775bC38949F115305047C0d"
+    },
+    {
+      "name": "Pendle",
+      "address": "0x49c3bbb239f4fb44327073510f4ba72d207a81d6"
+    },
+    {
+      "name": "XTZ",
+      "address": "0x9D5a7d02D51Dc523197e62c2865907dbB53642Af"
+    },
+    {
+      "name": "FLOW",
+      "address": "0x22EF9d73EA90E774CfB21fADDF84b37BD54FE7a6"
+    },
+    {
+      "name": "TrueUSD",
+      "address": "0x87efb3ec1576dec8ed47e58b832bedcd86ee186e"
+    },
+    {
+      "name": "HNT",
+      "address": "0x61426C150207AbF8a215f3377a0819dDcA842aF3"
+    },
+    {
+      "name": "NEO",
+      "address": "0xB3fc0777738168ce33B228F1831EEbD5A81aaDB3"
+    },
+    {
+      "name": "RUNE",
+      "address": "0x171C8AAA57D0107d0187f54Ccf4CC03406E76a4E"
+    },
+    {
+      "name": "AR",
+      "address": "0xeB6B3AEdA7A2705fAC5e2350fA4D71a64b393b37"
+    },
+    {
+      "name": "EGLD",
+      "address": "0x5c54Cc9A7abeD2dd102361c142417756Fb157292"
+    },
+    {
+      "name": "WEMIX",
+      "address": "0x2d1D4F5166441eDF0943328254f8a28AdE2124Ba"
+    },
+    {
+      "name": "AKT",
+      "address": "0x39a65A74Dc5A778Ff93d1765Ea51F57BC49c81B3"
+    },
+    {
+      "name": "QTUM",
+      "address": "0x32529346958711B3beF92B96507C14821e50C9c8"
+    },
+    {
+      "name": "VVSToken",
+      "address": "0x2d03bece6747adc00e1a131bba1469c15fd11e03"
+    },
+    {
+      "name": "KSM",
+      "address": "0x0BD48A8A9565385649D9d7f1c945D1d0C4543E26"
+    },
+    {
+      "name": "CKB",
+      "address": "0x5dEED46f39c485bA03b61d83763d0f6357dc4737"
+    },
+    {
+      "name": "ZIL",
+      "address": "0xc70ed252E55d68A7020A754Fb92Fa5c68e3c199f"
+    },
+    {
+      "name": "VTHO",
+      "address": "0x3F2Cec6455f874edC9d86E48312787CCb19e0f72"
+    },
+    {
+      "name": "Crypto.com Wrapped Staked ETH",
+      "address": "0x7a7c9db510aB29A2FC362a4c34260BEcB5cE3446"
+    },
+    {
+      "name": "ONE",
+      "address": "0xf0F2cCf4F18a13F73F7C48FA248645dD4Ac51341"
+    },
+    {
+      "name": "GMX",
+      "address": "0x4f0271eed3d0163ef1951b2f09b25bb967cf179b"
+    },
+    {
+      "name": "ICX",
+      "address": "0xf6726cEBd173CF30926B69087179E18489183422"
+    },
+    {
+      "name": "BOME",
+      "address": "0xb588051e6De4E22Cb9680942Bf6a77a7Bc34A2F0"
+    },
+    {
+      "name": "CSPR",
+      "address": "0x15a9e70f166BcaAA7bfF094d865cE5aAa73A2A58"
+    },
+    {
+      "name": "Enjin Coin",
+      "address": "0x0a92ea8a197919acb9bc26660ed0d43d01ed26b7"
+    },
+    {
+      "name": "XNO",
+      "address": "0x38e61f5D15B7985799cCcA3c0E1e549458C0c772"
+    },
+    {
+      "name": "GLMR",
+      "address": "0x268B344bF8bbCd9Dd4e4FA68264309B05F15820a"
+    },
+    {
+      "name": "JOE",
+      "address": "0xc7f14c5e9365533b151bc29901cbcbf8b07af6e3"
+    },
+    {
+      "name": "CorgiAI",
+      "address": "0x6b431b8a964bfcf28191b07c91189ff4403957d0"
+    },
+    {
+      "name": "Dogelon",
+      "address": "0x02dccaf514c98451320a9365c5b46c61d3246ff3"
+    },
+    {
+      "name": "ACS",
+      "address": "0x8011182dE19A1dA2CDAf80a66562b6E4aC746Fe1"
+    },
+    {
+      "name": "ACA",
+      "address": "0x213E6fb02009c13692bAA23C63FdE8D623d22705"
+    },
+    {
+      "name": "LimeWire Token",
+      "address": "0x0DdB6540aFD29b14F7E02D1292BD675b5Ceea896"
+    },
+    {
+      "name": "Synapse",
+      "address": "0xfd0f80899983b8d46152aa1717d76cba71a31616"
+    },
+    {
+      "name": "MYRO",
+      "address": "0x195c4583c58944cf3435c3097195cd5452be33ac"
+    },
+    {
+      "name": "CHESS",
+      "address": "0xA263eB1747007111e9801797D711f31D9B734f38"
+    },
+    {
+      "name": "VOXEL",
+      "address": "0x5fdbFE38E050829374001630B8710BDd05Ea55C0"
+    },
+    {
+      "name": "Tectonic Governance Token",
+      "address": "0xdd73dea10abc2bff99c60882ec5b2b81bb1dc5b2"
+    },
+    {
+      "name": "JUNO",
+      "address": "0x8f45cc102d6ad9502cc305e5590b4d5c844b2dd7"
+    },
+    {
+      "name": "Vies Token",
+      "address": "0xb1d4e07659c91872db927939f0bc6cd0747764bc"
+    },
+    {
+      "name": "FITFI",
+      "address": "0xcD7d4cB8a8B4810Fb740A42E344513d49e0AC11f"
+    },
+    {
+      "name": "Cronos ID Token",
+      "address": "0xcbf0adea24fd5f32c6e7f0474f0d1b94ace4e2e7"
+    },
+    {
+      "name": "SPS",
+      "address": "0x1B554fda68bA95924E5bbD0BaF8e769F039e775B"
+    },
+    {
+      "name": "CANTO",
+      "address": "0x83E8B8C435C594e0aBa30910f725c5186B2455a0"
+    },
+    {
+      "name": "DappRadar",
+      "address": "0xa58e3aeaea3292c3e260378e55e9684c59e7a27a"
+    },
+    {
+      "name": "FerroToken",
+      "address": "0x39bC1e38c842C60775Ce37566D03B41A7A66C782"
+    },
+    {
+      "name": "Mimas",
+      "address": "0x10c9284e6094b71d3ce4e38b8bffc668199da677"
+    },
+    {
+      "name": "IRIS",
+      "address": "0xd27FC10235E41Ba8c70652Ed833460949Ed2B882"
+    },
+    {
+      "name": "Nova Fox",
+      "address": "0xe1f864ae527d3646c222fe1b65460db2d6e62228"
+    },
+    {
+      "name": "CRONUS",
+      "address": "0x71b60b37f030d0cff949855b9d0405915057b116"
+    },
+    {
+      "name": "President Platy",
+      "address": "0x13c0ff45d019a5888db92631f18556211001883d"
+    },
+    {
+      "name": "Mitama",
+      "address": "0x0a060a9355b785e52c96b611965f87cefffedef9"
+    },
+    {
+      "name": "Elk",
+      "address": "0xeeeeeb57642040be42185f49c52f7e9b38f8eeee"
+    },
+    {
+      "name": "FORTUNE FAVOURS THE BRAVE",
+      "address": "0xd677944df705924af369d2fccf4a989f343dbcdf"
+    },
+    {
+      "name": "Mad Meerkat Finance",
+      "address": "0x97749c9b61f878a880dfe312d2594ae07aed7656"
+    },
+    {
+      "name": "RadioShack Token",
+      "address": "0xf899e3909B4492859d44260E1de41A9E663e70F5"
+    },
+    {
+      "name": "Xitcoin",
+      "address": "0xe45fe733bc8617fa6dac8437fc44b5fffa949991"
+    },
+    {
+      "name": "HOD",
+      "address": "0x68D43230470c67BeB61e00a6E8EC869F947365fD"
+    },
+    {
+      "name": "Mad Meerkat Optimizer",
+      "address": "0x50c0c5bda591bc7e89a342a3ed672fb59b3c46a7"
+    },
+    {
+      "name": "BEAT",
+      "address": "0x39B9f8B9c0F37766dB1592F0294E01a39B52D46c"
+    },
+    {
+      "name": "InoAi",
+      "address": "0x025f1575908d85815198390b2e5366fe754f8207"
+    },
+    {
+      "name": "Crodex Token",
+      "address": "0xe243ccab9e66e6cf1215376980811ddf1eb7f689"
+    },
+    {
+      "name": "Cronosphere",
+      "address": "0xc9fde867a14376829ab759f4c4871f67e2d3e441"
+    },
+    {
+      "name": "NeurotiCat",
+      "address": "0xcfe223d06b86568c24ffd17e8ac748dbac096b3b"
+    },
+    {
+      "name": "DarkCrypto",
+      "address": "0x83b2ac8642ae46fc2823bc959ffeb3c1742c48b5"
+    },
+    {
+      "name": "Darkness Dollar",
+      "address": "0x6582c738660bf0701f05b04dce3c4e5fcfcda47a"
+    },
+    {
+      "name": "DarkCrypto Share",
+      "address": "0x9d3bbb0e988d9fb2d55d07fe471be2266ad9c81c"
+    },
+    {
+      "name": "Darkness Share",
+      "address": "0xe727240728c1a5f95437b8b50afdd0ea4ae5f0c8"
+    },
+    {
+      "name": "Mad Meerkat ETF",
+      "address": "0xb8df27c687c6af9afe845a2afad2d01e199f4878"
+    }
+  ]
+}

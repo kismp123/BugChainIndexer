@@ -1,0 +1,167 @@
+ {
+  "fetchedAt": "2025-08-31T22:00:27.882Z",
+  "source": "https://zkevm.polygonscan.com/tokens",
+  "explorer": "zkevm.polygonscan.com",
+  "tokens": [
+    {
+      "name": "USD Coin",
+      "address": "0xa8ce8aee21bc2a48a5ef670afcc9274c7bbbc035"
+    },
+    {
+      "name": "Staked Frax Ether",
+      "address": "0x7c2aF1Fb79D0b1c67d4eb802d44C673D0A1D2C04"
+    },
+    {
+      "name": "USD Coin",
+      "address": "0x37eaa0ef3549a5bb7d431be78a3d99bd360d19e5"
+    },
+    {
+      "name": "Frax Ether",
+      "address": "0xCf7eceE185f19e2E970a301eE37F93536ed66179"
+    },
+    {
+      "name": "Wrapped BTC",
+      "address": "0xea034fb02eb1808c2cc3adbc15f447b93cbe08e1"
+    },
+    {
+      "name": "Wrapped Ether",
+      "address": "0x4F9A0e7FD2Bf6067db6994CF12E4495Df938E6e9"
+    },
+    {
+      "name": "Dai Stablecoin",
+      "address": "0xc5015b9d9161dca7e18e32f6f25c4ad850731fd4"
+    },
+    {
+      "name": "Frax Price Index",
+      "address": "0x7E5845b1bFc9e6620893e48346bdB8541995a8D9"
+    },
+    {
+      "name": "Polygon Ecosystem Token",
+      "address": "0x22b21beddef74fe62f031d2c5c8f7a9f8a4b304d"
+    },
+    {
+      "name": "Frax Price Index Share",
+      "address": "0xdE7df9036801676aF0cB73661d93a098c0085fba"
+    },
+    {
+      "name": "Rocket Pool ETH",
+      "address": "0xb23c20efce6e24acca0cef9b7b7aa196b84ec942"
+    },
+    {
+      "name": "Frax Share",
+      "address": "0x6b856a14CeA1d7dCfaF80fA6936c0b75972cCacE"
+    },
+    {
+      "name": "PancakeSwap Token",
+      "address": "0x0D1E753a25eBda689453309112904807625bEFBe"
+    },
+    {
+      "name": "Staked MATIC",
+      "address": "0x83b874c1e09d316059d929da402dcb1a98e92082"
+    },
+    {
+      "name": "Aura",
+      "address": "0x1509706a6c66ca549ff0cb464de88231ddbe213b"
+    },
+    {
+      "name": "Aave Token",
+      "address": "0x68791cfe079814c46e0e25c19bcc5bfc71a744f7"
+    },
+    {
+      "name": "Giveth",
+      "address": "0xddafb91475bbf6210a151fa911ac8fda7de46ec2"
+    },
+    {
+      "name": "ChainLink Token",
+      "address": "0x4b16e4752711a7abec32799c976f3cefc0111f2b"
+    },
+    {
+      "name": "Frax",
+      "address": "0xFf8544feD5379D9ffa8D47a74cE6b91e632AC44D"
+    },
+    {
+      "name": "agEUR",
+      "address": "0xa61beb4a3d02decb01039e378237032b351125b4"
+    },
+    {
+      "name": "Curve DAO Token",
+      "address": "0x3d5320821bfca19fb0b5428f2c79d63bd5246f89"
+    },
+    {
+      "name": "Ankr Staked ETH",
+      "address": "0x12d8ce035c5de3ce39b1fdd4c1d5a745eaba3b8c"
+    },
+    {
+      "name": "Balancer",
+      "address": "0x120ef59b80774f02211563834d8e3b72cb1649d6"
+    },
+    {
+      "name": "Uniswap",
+      "address": "0x2548c94a3092494db3af864cc2cf781a72f55678"
+    },
+    {
+      "name": "Gravita Debt Token",
+      "address": "0xca68ad4ee5c96871ec6c6dac2f714a8437a3fe66"
+    },
+    {
+      "name": "Davos.xyz USD",
+      "address": "0x819d1Daa794c1c46B841981b61cC978d95A17b8e"
+    },
+    {
+      "name": "Dai Stablecoin",
+      "address": "0x744c5860ba161b5316f7e80d9ec415e2727e5bd5"
+    },
+    {
+      "name": "Lido DAO Token",
+      "address": "0x7e2feea957b7d1606335e339754f4e52b452b792"
+    },
+    {
+      "name": "Liquid Staking Matic",
+      "address": "0xf9ed88937b2d82707d0eabd8c3d9aa4870b714d3"
+    },
+    {
+      "name": "Mai Stablecoin",
+      "address": "0x615B25500403Eb688Be49221b303084D9Cf0E5B4"
+    },
+    {
+      "name": "Frax USD",
+      "address": "0x80eede496655fb9047dd39d9f418d5483ed600df"
+    },
+    {
+      "name": "ZENF Token",
+      "address": "0x8aaebb46e1742f4623e6e1621f909f01846ca5e2"
+    },
+    {
+      "name": "Wrapped liquid staked Ether 2.0",
+      "address": "0xbf6de60ccd9d22a5820a658fbe9fc87975ea204f"
+    },
+    {
+      "name": "Wrapped eETH",
+      "address": "0xcd68dff4415358c35a28f96fd5bf7083b22de1d6"
+    },
+    {
+      "name": "Staked Frax Ether",
+      "address": "0x3Ec3849C33291a9eF4c5dB86De593EB4A37fDe45"
+    },
+    {
+      "name": "Rocket Pool Protocol",
+      "address": "0x70d35152fbf63fb312709b11a9bac87519de0019"
+    },
+    {
+      "name": "Staked Frax USD",
+      "address": "0x5bff88ca1442c2496f7e475e9e7786383bc070c0"
+    },
+    {
+      "name": "Frax Ether",
+      "address": "0x43eDD7f3831b08FE70B7555ddD373C8bF65a9050"
+    },
+    {
+      "name": "Wrapped Frax",
+      "address": "0x64445f0aecC51E94aD52d8AC56b7190e764E561a"
+    },
+    {
+      "name": "Frax Price Index",
+      "address": "0x90581eca9469d8d7f5d3b60f4715027adfcf7927"
+    }
+  ]
+}

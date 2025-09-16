@@ -1,0 +1,123 @@
+ {
+  "fetchedAt": "2025-08-31T21:58:54.070Z",
+  "source": "https://mantlescan.xyz/tokens?ps=100",
+  "explorer": "mantlescan.xyz",
+  "tokens": [
+    {
+      "name": "Tether USD",
+      "address": "0x201eba5cc46d216ce6dc03f6a759e8e766e956ae"
+    },
+    {
+      "name": "cmETH",
+      "address": "0xE6829d9a7eE3040e1276Fa75293Bde931859e8fA"
+    },
+    {
+      "name": "Ether",
+      "address": "0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111"
+    },
+    {
+      "name": "mETH",
+      "address": "0xcda86a272531e8640cd7f1a92c01839911b90bb0"
+    },
+    {
+      "name": "USDe",
+      "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+    },
+    {
+      "name": "COOK",
+      "address": "0x9F0C013016E8656bC256f948CD4B79ab25c7b94D"
+    },
+    {
+      "name": "USD Coin",
+      "address": "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9"
+    },
+    {
+      "name": "Moe Token",
+      "address": "0x4515a45337f461a11ff0fe8abf3c606ae5dc00c9"
+    },
+    {
+      "name": "Ondo U.S. Dollar Yield",
+      "address": "0x5be26527e817998a7206475496fde1e68957c5a6"
+    },
+    {
+      "name": "Wrapped Mantle",
+      "address": "0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8"
+    },
+    {
+      "name": "Staked USDe",
+      "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
+    },
+    {
+      "name": "AUSD",
+      "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
+    },
+    {
+      "name": "IntentX Token",
+      "address": "0x4b7f28397b4294277e7825f224172944f4f5a877"
+    },
+    {
+      "name": "ENA",
+      "address": "0x58538e6a46e07434d7e7375bc268d3cb839c0133"
+    },
+    {
+      "name": "Cleopatra",
+      "address": "0xc1e0c8c30f251a07a894609616580ad2ceb547f2"
+    },
+    {
+      "name": "Cashtree Token",
+      "address": "0x6a3b0eb5b57c9a4f5772fc900dae427e65f8c1a5"
+    },
+    {
+      "name": "JoeToken",
+      "address": "0x371c7ec6d8039ff7933a2aa28eb827ffe1f52f07"
+    },
+    {
+      "name": "Axelar Wrapped USDC",
+      "address": "0xeb466342c4d449bc9f53a865d5cb90586f405215"
+    },
+    {
+      "name": "Mantle USD",
+      "address": "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"
+    },
+    {
+      "name": "KTX Community Token",
+      "address": "0x779f4e5fb773e17bc8e809f4ef1abb140861159a"
+    },
+    {
+      "name": "izumi Token",
+      "address": "0x60d01ec2d5e98ac51c8b4cf84dfcce98d527c747"
+    },
+    {
+      "name": "Curve DAO Token",
+      "address": "0xe265fc71d45fd791c9ebf3ee0a53fbb220eb8f75"
+    },
+    {
+      "name": "Curve.Fi USD Stablecoin",
+      "address": "0x0994206dfe8de6ec6920ff4d779b0d950605fb53"
+    },
+    {
+      "name": "Vertex",
+      "address": "0xd0728F5b1F53A834F8dcd1B86f62CeB8726eb0a0"
+    },
+    {
+      "name": "COQINU",
+      "address": "0x420FcA0121DC28039145009570975747295f2329"
+    },
+    {
+      "name": "Mantle Token",
+      "address": "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0000"
+    },
+    {
+      "name": "Solv BTC",
+      "address": "0xa68d25fc2af7278db4bcdcaabce31814252642a9"
+    },
+    {
+      "name": "SolvBTC Babylon",
+      "address": "0x1d40bafc49c37cda49f2a5427e2fb95e1e3fcf20"
+    },
+    {
+      "name": "PELL Network Token",
+      "address": "0xc65d8d96cdddb31328186efa113a460b0af9ec63"
+    }
+  ]
+}

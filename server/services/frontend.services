@@ -1,0 +1,13 @@
+[Unit]
+Description=Python HTTP Server for Onchain Scanner
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m http.server 8080 -d /root/onchainScanner/server/frontend/
+WorkingDirectory=/root/onchainScanner/server/frontend/
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target

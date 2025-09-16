@@ -1,0 +1,403 @@
+{
+  "fetchedAt": "2025-08-31T21:58:08.872Z",
+  "source": "https://gnosisscan.io/tokens?ps=100",
+  "explorer": "gnosisscan.io",
+  "tokens": [
+    {
+      "name": "Tether USD on xDai",
+      "address": "0xc90132d5d1b87730da162ec9cd34885828769cc3"
+    },
+    {
+      "name": "Tether USD on xDai",
+      "address": "0x4ecaba5870353805a9f068101a40e0f32ed605c6"
+    },
+    {
+      "name": "Bridged USDC (Gnosis)",
+      "address": "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0"
+    },
+    {
+      "name": "USD//C on xDai",
+      "address": "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83"
+    },
+    {
+      "name": "Wrapped liquid staked Ether 2.0 from Mainnet",
+      "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6"
+    },
+    {
+      "name": "ChainLink Token on xDai",
+      "address": "0xe2e73a1c69ecf83f464efce6a5be353a37ca09b2"
+    },
+    {
+      "name": "Wrapped BTC on xDai",
+      "address": "0x8e5bbbb09ed1ebde8674cda39a0c169401db4252"
+    },
+    {
+      "name": "Wrapped Ether on xDai",
+      "address": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1"
+    },
+    {
+      "name": "Uniswap on xDai",
+      "address": "0x4537e328bf7e4efa29d05caea260d7fe26af9d74"
+    },
+    {
+      "name": "Rocket Pool ETH from Mainnet",
+      "address": "0xc791240d1f2def5938e2031364ff4ed887133c3d"
+    },
+    {
+      "name": "GHO Token",
+      "address": "0xfc421ad3c883bf9e7c4f42de845c4e4405799e73"
+    },
+    {
+      "name": "1INCH Token on xDai",
+      "address": "0x7f7440c5098462f833e123b44b8a03e1d9785bab"
+    },
+    {
+      "name": "Gnosis Token on xDai",
+      "address": "0x9c58bacc331c9aa871afd802db6379a98e80cedb"
+    },
+    {
+      "name": "Safe Token from Mainnet",
+      "address": "0x4d18815d14fe5c3304e87b3fa18318baa5c23820"
+    },
+    {
+      "name": "yearn.finance on xDai",
+      "address": "0xbf65bfcb5da067446cee6a706ba3fe2fb1a9fdfd"
+    },
+    {
+      "name": "CoW Protocol Token from Mainnet",
+      "address": "0x177127622c4a00f3d409b75571e12cb3c8973d3c"
+    },
+    {
+      "name": "Rocket Pool on xDai",
+      "address": "0x2f0e755efe6b58238a67db420ff3513ec1fb31ef"
+    },
+    {
+      "name": "Savings xDAI",
+      "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701"
+    },
+    {
+      "name": "Energy Web Token Bridged on xDai",
+      "address": "0x6a8cb6714b1ee5b471a7d2ec4302cb4f5ff25ec2"
+    },
+    {
+      "name": "VitaDAO Token from Mainnet",
+      "address": "0x0939a7c3f8d37c1ce67fada4963ae7e0bd112ff3"
+    },
+    {
+      "name": "HOPR Token on xDai",
+      "address": "0xd057604a14982fe8d88c5fc25aac3267ea142a08"
+    },
+    {
+      "name": "Gyro Dollar",
+      "address": "0xca5d8f8a8d49439357d3cf46ca2e720702f132b8"
+    },
+    {
+      "name": "Ethix on xDai",
+      "address": "0xec3f3e6d7907acda3a7431abd230196cda3fbb19"
+    },
+    {
+      "name": "FOX on xDai",
+      "address": "0x21a42669643f45bc0e086b8fc2ed70c23d67509d"
+    },
+    {
+      "name": "Badger on xDai",
+      "address": "0xdfc20ae04ed70bd9c7d720f449eedae19f659d65"
+    },
+    {
+      "name": "DefiPulse Index on xDai",
+      "address": "0xd3d47d5578e55c880505dc40648f7f9307c3e7a8"
+    },
+    {
+      "name": "Frankencoin",
+      "address": "0xd4dd9e2f021bb459d5a5f6c24c12fe09c5d45553"
+    },
+    {
+      "name": "'Streamr'",
+      "address": "0x256eb8a51f382650b2a1e946b8811953640ee47d"
+    },
+    {
+      "name": "Aura",
+      "address": "0x1509706a6c66ca549ff0cb464de88231ddbe213b"
+    },
+    {
+      "name": "BZZ on xDai",
+      "address": "0xdbf3ea6f5bee45c02255b2c26a16f300502f68da"
+    },
+    {
+      "name": "Moons on xDai",
+      "address": "0x1e16aa4df73d29c029d94ceda3e3114ec191e25a"
+    },
+    {
+      "name": "UniCrypt on xDai",
+      "address": "0x0116e28b43a358162b96f70b4de14c98a4465f25"
+    },
+    {
+      "name": "Agave Token",
+      "address": "0x3a97704a1b25f08aa230ae53b352e2e72ef52843"
+    },
+    {
+      "name": "BRLA Token",
+      "address": "0xfecb3f7c54e2caae9dc6ac9060a822d47e053760"
+    },
+    {
+      "name": "Swash Token",
+      "address": "0x84e2c67cbefae6b5148fca7d02b341b12ff4b5bb"
+    },
+    {
+      "name": "Decentralized Insurance Protocol on xDai",
+      "address": "0x48b1b0d077b4919b65b4e4114806dd803901e1d9"
+    },
+    {
+      "name": "MtPelerin Shares",
+      "address": "0xfa57aa7beed63d03aaf85ffd1753f5f6242588fb"
+    },
+    {
+      "name": "Everclear",
+      "address": "0x58b9cb810a68a7f3e1e4f8cb45d1b9b3c79705e8"
+    },
+    {
+      "name": "Donut on xDai",
+      "address": "0x524b969793a64a602342d89bc2789d43a016b13a"
+    },
+    {
+      "name": "Jarvis Reward Token on xDai",
+      "address": "0xccf1279c3406ad1181bee00dab4b28b23d17ddb1"
+    },
+    {
+      "name": "UNCL on xDai",
+      "address": "0x703120f2f2011a0d03a03a531ac0e84e81f15989"
+    },
+    {
+      "name": "Hop",
+      "address": "0xc5102fe9359fd9a28f877a67e36b0f050d81a3cc"
+    },
+    {
+      "name": "Swapr on xDai",
+      "address": "0x532801ed6f82fffd2dab70a19fc2d7b2772c4f4b"
+    },
+    {
+      "name": "Graviton",
+      "address": "0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8"
+    },
+    {
+      "name": "Giveth from Mainnet",
+      "address": "0x4f4f9b8d5b4d0dc10506e5551b0513b61fd59e75"
+    },
+    {
+      "name": "DXdao on xDai",
+      "address": "0xb90d6bec20993be5d72a5ab353343f7a0281f158"
+    },
+    {
+      "name": "DAOhaus Token on xDai",
+      "address": "0xb0c5f3100a4d9d9532a4cfd68c55f1ae8da987eb"
+    },
+    {
+      "name": "xSpace Token",
+      "address": "0x1d1498166ddceee616a6d99868e1e0677300056f"
+    },
+    {
+      "name": "STAKE on xDai",
+      "address": "0xb7d311e2eb55f2f68a9440da38e7989210b9a05e"
+    },
+    {
+      "name": "DeHive.finance",
+      "address": "0xfbdd194376de19a88118e84e279b977f165d01b8"
+    },
+    {
+      "name": "Wrapped ETHO",
+      "address": "0xb17d999e840e0c1b157ca5ab8039bd958b5fa317"
+    },
+    {
+      "name": "0xMonero on xDai",
+      "address": "0x8c88ea1fd60462ef7004b9e288afcb4680a3c50c"
+    },
+    {
+      "name": "Minerva Wallet SuperToken",
+      "address": "0x63e62989d9eb2d37dfdb1f93a22f063635b07d51"
+    },
+    {
+      "name": "DAppNode DAO Token on xDai",
+      "address": "0xc60e38c6352875c051b481cbe79dd0383adb7817"
+    },
+    {
+      "name": "Levin",
+      "address": "0x1698cd22278ef6e7c0df45a8dea72edbea9e42aa"
+    },
+    {
+      "name": "Aave Gnosis wstETH",
+      "address": "0x23e4e76d01b2002be436ce8d6044b0aa2f68b68a"
+    },
+    {
+      "name": "Aave Gnosis WETH",
+      "address": "0xa818f1b57c201e092c4a2017a91815034326efd1"
+    },
+    {
+      "name": "Backed CSPX Core S&P 500",
+      "address": "0x1e2c4fb7ede391d116e6b41cd0608260e8801d59"
+    },
+    {
+      "name": "Backed Microsoft Corp",
+      "address": "0x374A457967Ba24FD3Ae66294cAb08244185574b0"
+    },
+    {
+      "name": "Backed MicroStrategy Inc",
+      "address": "0xac28c9178acc8ba4a11a29e013a3a2627086e422"
+    },
+    {
+      "name": "Backed Tesla Inc",
+      "address": "0x14A5f2872396802C3Cc8942A39Ab3E4118EE5038"
+    },
+    {
+      "name": "Backed Coinbase Global",
+      "address": "0xbbcb0356bb9e6b3faa5cbf9e5f36185d53403ac9"
+    },
+    {
+      "name": "Backed Alphabet Inc",
+      "address": "0xEbee37Aaf2905b7BdA7E3b928043862e982E8F32"
+    },
+    {
+      "name": "Backed NVIDIA Corp",
+      "address": "0xA34C5e0AbE843E10461E2C9586Ea03E55Dbcc495"
+    },
+    {
+      "name": "Backed GOVIES 0-6 months EURO investment grade",
+      "address": "0x2f123cf3f37ce3328cc9b5b8415f9ec5109b45e7"
+    },
+    {
+      "name": "Backed IB01 $ Treasury Bond 0-1yr",
+      "address": "0xca30c93b02514f86d5c86a6e375e3a330b435fb5"
+    },
+    {
+      "name": "RealToken S 11957 Olga St Detroit MI",
+      "address": "0xdd833d0eef6d5d7cec781b03c19f3b425f3039df"
+    },
+    {
+      "name": "Backed GameStop Corp",
+      "address": "0x7212088A11b4d8f6FC90fbB3dfE793B45dd72323"
+    },
+    {
+      "name": "Backed HIGH € High Yield Corp Bond",
+      "address": "0x20C64dEE8FdA5269A78f2D5BDBa861CA1d83DF7a"
+    },
+    {
+      "name": "Backed ERNA $ Ultrashort Bond",
+      "address": "0x0f76d32cdccdcbd602a55af23eaf58fd1ee17245"
+    },
+    {
+      "name": "Backed IBTA $ Treasury Bond 1-3yr",
+      "address": "0x52d134c6db5889fad3542a09eaf7aa90c0fdf9e4"
+    },
+    {
+      "name": "Honey",
+      "address": "0x71850b7e9ee3f13ab46d67167341e4bdc905eef9"
+    },
+    {
+      "name": "Monerium EURe",
+      "address": "0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430"
+    },
+    {
+      "name": "Wrapped XDAI",
+      "address": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+    },
+    {
+      "name": "Aave Gnosis USDC",
+      "address": "0xc6b7aca6de8a6044e0e32d0c841a89244a10d284"
+    },
+    {
+      "name": "Aave Gnosis sDAI",
+      "address": "0x7a5c3860a77a8dc1b225bd46d0fb2ac1c6d191bc"
+    },
+    {
+      "name": "Aave Gnosis WXDAI",
+      "address": "0xd0dd6cef72143e22cced4867eb0d5f2328715533"
+    },
+    {
+      "name": "Jarvis Synthetic Euro",
+      "address": "0x9fb1d52596c44603198fb0aee434fac3a679f702"
+    },
+    {
+      "name": "Jarvis Synthetic Swiss Franc",
+      "address": "0x2d5563da42b06fbbf9c67b7dc073cf6a7842239e"
+    },
+    {
+      "name": "DAOSquare Governance Token on xDai",
+      "address": "0x97edc0e345fbbbd8460847fcfa3bc2a13bf8641f"
+    },
+    {
+      "name": "Matic Token on xDai",
+      "address": "0x7122d7661c4564b7c6cd4878b06766489a6028a2"
+    },
+    {
+      "name": "Token Engineering Commons",
+      "address": "0x5df8339c5e282ee48c0c7ce8a7d01a73d38b3b27"
+    },
+    {
+      "name": "Symmetric on xDai",
+      "address": "0xc45b3c1c24d5f54e7a2cf288ac668c74dd507a84"
+    },
+    {
+      "name": "Water Token",
+      "address": "0x4291f029b9e7acb02d49428458cf6fceac545f81"
+    },
+    {
+      "name": "JPY Coin",
+      "address": "0x431d5dff03120afa4bdf332c61a6e1766ef37bdb"
+    },
+    {
+      "name": "Bright on xDai",
+      "address": "0x83ff60e2f93f8edd0637ef669c69d5fb4f64ca8e"
+    },
+    {
+      "name": "xDai Native Comb",
+      "address": "0x38fb649ad3d6ba1113be5f57b927053e97fc5bf7"
+    },
+    {
+      "name": "EsportsRef",
+      "address": "0xd3226b12e6188133b19ac0419f34b0ed5b10f069"
+    },
+    {
+      "name": "AMIS on xDai",
+      "address": "0xd51e1ddd116fff9a71c1b8feeb58113afa2b4d93"
+    },
+    {
+      "name": "Agatech",
+      "address": "0x3b29f94a99f198c5de418c11a6ded4b355b9530c"
+    },
+    {
+      "name": "Trips on xDai",
+      "address": "0x479e32cdff5f216f93060700c711d1cc8e811a6b"
+    },
+    {
+      "name": "Raid Guild Token ⚔️ on xDai",
+      "address": "0x18e9262e68cc6c6004db93105cc7c001bb103e49"
+    },
+    {
+      "name": "TORG on xDai",
+      "address": "0x364b5975385b4de226cf450df82d7ed69902ac5a"
+    },
+    {
+      "name": "Aave Gnosis EURe",
+      "address": "0xedbc7449a9b594ca4e053d9737ec5dc4cbccbfb2"
+    },
+    {
+      "name": "Aave Gnosis GNO",
+      "address": "0xa1fa064a85266e2ca82dee5c5ccec84df445760e"
+    },
+    {
+      "name": "BitcoinBR",
+      "address": "0xa899e4476ff5da39dcd9ddec7a6e2c651d8614bf"
+    },
+    {
+      "name": "Mai Stablecoin",
+      "address": "0x3f56e0c36d275367b8c502090edf38289b3dea0d"
+    },
+    {
+      "name": "StakeWise Staked GNO",
+      "address": "0xa4ef9da5ba71cc0d2e5e877a910a37ec43420445"
+    },
+    {
+      "name": "Wrapped xHOPR Token",
+      "address": "0xd4fdec44db9d44b8f2b6d529620f9c0c7066a2c1"
+    }
+  ]
+}
