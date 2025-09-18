@@ -390,6 +390,7 @@ async function etherscanRequest(network, params, maxRetries = 3) {
 // ====== HTTP RPC CLIENT ======
 const rpcRotation = new Map();
 const failedRpcs = new Map();
+const slowRpcs = new Map(); // Track temporarily slow RPCs
 
 class HttpRpcClient {
   constructor(network) {
@@ -407,6 +408,28 @@ class HttpRpcClient {
       failedRpcs.set(this.network, new Set());
     }
     failedRpcs.get(this.network).add(rpcUrl);
+  }
+  
+  markRpcAsSlow(rpcUrl) {
+    if (!slowRpcs.has(this.network)) {
+      slowRpcs.set(this.network, new Map());
+    }
+    // Mark as slow for 5 minutes
+    slowRpcs.get(this.network).set(rpcUrl, Date.now() + 5 * 60 * 1000);
+  }
+  
+  isRpcSlow(rpcUrl) {
+    const slowMap = slowRpcs.get(this.network);
+    if (!slowMap) return false;
+    
+    const slowUntil = slowMap.get(rpcUrl);
+    if (!slowUntil) return false;
+    
+    if (Date.now() > slowUntil) {
+      slowMap.delete(rpcUrl);
+      return false;
+    }
+    return true;
   }
 
   async makeRequest(method, params = [], maxGlobalRetries = 3) {
@@ -432,6 +455,15 @@ class HttpRpcClient {
         failedRpcs.delete(this.network);
         availableRpcs = [...this.config.rpcUrls];
       }
+      
+      // Sort RPCs: non-slow ones first, then slow ones
+      availableRpcs.sort((a, b) => {
+        const aSlow = this.isRpcSlow(a);
+        const bSlow = this.isRpcSlow(b);
+        if (aSlow && !bSlow) return 1;
+        if (!aSlow && bSlow) return -1;
+        return 0;
+      });
       
       for (let i = 0; i < availableRpcs.length; i++) {
         const rpcUrl = availableRpcs[i];
@@ -466,6 +498,19 @@ class HttpRpcClient {
         } catch (error) {
           lastError = error;
           
+          // Check for timeout errors
+          const isTimeoutError = error.code === 'ECONNABORTED' ||
+                                error.message?.includes('timeout') ||
+                                error.message?.includes('ETIMEDOUT') ||
+                                error.message?.includes('request timeout') ||
+                                error.message?.includes('fetch timeout');
+          
+          if (isTimeoutError) {
+            console.log(`[${this.network}] RPC timeout detected for ${rpcUrl} - marking as slow and switching to next RPC`);
+            this.markRpcAsSlow(rpcUrl);
+            // Don't mark as permanently failed for timeouts, just move to next RPC
+          }
+          
           const isPermanentError = error.response?.status === 401 || 
                                  error.response?.status === 403 ||
                                  error.message?.includes('Unauthorized') ||
@@ -477,6 +522,10 @@ class HttpRpcClient {
             console.log(`[${this.network}] RPC endpoint permanently failed: ${rpcUrl} - ${error.message}`);
             this.markRpcAsFailed(rpcUrl);
           }
+          
+          // Log the error with RPC URL for better debugging
+          const errorType = isTimeoutError ? 'TIMEOUT' : (isPermanentError ? 'PERMANENT' : 'TEMPORARY');
+          console.log(`[${this.network}][${errorType}] RPC error on ${rpcUrl.split('/')[2]}: ${error.message?.slice(0, 100)}`);
           
           if (i < availableRpcs.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 200));

@@ -544,12 +544,22 @@ class UnifiedScanner extends Scanner {
    */
   handleBatchError(error, currentBlock, endBlock, currentBatchSize, minBatchSize, batchNum) {
     if (error.message.includes('timeout')) {
-      this.log(`Batch ${batchNum} fetch timeout - reducing batch size and retrying`, 'warn');
+      this.log(`Batch ${batchNum} fetch timeout - RPC will automatically switch to next endpoint`, 'warn');
+      this.log(`Reducing batch size from ${currentBatchSize} to retry: blocks ${currentBlock}-${endBlock}`, 'info');
       const newBatchSize = Math.max(minBatchSize, Math.floor(currentBatchSize * 0.5));
       return {
         nextBlock: currentBlock, // Don't increment, retry with smaller batch
         newBatchSize,
         batchCount: batchNum - 1, // Don't increment batch count
+        totalProcessed: 0
+      };
+    } else if (error.message.includes('All RPC attempts failed')) {
+      this.log(`Batch ${batchNum} failed - all RPC endpoints exhausted: ${error.message}`, 'error');
+      this.log(`Skipping blocks ${currentBlock}-${endBlock} due to RPC failures`, 'warn');
+      return {
+        nextBlock: endBlock + 1, // Skip this batch after all retries failed
+        newBatchSize: Math.max(minBatchSize, Math.floor(currentBatchSize * 0.7)), // Reduce size for next attempt
+        batchCount: batchNum,
         totalProcessed: 0
       };
     } else {
