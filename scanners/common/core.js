@@ -470,9 +470,11 @@ class HttpRpcClient {
                                  error.response?.status === 403 ||
                                  error.message?.includes('Unauthorized') ||
                                  error.message?.includes('method not found') ||
-                                 error.message?.includes('Must be authenticated');
+                                 error.message?.includes('Must be authenticated') ||
+                                 error.message?.includes('API key disabled');
 
           if (isPermanentError) {
+            console.log(`[${this.network}] RPC endpoint permanently failed: ${rpcUrl} - ${error.message}`);
             this.markRpcAsFailed(rpcUrl);
           }
           

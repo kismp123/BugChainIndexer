@@ -149,13 +149,13 @@ const NETWORKS = {
     name: 'Avalanche C-Chain',
 
     rpcUrls: envArray('AVALANCHE_RPC_URL', [
+      'https://avalanche-c-chain-rpc.publicnode.com',  // Working endpoint moved to first
       'https://api.avax.network/ext/bc/C/rpc',
-      'https://avalanche.public-rpc.com',
-      'https://avalanche-c-chain-rpc.publicnode.com',
       'https://1rpc.io/avax/c',
       'https://endpoints.omniatech.io/v1/avax/mainnet/public',
       'https://avax.meowrpc.com',
       'https://avalanche.drpc.org'
+      // Removed: 'https://avalanche.public-rpc.com' - returns 401 Unauthorized
     ]),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc', // Fixed: corrected swap
