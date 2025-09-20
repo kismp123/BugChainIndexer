@@ -20,12 +20,13 @@ class FundUpdater extends Scanner {
       }
     });
     
-    this.coinGeckoKey = process.env.COINGECKO_API_KEY || CONFIG.CONFIG.coinGeckoAPI || '';
+    this.coinGeckoKey = process.env.COINGECKO_API_KEY || process.env.DEFAULT_COINGECKO_KEY || CONFIG.CONFIG.coinGeckoAPI || '';
     this.priceCache = new Map();
     this.delayDays = CONFIG.FUNDUPDATEDELAY || 7;
     
-    // API mode tracking - once Pro fails, switch to Demo for the session
-    this.apiMode = 'pro'; // 'pro', 'demo', 'free'
+    // API mode tracking - dynamically detect API tier
+    this.apiMode = 'unknown'; // Will be detected on first API call
+    this.apiModeDetected = false;
     
     // Dynamic batch sizing for balance calls
     this.currentBatchSize = 200;  // Start with 200
@@ -245,10 +246,15 @@ class FundUpdater extends Scanner {
     return nativeCurrencyMap[nativeCurrency] || 'ethereum';
   }
 
-  // Unified API request method with fallback logic
+  // Unified API request method with auto-detection and fallback
   async makeApiRequest(endpoint, params) {
-    // If no API key, use free API
-    if (!this.coinGeckoKey) {
+    // Auto-detect API mode on first call
+    if (!this.apiModeDetected && this.coinGeckoKey) {
+      await this.detectApiMode();
+    }
+
+    // If no API key or deactivated, use free API
+    if (!this.coinGeckoKey || this.apiMode === 'free') {
       const response = await axios.get(`https://api.coingecko.com/api/v3${endpoint}`, {
         params,
         timeout: 15000
@@ -256,7 +262,7 @@ class FundUpdater extends Scanner {
       return { response, mode: 'free' };
     }
 
-    // Try Pro API first (if not already failed)
+    // Try Pro API first
     if (this.apiMode === 'pro') {
       try {
         const proParams = { ...params, x_cg_pro_api_key: this.coinGeckoKey };
@@ -266,41 +272,121 @@ class FundUpdater extends Scanner {
         });
         return { response, mode: 'pro' };
       } catch (proError) {
-        // Check if it's a demo key error
-        if (proError.response?.status === 400 && proError.response?.data?.error_code === 10011) {
-          this.log('⚠️  Demo API key detected. Switching to demo mode for this session.', 'warn');
+        // If Pro API fails due to deactivation, fallback to Demo
+        if (proError.response?.data?.status?.error_code === 10004) {
+          this.log('⚠️  Pro API key deactivated, switching to Demo mode with header', 'warn');
           this.apiMode = 'demo';
-        } else if (proError.response?.status === 401) {
-          this.log('⚠️  Invalid API key. Switching to free mode for this session.', 'warn');
-          this.apiMode = 'free';
-        } else {
-          this.log(`⚠️  Pro API failed (${proError.response?.status || proError.message}). Switching to demo mode.`, 'warn');
-          this.apiMode = 'demo';
+          // Retry with Demo API
+          return this.makeApiRequest(endpoint, params);
         }
+        throw proError;
       }
     }
 
-    // Try Demo API (if Pro failed with demo key error)
+    // Try Demo API with header (works better than params)
     if (this.apiMode === 'demo') {
       try {
-        const demoParams = { ...params, x_cg_demo_api_key: this.coinGeckoKey };
         const response = await axios.get(`https://api.coingecko.com/api/v3${endpoint}`, {
-          params: demoParams,
+          params,
+          headers: {
+            'x-cg-demo-api-key': this.coinGeckoKey
+          },
           timeout: 15000
         });
         return { response, mode: 'demo' };
       } catch (demoError) {
-        this.log(`Demo API failed: ${demoError.message}. Switching to free mode.`, 'warn');
-        this.apiMode = 'free';
+        // If Demo API fails with 400, try free API for token endpoints
+        if (demoError.response?.status === 400 && endpoint.includes('token_price')) {
+          this.log('⚠️  Demo API doesn\'t support token prices, using free API', 'warn');
+          const response = await axios.get(`https://api.coingecko.com/api/v3${endpoint}`, {
+            params,
+            timeout: 15000
+          });
+          return { response, mode: 'free' };
+        }
+        throw demoError;
       }
     }
 
-    // Fallback to Free API
-    const response = await axios.get(`https://api.coingecko.com/api/v3${endpoint}`, {
-      params,
-      timeout: 15000
-    });
-    return { response, mode: 'free' };
+    // Should not reach here
+    throw new Error('Invalid API mode');
+  }
+
+  // Detect which API tier the key belongs to
+  async detectApiMode() {
+    if (!this.coinGeckoKey) {
+      this.apiMode = 'free';
+      this.apiModeDetected = true;
+      this.log('📊 No API key provided, using free tier', 'info');
+      return;
+    }
+
+    this.log(`🔍 Detecting API mode for key: ${this.coinGeckoKey.substring(0, 10)}...`, 'info');
+
+    // Test if the key works as Demo API with header first
+    try {
+      const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+        params: { ids: 'ethereum', vs_currencies: 'usd' },
+        headers: { 'x-cg-demo-api-key': this.coinGeckoKey },
+        timeout: 10000
+      });
+      
+      if (response.data?.ethereum?.usd) {
+        this.log('🔑 API key works as Demo API (using header method)', 'info');
+        this.apiMode = 'demo';
+        this.apiModeDetected = true;
+        return;
+      }
+    } catch (error) {
+      // Continue to test other modes
+    }
+
+    // Test Pro API first
+    try {
+      const response = await axios.get('https://pro-api.coingecko.com/api/v3/key', {
+        params: { x_cg_pro_api_key: this.coinGeckoKey },
+        timeout: 10000
+      });
+      
+      if (response.data?.plan) {
+        this.apiMode = 'pro';
+        this.apiModeDetected = true;
+        this.log(`✅ Pro API detected - Plan: ${response.data.plan}, Limit: ${response.data.rate_limit_request_per_minute} req/min`, 'info');
+        return;
+      }
+    } catch (proError) {
+      if (proError.response?.data?.status?.error_code === 10004) {
+        this.log('⚠️  API key is DEACTIVATED (subscription expired). Will retry with Pro API anyway.', 'warn');
+        this.apiMode = 'pro'; // Still use pro mode, expecting reactivation
+        this.apiModeDetected = true;
+        return;
+      }
+      if (proError.response?.status === 400) {
+        // Might be a demo key, continue to test demo API
+      }
+    }
+
+    // Test Demo API
+    try {
+      const response = await axios.get('https://api.coingecko.com/api/v3/ping', {
+        params: { x_cg_demo_api_key: this.coinGeckoKey },
+        timeout: 10000
+      });
+      
+      if (response.data?.gecko_says) {
+        this.apiMode = 'demo';
+        this.apiModeDetected = true;
+        this.log('✅ Demo API detected - 30 req/min, 10,000 calls/month', 'info');
+        return;
+      }
+    } catch (demoError) {
+      // Demo key also failed
+    }
+
+    // Default to pro if we have a key
+    this.log('🆗 Assuming Pro API mode for provided key', 'info');
+    this.apiMode = 'pro';
+    this.apiModeDetected = true;
   }
 
   // Get CoinGecko platform ID for the current network
@@ -343,6 +429,21 @@ class FundUpdater extends Scanner {
       this.log(`💰 ${this.config?.nativeCurrency || 'ETH'} price: $${price} (${mode.toUpperCase()} API)`);
       return price;
     } catch (error) {
+      // Handle rate limit specifically
+      if (error.response?.status === 429) {
+        this.log(`⚠️ Rate limit hit fetching ${this.config?.nativeCurrency || 'ETH'} price. Waiting 60s...`, 'warn');
+        await this.sleep(60000);
+        // Retry once
+        try {
+          const { response, mode } = await this.makeApiRequest('/simple/price', params);
+          const price = response.data?.[coinId]?.usd || 0;
+          this.log(`💰 ${this.config?.nativeCurrency || 'ETH'} price: $${price} (retry succeeded)`);
+          return price;
+        } catch (retryError) {
+          this.log(`Failed to fetch ${this.config?.nativeCurrency || 'ETH'} price after retry: ${retryError.message}`, 'warn');
+          return 0;
+        }
+      }
       this.log(`Failed to fetch ${this.config?.nativeCurrency || 'ETH'} price: ${error.message}`, 'warn');
       return 0;
     }
@@ -372,7 +473,8 @@ class FundUpdater extends Scanner {
 
     const priceUpdates = [];
 
-    for (const batch of batches) {
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
       try {
         const params = {
           vs_currencies: 'usd',
@@ -380,7 +482,7 @@ class FundUpdater extends Scanner {
         };
         const platformId = this.getCoinGeckoPlatformId();
 
-        const { response } = await this.makeApiRequest(`/simple/token_price/${platformId}`, params);
+        const { response, mode } = await this.makeApiRequest(`/simple/token_price/${platformId}`, params);
 
         Object.entries(response.data).forEach(([address, data]) => {
           const price = data.usd || 0;
@@ -396,9 +498,21 @@ class FundUpdater extends Scanner {
           });
         });
 
-        await this.sleep(200); // Rate limiting
+        // Adaptive rate limiting based on API mode
+        const delay = mode === 'free' ? 6000 : mode === 'demo' ? 2000 : 200; // 6s for free, 2s for demo, 200ms for pro
+        if (i < batches.length - 1) { // Don't delay after last batch
+          this.log(`[${i+1}/${batches.length}] Waiting ${delay/1000}s before next batch (${mode} mode)...`);
+          await this.sleep(delay);
+        }
       } catch (error) {
-        this.log(`Price fetch failed for batch: ${error.message}`, 'warn');
+        // Handle rate limit errors specifically
+        if (error.response?.status === 429) {
+          this.log(`⚠️ Rate limit hit for batch ${i+1}/${batches.length}. Waiting 60 seconds...`, 'warn');
+          await this.sleep(60000); // Wait 1 minute
+          i--; // Retry this batch
+        } else {
+          this.log(`Price fetch failed for batch ${i+1}/${batches.length}: ${error.message}`, 'warn');
+        }
       }
     }
 
