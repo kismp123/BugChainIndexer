@@ -122,6 +122,7 @@ class UnifiedScanner extends Scanner {
         // Active contract - first get actual deployment time
         let deployTime = null;
         
+        let isGenesisContract = false;
         try {
           // First try to get from database if available
           const existingQuery = `SELECT deployed FROM addresses WHERE address = $1 AND network = $2`;
@@ -132,7 +133,9 @@ class UnifiedScanner extends Scanner {
           } else {
             // Use the dedicated deployment time function
             const { getContractDeploymentTime } = require('../common');
-            deployTime = await getContractDeploymentTime(this, address);
+            const deploymentResult = await getContractDeploymentTime(this, address);
+            deployTime = deploymentResult.timestamp;
+            isGenesisContract = deploymentResult.isGenesis;
           }
         } catch (dbError) {
           this.log(`⚠️ Database error getting deployment time for ${address} - skipping`, 'warn');
@@ -175,7 +178,8 @@ class UnifiedScanner extends Scanner {
             address,
             codeHash,
             deployTime,
-            type: 'smart_contract'
+            type: 'smart_contract',
+            isGenesis: isGenesisContract
           });
         } else {
           // Unknown type - skip completely to avoid uncertain data

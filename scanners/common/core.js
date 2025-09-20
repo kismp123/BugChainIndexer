@@ -333,22 +333,42 @@ async function etherscanRequestInternal(network, params, maxRetries = 3) {
         timeout: 20000
       });
 
-      if (response.data?.status !== '0') {
+      // Handle proxy module differently (no status field)
+      if (params.module === 'proxy') {
+        // Proxy responses have jsonrpc format without status field
+        if (response.data?.result !== undefined) {
+          return response.data.result;
+        }
+        // If proxy call has an error, it will be in response.data.error
+        if (response.data?.error) {
+          throw new Error(`Proxy error: ${response.data.error.message || 'Unknown proxy error'}`);
+        }
+        // No result and no error - return null
+        return null;
+      }
+      
+      // Handle successful response for non-proxy modules
+      if (response.data?.status === '1') {
         return response.data.result;
       }
+      
+      // Handle NOTOK responses
       const message = response.data?.message || 'Etherscan API error';
       
+      // Check if this is a "no data" response (not an error, just no data available)
+      const isNoDataResponse = message.includes('No data found') ||
+                               message.includes('No transactions found') ||
+                               message.includes('No records found');
+      
+      if (isNoDataResponse) {
+        // Return empty array for "no data" - this is not an error
+        return [];
+      }
+      
+      // Check if this is a retryable error
       const isRetryableError = message.includes('Max rate limit reached') || 
                               message.includes('rate limit') ||
                               message.includes('NOTOK');
-      
-      if (response.data?.status === '0' && !isRetryableError && (
-        message.includes('No data found') ||
-        message.includes('No transactions found') ||
-        message.includes('No records found')
-      )) {
-        return [];
-      }
       
       if (isRetryableError && attempt < maxRetries) {
         const oldKeyIndex = state.index;
@@ -1172,9 +1192,12 @@ async function withTimeoutAndRetry(operation, timeoutMs, retryOptions = {}) {
  * Get contract deployment timestamp using Etherscan API
  * @param {Object} scanner - Scanner instance with etherscanCall method
  * @param {string} address - Contract address
- * @returns {Promise<number|null>} Deployment timestamp or null if not found
+ * @returns {Promise<{timestamp: number, isGenesis: boolean}>} Deployment timestamp and genesis flag
  */
 async function getContractDeploymentTime(scanner, address) {
+  const { getGenesisTimestamp } = require('../config/genesis-timestamps');
+  const result = { timestamp: 0, isGenesis: false };
+  
   try {
     const creationData = await scanner.etherscanCall({
       module: 'contract',
@@ -1184,6 +1207,15 @@ async function getContractDeploymentTime(scanner, address) {
     
     if (creationData && creationData.length > 0) {
       const creation = creationData[0];
+      
+      // Check if it's a genesis contract
+      if (creation.txHash && creation.txHash.startsWith('GENESIS')) {
+        result.isGenesis = true;
+        // For genesis contracts, use network genesis timestamp from config
+        result.timestamp = getGenesisTimestamp(scanner.config?.chainId) || 0;
+        return result;
+      }
+      
       if (creation.txHash) {
         // Get transaction details to get timestamp
         const txData = await scanner.etherscanCall({
@@ -1202,16 +1234,17 @@ async function getContractDeploymentTime(scanner, address) {
           });
           
           if (blockData && blockData.timestamp) {
-            return parseInt(blockData.timestamp, 16);
+            result.timestamp = parseInt(blockData.timestamp, 16);
+            return result;
           }
         }
       }
     }
     
-    return 0;
+    return result;
   } catch (error) {
     console.warn(`Failed to get deployment time for ${address}:`, error.message);
-    return 0;
+    return result;
   }
 }
 
