@@ -1024,20 +1024,22 @@ function isValidAddress(address) {
 }
 
 function validateFinancialValue(value) {
+  // Returns true if value is valid, false otherwise
   if (value === null || value === undefined) {
-    return 0;
+    return false;
   }
   
   if (typeof value === 'number') {
-    return value >= 0 ? value : 0;
+    // Check for NaN, Infinity, and negative values
+    return !isNaN(value) && isFinite(value) && value >= 0;
   }
   
   if (typeof value === 'string') {
     const parsed = parseFloat(value);
-    return !isNaN(parsed) && parsed >= 0 ? parsed : 0;
+    return !isNaN(parsed) && isFinite(parsed) && parsed >= 0;
   }
   
-  return 0;
+  return false;
 }
 
 function safeGetAddressType(address, codeHash, deploymentTime) {
