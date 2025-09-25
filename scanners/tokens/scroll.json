@@ -1,111 +1,182 @@
- {
-  "fetchedAt": "2025-08-31T22:00:50.106Z",
-  "source": "https://scrollscan.com/tokens?ps=100",
-  "explorer": "scrollscan.com",
-  "tokens": [
+[
     {
-      "name": "Tether USD",
-      "address": "0xf55bec9cafdbe8730f096aa55dad6d22d44099df"
+        "rank": 1,
+        "name": "Tether USD",
+        "symbol": "USDT",
+        "address": "0xf55bec9cafdbe8730f096aa55dad6d22d44099df"
     },
     {
-      "name": "USD Coin",
-      "address": "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4"
+        "rank": 2,
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "address": "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4"
     },
     {
-      "name": "Wrapped liquid staked Ether 2.0",
-      "address": "0xf610a9dfb7c89644979b4a0f27063e9e7d7cda32"
+        "rank": 3,
+        "name": "Wrapped liquid staked Ether 2.0",
+        "symbol": "wstETH",
+        "address": "0xf610a9dfb7c89644979b4a0f27063e9e7d7cda32"
     },
     {
-      "name": "Wrapped BTC",
-      "address": "0x3c1bca5a656e69edcd0d4e36bebb3fcdaca60cf1"
+        "rank": 4,
+        "name": "USDe",
+        "symbol": "USDe",
+        "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
     },
     {
-      "name": "USDe",
-      "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+        "rank": 5,
+        "name": "Wrapped BTC",
+        "symbol": "WBTC",
+        "address": "0x3c1bca5a656e69edcd0d4e36bebb3fcdaca60cf1"
     },
     {
-      "name": "Wrapped eETH",
-      "address": "0x01f0a31698c4d065659b9bdc21b3610292a1c506"
+        "rank": 6,
+        "name": "Wrapped eETH",
+        "symbol": "weETH",
+        "address": "0x01f0a31698c4d065659b9bdc21b3610292a1c506"
     },
     {
-      "name": "Wrapped Ether",
-      "address": "0x5300000000000000000000000000000000000004"
+        "rank": 7,
+        "name": "Wrapped Ether",
+        "symbol": "WETH",
+        "address": "0x5300000000000000000000000000000000000004"
     },
     {
-      "name": "Uniswap",
-      "address": "0x434cda25e8a2ca5d9c1c449a8cb6bcbf719233e8"
+        "rank": 8,
+        "name": "Staked USDe",
+        "symbol": "sUSDe",
+        "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
     },
     {
-      "name": "Staked USDe",
-      "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
+        "rank": 9,
+        "name": "Uniswap",
+        "symbol": "UNI",
+        "address": "0x434cda25e8a2ca5d9c1c449a8cb6bcbf719233e8"
     },
     {
-      "name": "Aave Token",
-      "address": "0x79379c0e09a41d7978f883a56246290ee9a8c4d3"
+        "rank": 10,
+        "name": "Dai Stablecoin",
+        "symbol": "DAI",
+        "address": "0xca77eb3fefe3725dc33bccb54edefc3d9f764f97"
     },
     {
-      "name": "Dai Stablecoin",
-      "address": "0xca77eb3fefe3725dc33bccb54edefc3d9f764f97"
+        "rank": 11,
+        "name": "Aave Token",
+        "symbol": "AAVE",
+        "address": "0x79379c0e09a41d7978f883a56246290ee9a8c4d3"
     },
     {
-      "name": "ENA",
-      "address": "0x58538e6a46e07434d7e7375bc268d3cb839c0133"
+        "rank": 12,
+        "name": "ENA",
+        "symbol": "ENA",
+        "address": "0x58538e6a46e07434d7e7375bc268d3cb839c0133"
     },
     {
-      "name": "Rocket Pool ETH",
-      "address": "0x53878b874283351d26d206fa512aece1bef6c0dd"
+        "rank": 13,
+        "name": "Rocket Pool ETH",
+        "symbol": "rETH",
+        "address": "0x53878b874283351d26d206fa512aece1bef6c0dd"
     },
     {
-      "name": "Curve DAO Token",
-      "address": "0xb755039edc7910c1f1bd985d48322e55a31ac0bf"
+        "rank": 14,
+        "name": "Curve DAO Token",
+        "symbol": "CRV",
+        "address": "0xb755039edc7910c1f1bd985d48322e55a31ac0bf"
     },
     {
-      "name": "PancakeSwap Token",
-      "address": "0x1b896893dfc86bb67cf57767298b9073d2c1ba2c"
+        "rank": 15,
+        "name": "PancakeSwap Token",
+        "symbol": "Cake",
+        "address": "0x1b896893dfc86bb67cf57767298b9073d2c1ba2c"
     },
     {
-      "name": "ether.fi governance token",
-      "address": "0x056a5fa5da84ceb7f93d36e545c5905607d8bd81"
+        "rank": 16,
+        "name": "ether.fi governance token",
+        "symbol": "ETHFI",
+        "address": "0x056a5fa5da84ceb7f93d36e545c5905607d8bd81"
     },
     {
-      "name": "ether.fi BTC",
-      "address": "0x657e8c867d8b37dcc18fa4caead9c45eb088c642"
+        "rank": 17,
+        "name": "ether.fi BTC",
+        "symbol": "eBTC",
+        "address": "0x657e8c867d8b37dcc18fa4caead9c45eb088c642"
     },
     {
-      "name": "Balancer",
-      "address": "0x6a28e90582c583fcd3347931c544819c31e9d0e0"
+        "rank": 18,
+        "name": "Balancer",
+        "symbol": "BAL",
+        "address": "0x6a28e90582c583fcd3347931c544819c31e9d0e0"
     },
     {
-      "name": "Kyber Network Crystal v2",
-      "address": "0x608ef9a3bffe206b86c3108218003b3cfbf99c84"
+        "rank": 19,
+        "name": "Kyber Network Crystal v2",
+        "symbol": "KNC",
+        "address": "0x608ef9a3bffe206b86c3108218003b3cfbf99c84"
     },
     {
-      "name": "Scroll",
-      "address": "0xd29687c813d741e2f938f4ac377128810e217b1b"
+        "rank": 20,
+        "name": "Scroll",
+        "symbol": "SCR",
+        "address": "0xd29687c813d741e2f938f4ac377128810e217b1b"
     },
     {
-      "name": "LUSD Stablecoin",
-      "address": "0xedeabc3a1e7d21fe835ffa6f83a710c70bb1a051"
+        "rank": 21,
+        "name": "LUSD Stablecoin",
+        "symbol": "LUSD",
+        "address": "0xedeabc3a1e7d21fe835ffa6f83a710c70bb1a051"
     },
     {
-      "name": "Tranchess DAO Token",
-      "address": "0x9735fb1126b521a913697a541f768376011bccf9"
+        "rank": 22,
+        "name": "Tranchess DAO Token",
+        "symbol": "CHESS",
+        "address": "0x9735fb1126b521a913697a541f768376011bccf9"
     },
     {
-      "name": "izumi Token",
-      "address": "0x60d01ec2d5e98ac51c8b4cf84dfcce98d527c747"
+        "rank": 23,
+        "name": "izumi Token",
+        "symbol": "iZi",
+        "address": "0x60d01ec2d5e98ac51c8b4cf84dfcce98d527c747"
     },
     {
-      "name": "Pencils Protocol Token",
-      "address": "0xb0643f7b3e2e2f10fe4e38728a763ec05f4adec3"
+        "rank": 24,
+        "name": "Pencils Protocol Token",
+        "symbol": "DAPP",
+        "address": "0xb0643f7b3e2e2f10fe4e38728a763ec05f4adec3"
     },
     {
-      "name": "PufferVault",
-      "address": "0xc4d46E8402F476F269c379677C99F18E22Ea030e"
+        "rank": 25,
+        "name": "Ether.Fi Liquid BTC",
+        "symbol": "liquidBTC",
+        "address": "0x5f46d540b6ed704c3c8789105f30e075aa900726"
     },
     {
-      "name": "Compound",
-      "address": "0x643e160a3c3e2b7eae198f0beb1bfd2441450e86"
+        "rank": 26,
+        "name": "Ether.Fi Liquid ETH",
+        "symbol": "liquidETH",
+        "address": "0xf0bb20865277abd641a307ece5ee04e79073416c"
+    },
+    {
+        "rank": 27,
+        "name": "PufferVault",
+        "symbol": "PufETH",
+        "address": "0xc4d46e8402f476f269c379677c99f18e22ea030e"
+    },
+    {
+        "rank": 28,
+        "name": "Ether.Fi Liquid USD",
+        "symbol": "liquidUSD",
+        "address": "0x08c6f91e2b681faf5e17227f2a44c307b3c1364c"
+    },
+    {
+        "rank": 29,
+        "name": "ether.fi USD",
+        "symbol": "eUSD",
+        "address": "0x939778d83b46b456224a33fb59630b11dec56663"
+    },
+    {
+        "rank": 30,
+        "name": "Compound",
+        "symbol": "COMP",
+        "address": "0x643e160a3c3e2b7eae198f0beb1bfd2441450e86"
     }
-  ]
-}
+]

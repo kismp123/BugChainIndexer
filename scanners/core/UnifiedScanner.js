@@ -33,6 +33,7 @@ class UnifiedScanner extends Scanner {
     
     this.timeDelay = CONFIG.TIMEDELAY || 4;
     this.transferEvent = BLOCKCHAIN_CONSTANTS.TRANSFER_EVENT;
+    this.blockRetryCount = new Map(); // Track retry attempts for each block range
     
     
     // Pipeline statistics
@@ -547,29 +548,63 @@ class UnifiedScanner extends Scanner {
    * Handle batch processing errors
    */
   handleBatchError(error, currentBlock, endBlock, currentBatchSize, minBatchSize, batchNum) {
+    const blockKey = `${currentBlock}-${endBlock}`;
+    const retryCount = this.blockRetryCount.get(blockKey) || 0;
+    
     if (error.message.includes('timeout')) {
-      this.log(`Batch ${batchNum} fetch timeout - RPC will automatically switch to next endpoint`, 'warn');
-      this.log(`Reducing batch size from ${currentBatchSize} to retry: blocks ${currentBlock}-${endBlock}`, 'info');
+      // Check if we've retried too many times for this block range
+      if (retryCount >= 5) {
+        this.log(`Batch ${batchNum} exceeded max retries (5) for blocks ${currentBlock}-${endBlock}. Skipping...`, 'error');
+        this.blockRetryCount.delete(blockKey);
+        return {
+          nextBlock: endBlock + 1, // Skip this batch after max retries
+          newBatchSize: currentBatchSize,
+          batchCount: batchNum,
+          totalProcessed: 0
+        };
+      }
+      
+      // If batch size is already 1 and still failing, skip after 3 retries
+      if (currentBatchSize === 1 && retryCount >= 3) {
+        this.log(`Single block ${currentBlock} failed after 3 retries. Skipping...`, 'error');
+        this.blockRetryCount.delete(blockKey);
+        return {
+          nextBlock: currentBlock + 1, // Skip this single block
+          newBatchSize: minBatchSize,
+          batchCount: batchNum,
+          totalProcessed: 0
+        };
+      }
+      
+      this.blockRetryCount.set(blockKey, retryCount + 1);
+      this.log(`Batch ${batchNum} fetch timeout (retry ${retryCount + 1}/5) - RPC will automatically switch to next endpoint`, 'warn');
+      
       const newBatchSize = Math.max(minBatchSize, Math.floor(currentBatchSize * 0.5));
+      if (newBatchSize < currentBatchSize) {
+        this.log(`Reducing batch size from ${currentBatchSize} to ${newBatchSize}: blocks ${currentBlock}-${endBlock}`, 'info');
+      }
+      
       return {
-        nextBlock: currentBlock, // Don't increment, retry with smaller batch
+        nextBlock: currentBlock, // Retry with smaller batch
         newBatchSize,
         batchCount: batchNum - 1, // Don't increment batch count
         totalProcessed: 0
       };
     } else if (error.message.includes('All RPC attempts failed')) {
+      this.blockRetryCount.delete(blockKey);
       this.log(`Batch ${batchNum} failed - all RPC endpoints exhausted: ${error.message}`, 'error');
       this.log(`Skipping blocks ${currentBlock}-${endBlock} due to RPC failures`, 'warn');
       return {
         nextBlock: endBlock + 1, // Skip this batch after all retries failed
-        newBatchSize: Math.max(minBatchSize, Math.floor(currentBatchSize * 0.7)), // Reduce size for next attempt
+        newBatchSize: Math.max(minBatchSize, Math.floor(currentBatchSize * 0.7)),
         batchCount: batchNum,
         totalProcessed: 0
       };
     } else {
+      this.blockRetryCount.delete(blockKey);
       this.log(`Batch ${batchNum} fetch failed: ${error.message}. Skipping...`, 'error');
       return {
-        nextBlock: endBlock + 1, // Skip this batch
+        nextBlock: endBlock + 1, // Skip this batch on other errors
         newBatchSize: currentBatchSize,
         batchCount: batchNum,
         totalProcessed: 0

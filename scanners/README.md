@@ -12,10 +12,12 @@ scanners/
 │   ├── UnifiedScanner.js    # Main analysis pipeline
 │   ├── FundUpdater.js       # Asset price/balance tracking  
 │   └── DataRevalidator.js   # Data validation & retagging
-├── common/             # Unified library (4 files)
+├── common/             # Unified library (6 files)
 │   ├── core.js         # Consolidated core functions
 │   ├── database.js     # PostgreSQL schema & batch operations
 │   ├── Scanner.js      # Base scanner class
+│   ├── MultiSourcePriceHelper.js  # Multi-source price aggregation
+│   ├── TokenDataLoader.js         # Token metadata loader
 │   └── index.js        # Export hub (backward compatibility)
 ├── config/
 │   └── networks.js     # 18 network configurations
@@ -86,11 +88,13 @@ cp .env.example .env
 # Default Etherscan API keys (used by ALL networks for simplicity)
 DEFAULT_ETHERSCAN_KEYS=your_key1,your_key2,your_key3
 
-# Default CoinGecko API key  
-DEFAULT_COINGECKO_KEY=your_coingecko_key
+# Price data sources (optional - system will use available sources)
+DEFAULT_COINGECKO_KEY=your_coingecko_key  # Optional, fallback option
 ```
 
-**Note**: All networks now use `DEFAULT_ETHERSCAN_KEYS` for consistency. Network-specific overrides have been simplified.
+**Notes**: 
+- All networks now use `DEFAULT_ETHERSCAN_KEYS` for consistency. Network-specific overrides have been simplified.
+- Price data is automatically fetched from multiple free sources (Binance, Kraken, Coinbase, etc.) without requiring API keys.
 
 ### 3. Database Configuration
 ```bash
@@ -126,7 +130,8 @@ TIMEOUT_SECONDS=7200           # Script timeout (default: 7200)
 - **Batch Processing**: 300-1000 addresses per contract call
 
 ### FundUpdater - Asset Tracking
-- **Token Price Updates**: CoinGecko API integration with caching
+- **Multi-Source Price Updates**: Automatic price aggregation from Binance, Kraken, Coinbase, CryptoCompare, and CoinGecko
+- **Smart Fallback System**: Automatic failover between price sources for maximum availability
 - **Native Balance Tracking**: Batch RPC calls for account balances
 - **ERC-20 Balance Queries**: Smart contract integration for token balances
 - **Performance**: 17x improvement (1.4s → 0.08s per batch)

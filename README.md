@@ -18,7 +18,8 @@ BugChainIndexer is a comprehensive blockchain analysis platform that monitors, a
 - **80%+ Efficiency Gain**: Massive improvement over traditional individual scanners
 
 ### 💰 **Asset & Fund Tracking**
-- **Real-time Price Updates**: CoinGecko API integration with Pro/Demo/Free fallback
+- **Multi-Source Price Updates**: Integrated price fetching from multiple sources (Binance, Kraken, Coinbase, CryptoCompare, CoinGecko)
+- **Automatic Fallback System**: Smart failover between price sources for maximum availability
 - **Multi-token Balance Queries**: ERC-20, ERC-721, and native token support
 - **Smart Contract Integration**: Custom BalanceHelper contracts for batch operations
 - **Cache Management**: Intelligent price caching with configurable intervals
@@ -136,8 +137,9 @@ NETWORK=ethereum ./run.sh unified
 ### Scanners
 High-performance blockchain analysis engine with unified processing pipeline.
 - **UnifiedScanner**: Main analysis pipeline (transfer events → contract verification)
-- **FundUpdater**: Asset price and balance tracking
+- **FundUpdater**: Asset price and balance tracking with multi-source price aggregation
 - **DataRevalidator**: Existing data validation and tagging
+- **MultiSourcePriceHelper**: Intelligent price fetching from 5+ sources with automatic fallback
 
 ### Smart Contracts  
 Foundry-based Solidity contracts for batch operations.
@@ -157,13 +159,17 @@ Express.js REST API with PostgreSQL database.
 ```bash
 # Blockchain explorer APIs (free tier available)
 DEFAULT_ETHERSCAN_KEYS=key1,key2,key3
-DEFAULT_COINGECKO_KEY=your_coingecko_key
+
+# Price data sources (optional - system will use available sources)
+DEFAULT_COINGECKO_KEY=your_coingecko_key  # Optional, fallback option
 
 # Network-specific keys (optional)
 ETHERSCAN_API_KEYS=ethereum_keys
 POLYGONSCAN_API_KEYS=polygon_keys
 # ... other networks
 ```
+
+**Note**: Price data is fetched from multiple sources (Binance, Kraken, Coinbase, etc.) without requiring API keys for most providers.
 
 ### Database Settings
 

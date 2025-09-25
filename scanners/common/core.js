@@ -10,19 +10,19 @@ const { NETWORKS, CONFIG } = require('../config/networks.js');
 // ====== CONSTANTS (MERGED FROM HELPERS.JS) ======
 const BATCH_SIZES = {
   LOGS_MIN: 1,
-  LOGS_DEFAULT: 150,
-  LOGS_MAX: 5000,
-  ADDRESSES_DEFAULT: 500,
-  CONTRACTS_DEFAULT: 300,
+  LOGS_DEFAULT: 50,
+  LOGS_MAX: 1000,
+  ADDRESSES_DEFAULT: 100,
+  CONTRACTS_DEFAULT: 50,
   VERIFICATION_BATCH: 5,
   ETHERSCAN_BATCH: 5,
 };
 
 const TIMEOUTS = {
   RPC_CALL: 5000,
-  BLOCK_QUERY: 8000,
+  BLOCK_QUERY: 15000,
   BLOCK_QUERY_FAST: 3000,
-  GET_LOGS: 30000,
+  GET_LOGS: 60000,
   TRANSACTION_QUERY: 5000,
   CONTRACT_CREATION: 10000,
 };
@@ -37,14 +37,14 @@ const RETRY_CONFIG = {
 };
 
 const PERFORMANCE = {
-  TARGET_DURATION: 5000,
-  FAST_RESPONSE: 2000,
-  SLOW_RESPONSE: 10000,
-  VERY_SLOW_RESPONSE: 20000,
-  FAST_MULTIPLIER: 2.0,
-  GOOD_MULTIPLIER: 1.5,
-  SLOW_MULTIPLIER: 0.6,
-  VERY_SLOW_MULTIPLIER: 0.3,
+  TARGET_DURATION: 8000,
+  FAST_RESPONSE: 3000,
+  SLOW_RESPONSE: 15000,
+  VERY_SLOW_RESPONSE: 30000,
+  FAST_MULTIPLIER: 3.0,
+  GOOD_MULTIPLIER: 2.0,
+  SLOW_MULTIPLIER: 0.8,
+  VERY_SLOW_MULTIPLIER: 0.5,
 };
 
 const PROCESSING = {
@@ -675,10 +675,10 @@ class ContractCall {
     return this.balanceCache.get(network);
   }
 
-  async chunkOperation(addresses, operation, initialChunkSize = 200) {
+  async chunkOperation(addresses, operation, initialChunkSize = 50) {
     const results = [];
     const minChunkSize = 10;
-    const maxChunkSize = 500;
+    const maxChunkSize = 500;  // 증가된 최대 청크 크기
     let currentChunkSize = initialChunkSize;
     
     for (let i = 0; i < addresses.length; i += currentChunkSize) {
@@ -732,21 +732,53 @@ class ContractCall {
   
   adjustChunkSize(currentChunkSize, duration, minChunkSize, maxChunkSize) {
     const targetDuration = 5000;
-    const fastResponse = 2000;
-    const slowResponse = 10000;
+    const fastResponse = 1000;   // 더 빠른 응답 기준
+    const goodResponse = 3000;   // 양호한 응답 기준
+    const slowResponse = 8000;   // 느린 응답 기준
+    const verySlowResponse = 15000; // 매우 느린 응답 기준
     
+    // 매우 빠른 응답: 3배 증가
     if (duration < fastResponse) {
-      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 1.5));
+      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 3.0));
       if (newSize > currentChunkSize) {
+        console.log(`[ChunkAdjust] Very fast response (${duration}ms): ${currentChunkSize} → ${newSize}`);
         return newSize;
       }
-    } else if (duration > slowResponse) {
-      const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.7));
+    }
+    // 빠른 응답: 2배 증가
+    else if (duration < goodResponse) {
+      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 2.0));
+      if (newSize > currentChunkSize) {
+        console.log(`[ChunkAdjust] Fast response (${duration}ms): ${currentChunkSize} → ${newSize}`);
+        return newSize;
+      }
+    }
+    // 양호한 응답: 1.5배 증가
+    else if (duration < targetDuration) {
+      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 1.5));
+      if (newSize > currentChunkSize) {
+        console.log(`[ChunkAdjust] Good response (${duration}ms): ${currentChunkSize} → ${newSize}`);
+        return newSize;
+      }
+    }
+    // 매우 느린 응답: 50% 감소
+    else if (duration > verySlowResponse) {
+      const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.5));
+      console.log(`[ChunkAdjust] Very slow response (${duration}ms): ${currentChunkSize} → ${newSize}`);
       return newSize;
-    } else if (duration > targetDuration) {
+    }
+    // 느린 응답: 70% 감소
+    else if (duration > slowResponse) {
+      const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.7));
+      console.log(`[ChunkAdjust] Slow response (${duration}ms): ${currentChunkSize} → ${newSize}`);
+      return newSize;
+    }
+    // 타겟 범위 내: 미세 조정
+    else if (duration > targetDuration) {
       const ratio = targetDuration / duration;
       const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * ratio));
       if (newSize < currentChunkSize * 0.9) {
+        console.log(`[ChunkAdjust] Adjusting (${duration}ms): ${currentChunkSize} → ${newSize}`);
         return newSize;
       }
     }

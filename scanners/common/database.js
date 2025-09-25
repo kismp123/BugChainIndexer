@@ -22,11 +22,27 @@ async function ensureSchema(client) {
       PRIMARY KEY (address, network)
     )`,
     
+    // Tokens table for price tracking
+    `CREATE TABLE IF NOT EXISTS tokens (
+      token_address TEXT NOT NULL,
+      network TEXT NOT NULL,
+      name TEXT,
+      symbol TEXT,
+      decimals INTEGER,
+      price DECIMAL(20, 8),
+      price_updated BIGINT,
+      is_valid BOOLEAN DEFAULT true,
+      coingecko_id TEXT,
+      PRIMARY KEY (token_address, network)
+    )`,
+    
     // Essential indexes for performance - optimized for common queries
     `CREATE INDEX IF NOT EXISTS idx_addresses_network ON addresses(network)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_tags_gin ON addresses USING GIN(tags)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_fund ON addresses(network, fund)`,
-    `CREATE INDEX IF NOT EXISTS idx_addresses_last_updated ON addresses(network, last_updated)`
+    `CREATE INDEX IF NOT EXISTS idx_addresses_last_updated ON addresses(network, last_updated)`,
+    `CREATE INDEX IF NOT EXISTS idx_tokens_network ON tokens(network)`,
+    `CREATE INDEX IF NOT EXISTS idx_tokens_price_updated ON tokens(network, price_updated)`
   ];
 
   for (const schema of schemas) {

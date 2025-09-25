@@ -1,407 +1,302 @@
-{
-  "fetchedAt": "2025-08-31T21:54:59.394Z",
-  "source": "https://snowscan.xyz/tokens?ps=100",
-  "explorer": "snowscan.xyz",
-  "tokens": [
+[
     {
-      "name": "TetherToken",
-      "address": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"
+        "rank": 1,
+        "name": "TetherToken",
+        "symbol": "USDt",
+        "address": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"
     },
     {
-      "name": "USD Coin",
-      "address": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+        "rank": 2,
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "address": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
     },
     {
-      "name": "Bitcoin",
-      "address": "0x152b9d0FdC40C096757F570A51E494bd4b943E50"
+        "rank": 3,
+        "name": "Bitcoin",
+        "symbol": "BTC.b",
+        "address": "0x152b9d0fdc40c096757f570a51e494bd4b943e50"
     },
     {
-      "name": "Wrapped AVAX",
-      "address": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
+        "rank": 4,
+        "name": "Wrapped AVAX",
+        "symbol": "WAVAX",
+        "address": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
     },
     {
-      "name": "Wrapped Ether",
-      "address": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
+        "rank": 5,
+        "name": "Cointel",
+        "symbol": "COLS",
+        "address": "0x97f2624d5f99a953ae5574ea57d3268785941de4"
     },
     {
-      "name": "JoeToken",
-      "address": "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"
+        "rank": 6,
+        "name": "Wrapped Ether",
+        "symbol": "WETH.e",
+        "address": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
     },
     {
-      "name": "Pangolin",
-      "address": "0x60781c2586d68229fde47564546784ab3faca982"
+        "rank": 7,
+        "name": "Aave Avalanche WETH",
+        "symbol": "aAvaWETH",
+        "address": "0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8"
     },
     {
-      "name": "ArenaToken",
-      "address": "0xb8d7710f7d8349a506b75dd184f05777c82dad0c"
+        "rank": 8,
+        "name": "MoveQuest",
+        "symbol": "MQT",
+        "address": "0xef0cdae2ffeeefa539a244a16b3f46ba75b8c810"
     },
     {
-      "name": "BENQI",
-      "address": "0x8729438eb15e2c8b576fcc6aecda6a148776c0f5"
+        "rank": 9,
+        "name": "ArenaToken",
+        "symbol": "ARENA",
+        "address": "0xb8d7710f7d8349a506b75dd184f05777c82dad0c"
     },
     {
-      "name": "USD Coin",
-      "address": "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
+        "rank": 10,
+        "name": "Aave Avalanche USDT",
+        "symbol": "aAvaUSDT",
+        "address": "0x6ab707aca953edaefbc4fd23ba73294241490620"
     },
     {
-      "name": "Wrapped BTC",
-      "address": "0x50b7545627a5162f82a992c33b87adc75187b218"
+        "rank": 11,
+        "name": "JoeToken",
+        "symbol": "JOE",
+        "address": "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"
     },
     {
-      "name": "COQINU",
-      "address": "0x420fca0121dc28039145009570975747295f2329"
+        "rank": 12,
+        "name": "Pangolin",
+        "symbol": "PNG",
+        "address": "0x60781c2586d68229fde47564546784ab3faca982"
     },
     {
-      "name": "AUSD",
-      "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"
+        "rank": 13,
+        "name": "BENQI",
+        "symbol": "QI",
+        "address": "0x8729438eb15e2c8b576fcc6aecda6a148776c0f5"
     },
     {
-      "name": "Avalaunch",
-      "address": "0xd1c3f94de7e5b45fa4edbba472491a9f4b166fc4"
+        "rank": 14,
+        "name": "NXPC",
+        "symbol": "NXPC",
+        "address": "0x5e0e90e268bc247cc850c789a0db0d5c7621fb59"
     },
     {
-      "name": "Tether USD",
-      "address": "0xc7198437980c041c805a1edcba50c1ce5db95118"
+        "rank": 15,
+        "name": "Orange",
+        "symbol": "ORNG",
+        "address": "0x6c14c1898c843ff66ca51e87244690bbc28df215"
     },
     {
-      "name": "Wirex Token",
-      "address": "0xfcDe4A87b8b6FA58326BB462882f1778158B02F1"
+        "rank": 16,
+        "name": "BLACKHOLE",
+        "symbol": "BLACK",
+        "address": "0xcd94a87696fac69edae3a70fe5725307ae1c43f6"
     },
     {
-      "name": "Solv BTC",
-      "address": "0xbc78d84ba0c46dfe32cf2895a19939c86b81a777"
+        "rank": 17,
+        "name": "Wrapped BTC",
+        "symbol": "WBTC.e",
+        "address": "0x50b7545627a5162f82a992c33b87adc75187b218"
     },
     {
-      "name": "Chainlink Token",
-      "address": "0x5947bb275c521040051d82396192181b413227a3"
+        "rank": 18,
+        "name": "GoGoPool Protocol",
+        "symbol": "GGP",
+        "address": "0x69260b9483f9871ca57f81a90d91e2f96c2cd11d"
     },
     {
-      "name": "Colony Token",
-      "address": "0xec3492a2508ddf4fdc0cd76f31f340b30d1793e6"
+        "rank": 19,
+        "name": "USD Coin",
+        "symbol": "USDC.e",
+        "address": "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
     },
     {
-      "name": "Dai Stablecoin",
-      "address": "0xd586e7f844cea2f87f50152665bcbc2c279d8d70"
+        "rank": 20,
+        "name": "Unity",
+        "symbol": "UTY",
+        "address": "0xdbc5192a6b6ffee7451301bb4ec312f844f02b4a"
     },
     {
-      "name": "Pendle",
-      "address": "0xfb98b335551a418cd0737375a2ea0ded62ea213b"
+        "rank": 21,
+        "name": "COQINU",
+        "symbol": "COQ",
+        "address": "0x420fca0121dc28039145009570975747295f2329"
     },
     {
-      "name": "GMX",
-      "address": "0x62edc0692bd897d2295872a9ffcac5425011c661"
+        "rank": 22,
+        "name": "MyStandard",
+        "symbol": "MYST",
+        "address": "0x0256b279d973c8d687264ac3eb36be09232d4474"
     },
     {
-      "name": "BattleForGiostone",
-      "address": "0xfd538ca3f58dc309da55b11f007ff53fb4602876"
+        "rank": 23,
+        "name": "AUSD",
+        "symbol": "AUSD",
+        "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"
     },
     {
-      "name": "Yield BTC.B",
-      "address": "0x2cd3cdb3bd68eea0d3be81da707bc0c8743d7335"
+        "rank": 24,
+        "name": "Avalaunch",
+        "symbol": "XAVA",
+        "address": "0xd1c3f94de7e5b45fa4edbba472491a9f4b166fc4"
     },
     {
-      "name": "bobcoin",
-      "address": "0x590eb2920486486c2d9bb3eb651f73b81df87bcf"
+        "rank": 25,
+        "name": "Hypha Staked AVAX",
+        "symbol": "stAVAX",
+        "address": "0xa25eaf2906fa1a3a13edac9b9657108af7b703e3"
     },
     {
-      "name": "Euro Coin",
-      "address": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
+        "rank": 26,
+        "name": "deUSD",
+        "symbol": "deUSD",
+        "address": "0xb57b25851fe2311cc3fe511c8f10e868932e0680"
     },
     {
-      "name": "Fautor",
-      "address": "0x61f23250451305f6c4426e81c50ae535edf94a02"
+        "rank": 27,
+        "name": "Tether USD",
+        "symbol": "USDT.e",
+        "address": "0xc7198437980c041c805a1edcba50c1ce5db95118"
     },
     {
-      "name": "GUNZ",
-      "address": "0x26deBD39D5eD069770406FCa10A0E4f8d2c743eB"
+        "rank": 28,
+        "name": "Gho Token",
+        "symbol": "GHO",
+        "address": "0xfc421ad3c883bf9e7c4f42de845c4e4405799e73"
     },
     {
-      "name": "DUA",
-      "address": "0xb418417374fca27bb54169d3c777492e6fe17ee7"
+        "rank": 29,
+        "name": "Wirex Token",
+        "symbol": "WXT",
+        "address": "0xfcde4a87b8b6fa58326bb462882f1778158b02f1"
     },
     {
-      "name": "Magic Internet Money",
-      "address": "0x130966628846bfd36ff31a822705796e8cb8c18d"
+        "rank": 30,
+        "name": "Staked UTY",
+        "symbol": "yUTY",
+        "address": "0x580d5e1399157fd0d58218b7a514b60974f2ab01"
     },
     {
-      "name": "Jade Protocol",
-      "address": "0x80B010450fDAf6a3f8dF033Ee296E92751D603B3"
+        "rank": 31,
+        "name": "SPACEM WORLD",
+        "symbol": "SPCM",
+        "address": "0x7cc9c624efa62c2decf0a2a028f7885ecea95a17"
     },
     {
-      "name": "Wrapped BTC",
-      "address": "0x0555e30da8f98308edb960aa94c0db47230d2b9c"
+        "rank": 32,
+        "name": "Vertical AI",
+        "symbol": "VERTAI",
+        "address": "0x6edac263561da41ade155a992759260fafb87b43"
     },
     {
-      "name": "Governance OHM",
-      "address": "0x321E7092a180BB43555132ec53AaA65a5bF84251"
+        "rank": 33,
+        "name": "MOANI",
+        "symbol": "MOANI",
+        "address": "0xeec951bfdeb358371a19512c6c33cdd840d47db0"
     },
     {
-      "name": "Yak Token",
-      "address": "0x59414b3089ce2af0010e7523dea7e2b35d776ec7"
+        "rank": 34,
+        "name": "Colony Token",
+        "symbol": "CLY",
+        "address": "0xec3492a2508ddf4fdc0cd76f31f340b30d1793e6"
     },
     {
-      "name": "EverRise",
-      "address": "0xc17c30e98541188614df99239cabd40280810ca3"
+        "rank": 35,
+        "name": "Chainlink Token",
+        "symbol": "LINK.e",
+        "address": "0x5947bb275c521040051d82396192181b413227a3"
     },
     {
-      "name": "Colony Avalanche Index",
-      "address": "0x48f88a3fe843ccb0b5003e70b4192c1d7448bef0"
+        "rank": 36,
+        "name": "Staked USDe",
+        "symbol": "sUSDe",
+        "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
     },
     {
-      "name": "Aave Token",
-      "address": "0x63a72806098bd3d9520cc43356dd78afe5d386d9"
+        "rank": 37,
+        "name": "SuperVerse",
+        "symbol": "SUPER",
+        "address": "0x09fa58228bb791ea355c90da1e4783452b9bd8c3"
     },
     {
-      "name": "Backed IB01 $ Treasury Bond 0-1yr",
-      "address": "0xca30c93b02514f86d5c86a6e375e3a330b435fb5"
+        "rank": 38,
+        "name": "GMX",
+        "symbol": "GMX",
+        "address": "0x62edc0692bd897d2295872a9ffcac5425011c661"
     },
     {
-      "name": "TrueUSD",
-      "address": "0x1c20e891bab6b1727d14da358fae2984ed9b59eb"
+        "rank": 39,
+        "name": "Dai Stablecoin",
+        "symbol": "DAI.e",
+        "address": "0xd586e7f844cea2f87f50152665bcbc2c279d8d70"
     },
     {
-      "name": "PointPay Token",
-      "address": "0x15fa5d3dbd11a831b72b92c1705bc9f801e233cb"
+        "rank": 40,
+        "name": "HUNDRED",
+        "symbol": "HUNDRED",
+        "address": "0x4586af10ecceed4e383e3f2ec93b6c61e26500b5"
     },
     {
-      "name": "LayerZero",
-      "address": "0x6985884c4392d348587b19cb9eaaf157f13271cd"
+        "rank": 41,
+        "name": "Suzaku Token",
+        "symbol": "SUZ",
+        "address": "0x451532f1c9eb7e4dc2d493db52b682c0acf6f5ef"
     },
     {
-      "name": "Time",
-      "address": "0xb54f16fb19478766a268f172c9480f8da1a7c9c3"
+        "rank": 42,
+        "name": "Fautor",
+        "symbol": "FTR",
+        "address": "0x61f23250451305f6c4426e81c50ae535edf94a02"
     },
     {
-      "name": "StargateToken",
-      "address": "0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590"
+        "rank": 43,
+        "name": "Yield BTC.B",
+        "symbol": "YBTC.B",
+        "address": "0x2cd3cdb3bd68eea0d3be81da707bc0c8743d7335"
     },
     {
-      "name": "Backed CSPX Core S&P 500",
-      "address": "0x1e2c4fb7ede391d116e6b41cd0608260e8801d59"
+        "rank": 44,
+        "name": "Euro Coin",
+        "symbol": "EURC",
+        "address": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
     },
     {
-      "name": "MAI",
-      "address": "0x3b55e45fd6bd7d4724f5c47e0d1bcaedd059263e"
+        "rank": 45,
+        "name": "Aave Avalanche WBTC",
+        "symbol": "aAvaWBTC",
+        "address": "0x078f358208685046a11c85e8ad32895ded33a249"
     },
     {
-      "name": "CHEEMSINU",
-      "address": "0xc11bf915db4b43714bc8d32bf83bf5ea53d40981"
+        "rank": 46,
+        "name": "GUNZ",
+        "symbol": "GUN",
+        "address": "0x26debd39d5ed069770406fca10a0e4f8d2c743eb"
     },
     {
-      "name": "Elk",
-      "address": "0xeEeEEb57642040bE42185f49C52F7E9B38f8eeeE"
+        "rank": 47,
+        "name": "Jade Protocol",
+        "symbol": "JADE",
+        "address": "0x80b010450fdaf6a3f8df033ee296e92751d603b3"
     },
     {
-      "name": "Poly-Peg COOK",
-      "address": "0x637afeff75ca669ff92e4570b14d6399a658902f"
+        "rank": 48,
+        "name": "Nuklai Token",
+        "symbol": "NAI",
+        "address": "0x5ac34c53a04b9aaa0bf047e7291fb4e8a48f2a18"
     },
     {
-      "name": "HonToken",
-      "address": "0xed2b42d3c9c6e97e11755bb37df29b6375ede3eb"
+        "rank": 49,
+        "name": "STEP.APP",
+        "symbol": "FITFI",
+        "address": "0x714f020c54cc9d104b6f4f6998c63ce2a31d1888"
     },
     {
-      "name": "YieldYak gAVAX",
-      "address": "0xf7d9281e8e363584973f946201b82ba72c965d27"
-    },
-    {
-      "name": "SecureChain AI",
-      "address": "0x0f13fc8a93ab8edc9fde0a1e19aac693161599a5"
-    },
-    {
-      "name": "Avaxtars Token",
-      "address": "0x397bbd6a0e41bdf4c3f971731e180db8ad06ebc1"
-    },
-    {
-      "name": "Binance-Peg BUSD Token",
-      "address": "0x9C9e5fD8bbc25984B178FdCE6117Defa39d2db39"
-    },
-    {
-      "name": "APIX",
-      "address": "0x1edf79e77693561e80072becbcce1e16dc356aca"
-    },
-    {
-      "name": "ROCO",
-      "address": "0xb2a85c5ecea99187a977ac34303b80acbddfa208"
-    },
-    {
-      "name": "CheckDot",
-      "address": "0x0cbd6fadcf8096cc9a43d90b45f65826102e3ece"
-    },
-    {
-      "name": "APower",
-      "address": "0xf3dd4e0a1db7c5dcbf3b225698cb6a916aeb24d9"
-    },
-    {
-      "name": "MeowCat",
-      "address": "0x8ad25b0083c9879942a64f00f20a70d3278f6187"
-    },
-    {
-      "name": "$ALPHA",
-      "address": "0x325a98f258a5732c7b06555603f6af5bc1c17f0a"
-    },
-    {
-      "name": "Backed Coinbase Global",
-      "address": "0xbbcb0356bB9e6B3Faa5CbF9E5F36185d53403Ac9"
-    },
-    {
-      "name": "beefy.finance",
-      "address": "0xd6070ae98b8069de6b494332d1a1a81b6179d960"
-    },
-    {
-      "name": "Backed MicroStrategy Inc",
-      "address": "0xaC28C9178ACc8BA4A11A29E013a3A2627086e422"
-    },
-    {
-      "name": "JPY Coin",
-      "address": "0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB"
-    },
-    {
-      "name": "Vector",
-      "address": "0x5817d4f0b62a59b17f75207da1848c2ce75e7af4"
-    },
-    {
-      "name": "Spell Token",
-      "address": "0xce1bffbd5374dac86a2893119683f4911a2f7814"
-    },
-    {
-      "name": "Backed Tesla Inc",
-      "address": "0x14a5f2872396802c3cc8942a39ab3e4118ee5038"
-    },
-    {
-      "name": "More Token",
-      "address": "0xd9d90f882cddd6063959a9d837b05cb748718a05"
-    },
-    {
-      "name": "VNX Franc",
-      "address": "0x228a48df6819ccc2eca01e2192ebafffdad56c19"
-    },
-    {
-      "name": "SolvBTC Babylon",
-      "address": "0xcc0966d8418d412c599a6421b760a847eb169a8c"
-    },
-    {
-      "name": "Backed NVIDIA Corp",
-      "address": "0xa34c5e0abe843e10461e2c9586ea03e55dbcc495"
-    },
-    {
-      "name": "Frax",
-      "address": "0xd24c2ad096400b6fbcd2ad8b24e7acbc21a1da64"
-    },
-    {
-      "name": "VNX Euro",
-      "address": "0x7678e162f38ec9ef2bfd1d0aaf9fd93355e5fa0b"
-    },
-    {
-      "name": "Megaweapon",
-      "address": "0xe3b3f75f99da4ff26aa867ef70b48f8f6b2d4958"
-    },
-    {
-      "name": "NitroNetwork",
-      "address": "0xc69Eba65e87889f0805dB717Af06797055A0BA07"
-    },
-    {
-      "name": "Husky",
-      "address": "0x65378b697853568da9ff8eab60c13e1ee9f4a654"
-    },
-    {
-      "name": "RadioShack Token",
-      "address": "0x02Bfd11499847003De5f0F5AA081C43854d48815"
-    },
-    {
-      "name": "Canary",
-      "address": "0x8d88e48465f30acfb8dac0b3e35c9d6d7d36abaf"
-    },
-    {
-      "name": "BiLira",
-      "address": "0x564a341df6c126f90cf3ecb92120fd7190acb401"
-    },
-    {
-      "name": "JoeBar",
-      "address": "0x57319d41f71e81f3c65f2a47ca4e001ebafd4f33"
-    },
-    {
-      "name": "Volta Club",
-      "address": "0x9b06f3c5de42d4623d7a2bd940ec735103c68a76"
-    },
-    {
-      "name": "Frax Price Index",
-      "address": "0xf530904fd8f9ce55f40b7cc78382a13b0cd5c48c"
-    },
-    {
-      "name": "Frax Share",
-      "address": "0x214db107654ff987ad859f34125307783fc8e387"
-    },
-    {
-      "name": "SmarterCoin",
-      "address": "0x6d923f688c7ff287dc3a5943caeefc994f97b290"
-    },
-    {
-      "name": "Synapse",
-      "address": "0x1f1e7c893855525b303f99bdf5c3c05be09ca251"
-    },
-    {
-      "name": "SHIBAVAX",
-      "address": "0x440abbf18c54b2782a4917b80a1746d3a2c2cce1"
-    },
-    {
-      "name": "Kalao Token",
-      "address": "0xb27c8941a7df8958a1778c0259f76d1f8b711c35"
-    },
-    {
-      "name": "LIBERA - Multichain High APR Farming",
-      "address": "0x8908ea968d2f79d078d893c0bcecd63eacdd9322"
-    },
-    {
-      "name": "Vee",
-      "address": "0x3709e8615e02c15b096f8a9b460ccb8ca8194e86"
-    },
-    {
-      "name": "Ankr Avalanche Reward Earning Bond",
-      "address": "0x6c6f910a79639dcc94b4feef59ff507c2e843929"
-    },
-    {
-      "name": "Janus Network",
-      "address": "0x7A023A408F51c23760Eb31190fc731bc12B52954"
-    },
-    {
-      "name": "TrustSwap Token",
-      "address": "0xc7b5d72c836e718cda8888eaf03707faef675079"
-    },
-    {
-      "name": "KyteOne",
-      "address": "0x056D114fF1e01dE3BCA30F0Efa3655DF42880e5B"
-    },
-    {
-      "name": "ZooToken",
-      "address": "0x1B88D7aD51626044Ec62eF9803EA264DA4442F32"
-    },
-    {
-      "name": "PenguinToken",
-      "address": "0xe896cdeaac9615145c0ca09c8cd5c25bced6384c"
-    },
-    {
-      "name": "DCTDAO",
-      "address": "0x8db2dbdfb50480fe79f6576deaa4f6e68dcbfb15"
-    },
-    {
-      "name": "LODE Token",
-      "address": "0xbbaaa0420d474b34be197f95a323c2ff3829e811"
-    },
-    {
-      "name": "TEDDY",
-      "address": "0x094bd7b2d99711a1486fb94d4395801c6d0fddcc"
-    },
-    {
-      "name": "GhostMarket Token",
-      "address": "0x0b53b5da7d0f275c31a6a182622bdf02474af253"
-    },
-    {
-      "name": "iDeFiYieldProtocol",
-      "address": "0xbd100d061e120b2c67a24453cf6368e63f1be056"
-    },
-    {
-      "name": "Ankr Network",
-      "address": "0x20cf1b6e9d856321ed4686877cf4538f2c84b4de"
+        "rank": 50,
+        "name": "Seedworld",
+        "symbol": "SWORLD",
+        "address": "0x968be3f7bfef0f8edc3c1ad90232ebb0da0867aa"
     }
-  ]
-}
+]

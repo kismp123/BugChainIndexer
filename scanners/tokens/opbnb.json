@@ -1,115 +1,56 @@
- {
-  "fetchedAt": "2025-08-31T21:43:38.604Z",
-  "source": "https://opbnb.bscscan.com/tokens",
-  "explorer": "opbnb.bscscan.com",
-  "tokens": [
+[
     {
-      "rank": 1,
-      "name": "Wrapped BNB",
-      "symbol": "WBNB",
-      "address": "0x4200000000000000000000000000000000000006",
-      "price_usd": 656.96180756716,
-      "circulating_market_cap_usd": 92556938797,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 92556938797,
-      "holders": 126460,
-      "token_url": "https://opbnb.bscscan.com/token/0x4200000000000000000000000000000000000006"
+        "rank": 1,
+        "name": "Wrapped BNB",
+        "symbol": "WBNB",
+        "address": "0x4200000000000000000000000000000000000006"
     },
     {
-      "rank": 2,
-      "name": "PancakeSwap Token",
-      "symbol": "Cake",
-      "address": "0x2779106e4f4a8a28d77a24c18283651a2ae22d1c",
-      "price_usd": 2.490002868,
-      "circulating_market_cap_usd": 857747076,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 857747076,
-      "holders": 210400,
-      "token_url": "https://opbnb.bscscan.com/token/0x2779106e4f4a8a28d77a24c18283651a2ae22d1c"
+        "rank": 2,
+        "name": "PancakeSwap Token",
+        "symbol": "Cake",
+        "address": "0x2779106e4f4a8a28d77a24c18283651a2ae22d1c"
     },
     {
-      "rank": 3,
-      "name": "Tether USD",
-      "symbol": "USDT",
-      "address": "0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3",
-      "price_usd": 1.000001152,
-      "circulating_market_cap_usd": 55550195,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 55550195,
-      "holders": 3182970,
-      "token_url": "https://opbnb.bscscan.com/token/0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3"
+        "rank": 3,
+        "name": "Tether USD",
+        "symbol": "USDT",
+        "address": "0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3"
     },
     {
-      "rank": null,
-      "name": "Ethereum Token",
-      "symbol": "ETH",
-      "address": "0xe7798f023fc62146e8aa1b36da45fb70855a77ea",
-      "price_usd": 4391.955058834,
-      "circulating_market_cap_usd": null,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 0,
-      "holders": 705270,
-      "token_url": "https://opbnb.bscscan.com/token/0xe7798f023fc62146e8aa1b36da45fb70855a77ea"
+        "rank": 4,
+        "name": "Ethereum Token",
+        "symbol": "ETH",
+        "address": "0xe7798f023fc62146e8aa1b36da45fb70855a77ea"
     },
     {
-      "rank": null,
-      "name": "binaryswap.io",
-      "symbol": "0101",
-      "address": "0xa41b3067ec694dbec668c389550ba8fc589e5797",
-      "price_usd": 0.03930000045,
-      "circulating_market_cap_usd": null,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 0,
-      "holders": 21210,
-      "token_url": "https://opbnb.bscscan.com/token/0xa41b3067ec694dbec668c389550ba8fc589e5797"
+        "rank": 5,
+        "name": "binaryswap.io",
+        "symbol": "0101",
+        "address": "0xa41b3067ec694dbec668c389550ba8fc589e5797"
     },
     {
-      "rank": null,
-      "name": "Luigiswap",
-      "symbol": "LUIGI",
-      "address": "0x196ad5a70279fc112db4f8baf6f5022c9b1cf0a5",
-      "price_usd": 0.0070000008,
-      "circulating_market_cap_usd": null,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 0,
-      "holders": 13590,
-      "token_url": "https://opbnb.bscscan.com/token/0x196ad5a70279fc112db4f8baf6f5022c9b1cf0a5"
+        "rank": 6,
+        "name": "Luigiswap",
+        "symbol": "LUIGI",
+        "address": "0x196ad5a70279fc112db4f8baf6f5022c9b1cf0a5"
     },
     {
-      "rank": null,
-      "name": "AllInXSwap Token",
-      "symbol": "X",
-      "address": "0x9214a3e9b5c49eb146b2247bf0c892fab1bebf06",
-      "price_usd": 0.00480000005,
-      "circulating_market_cap_usd": null,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 0,
-      "holders": 1570,
-      "token_url": "https://opbnb.bscscan.com/token/0x9214a3e9b5c49eb146b2247bf0c892fab1bebf06"
+        "rank": 7,
+        "name": "AllInXSwap Token",
+        "symbol": "X",
+        "address": "0x9214a3e9b5c49eb146b2247bf0c892fab1bebf06"
     },
     {
-      "rank": null,
-      "name": "CubiSwap Finance Token",
-      "symbol": "CUBI",
-      "address": "0xb01d49c26416a352fac4fbb3d555d5f2543e3247",
-      "price_usd": 0.0002,
-      "circulating_market_cap_usd": null,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 0,
-      "holders": 1146340,
-      "token_url": "https://opbnb.bscscan.com/token/0xb01d49c26416a352fac4fbb3d555d5f2543e3247"
+        "rank": 8,
+        "name": "CubiSwap Finance Token",
+        "symbol": "CUBI",
+        "address": "0xb01d49c26416a352fac4fbb3d555d5f2543e3247"
     },
     {
-      "rank": null,
-      "name": "opMoon",
-      "symbol": "opMoon",
-      "address": "0xb26cfc2c8a5656cfe599fc344cbefec260ba9c0b",
-      "price_usd": 0,
-      "circulating_market_cap_usd": null,
-      "onchain_market_cap_usd": 0,
-      "market_cap_usd": 0,
-      "holders": 10470,
-      "token_url": "https://opbnb.bscscan.com/token/0xb26cfc2c8a5656cfe599fc344cbefec260ba9c0b"
+        "rank": 9,
+        "name": "opMoon",
+        "symbol": "opMoon",
+        "address": "0xb26cfc2c8a5656cfe599fc344cbefec260ba9c0b"
     }
-  ]
-}
+]

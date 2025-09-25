@@ -8,6 +8,8 @@ const Scanner = require('../common/Scanner');
 // Token addresses loaded from network config
 const { batchUpsertAddresses, normalizeAddress, validateFinancialValue } = require('../common');
 const CONFIG = require('../config/networks.js');
+const MultiSourcePriceHelper = require('../common/MultiSourcePriceHelper');
+const TokenDataLoader = require('../common/TokenDataLoader');
 
 class FundUpdater extends Scanner {
   constructor() {
@@ -20,13 +22,12 @@ class FundUpdater extends Scanner {
       }
     });
     
-    this.coinGeckoKey = process.env.COINGECKO_API_KEY || process.env.DEFAULT_COINGECKO_KEY || CONFIG.CONFIG.coinGeckoAPI || '';
     this.priceCache = new Map();
     this.delayDays = CONFIG.FUNDUPDATEDELAY || 7;
     
-    // API mode tracking - dynamically detect API tier
-    this.apiMode = 'unknown'; // Will be detected on first API call
-    this.apiModeDetected = false;
+    // Initialize price helpers
+    this.multiSourcePriceHelper = new MultiSourcePriceHelper();
+    this.tokenDataLoader = new TokenDataLoader();
     
     // Dynamic batch sizing for balance calls
     this.currentBatchSize = 200;  // Start with 200
@@ -146,9 +147,9 @@ class FundUpdater extends Scanner {
                          process.argv.includes('--force-price-update');
       
       if (forceUpdate) {
-        this.log('🔄 Force updating token prices from CoinGecko...');
+        this.log('🔄 Force updating token prices...');
       } else {
-        this.log(`🔄 Updating token prices from CoinGecko (${updateIntervalDays}-day refresh)...`);
+        this.log(`🔄 Updating token prices (${updateIntervalDays}-day refresh)...`);
       }
       await this.updateTokenPricesFromAPI(tokenAddresses);
     } else {
@@ -416,7 +417,22 @@ class FundUpdater extends Scanner {
   }
 
   async getNativeTokenPrice() {
+    const nativeSymbol = this.config?.nativeCurrency || 'ETH';
+    
     try {
+      // Try multi-source price helper first (Binance, Kraken, etc.)
+      const multiPrice = await this.multiSourcePriceHelper.getPrice(nativeSymbol);
+      
+      if (multiPrice) {
+        // Get source info from cache
+        const cached = this.multiSourcePriceHelper.cache.get(nativeSymbol.toUpperCase());
+        const source = cached?.source || 'unknown';
+        this.log(`💰 ${nativeSymbol} price: $${multiPrice} (source: ${source})`);
+        return multiPrice;
+      }
+      
+      // If multi-source fails, try CoinGecko API
+      this.log(`Multi-source failed for ${nativeSymbol}, trying CoinGecko...`);
       const coinId = this.getNativeCurrencyId();
       const params = {
         ids: coinId,
@@ -426,27 +442,31 @@ class FundUpdater extends Scanner {
       const { response, mode } = await this.makeApiRequest('/simple/price', params);
       const price = response.data?.[coinId]?.usd || 0;
       
-      this.log(`💰 ${this.config?.nativeCurrency || 'ETH'} price: $${price} (${mode.toUpperCase()} API)`);
-      return price;
+      if (price) {
+        this.log(`💰 ${nativeSymbol} price: $${price} (${mode.toUpperCase()} API)`);
+        return price;
+      }
     } catch (error) {
       // Handle rate limit specifically
       if (error.response?.status === 429) {
-        this.log(`⚠️ Rate limit hit fetching ${this.config?.nativeCurrency || 'ETH'} price. Waiting 60s...`, 'warn');
+        this.log(`⚠️ Rate limit hit fetching ${nativeSymbol} price. Waiting 60s...`, 'warn');
         await this.sleep(60000);
-        // Retry once
+        // Retry with multi-source
         try {
-          const { response, mode } = await this.makeApiRequest('/simple/price', params);
-          const price = response.data?.[coinId]?.usd || 0;
-          this.log(`💰 ${this.config?.nativeCurrency || 'ETH'} price: $${price} (retry succeeded)`);
-          return price;
+          const retryPrice = await this.multiSourcePriceHelper.getPrice(nativeSymbol);
+          if (retryPrice) {
+            this.log(`💰 ${nativeSymbol} price: $${retryPrice} (retry succeeded)`);
+            return retryPrice;
+          }
         } catch (retryError) {
-          this.log(`Failed to fetch ${this.config?.nativeCurrency || 'ETH'} price after retry: ${retryError.message}`, 'warn');
-          return 0;
+          this.log(`Failed to fetch ${nativeSymbol} price after retry: ${retryError.message}`, 'warn');
         }
       }
-      this.log(`Failed to fetch ${this.config?.nativeCurrency || 'ETH'} price: ${error.message}`, 'warn');
-      return 0;
+      
+      this.log(`Failed to fetch ${nativeSymbol} price: ${error.message}`, 'warn');
     }
+    
+    return 0;
   }
 
   // Keep legacy method for backward compatibility  
@@ -512,6 +532,37 @@ class FundUpdater extends Scanner {
           i--; // Retry this batch
         } else {
           this.log(`Price fetch failed for batch ${i+1}/${batches.length}: ${error.message}`, 'warn');
+          
+          // Try Binance as fallback for this batch
+          this.log(`🔄 Attempting to fetch prices from Binance for batch ${i+1}...`);
+          try {
+            // Get token symbols for this batch
+            const tokenSymbols = await this.getTokenSymbolsForAddresses(batch);
+            if (tokenSymbols.length > 0) {
+              const binancePrices = await this.binancePriceHelper.getBulkPrices(tokenSymbols.map(t => t.symbol));
+              
+              let successCount = 0;
+              for (const token of tokenSymbols) {
+                if (binancePrices[token.symbol]) {
+                  this.priceCache.set(token.address, binancePrices[token.symbol]);
+                  priceUpdates.push({
+                    token_address: token.address.toLowerCase(),
+                    network: this.network,
+                    price: binancePrices[token.symbol],
+                    price_updated: this.currentTime,
+                    is_valid: true
+                  });
+                  successCount++;
+                }
+              }
+              
+              if (successCount > 0) {
+                this.log(`✅ Retrieved ${successCount}/${tokenSymbols.length} prices from Binance`);
+              }
+            }
+          } catch (binanceError) {
+            this.log(`Binance fallback also failed: ${binanceError.message}`, 'warn');
+          }
         }
       }
     }
@@ -523,6 +574,98 @@ class FundUpdater extends Scanner {
 
     const nativeCurrency = this.config?.nativeCurrency || 'ETH';
     this.log(`💰 Updated ${this.priceCache.size} token prices (${nativeCurrency} + ${priceUpdates.length} tokens)`);
+  }
+
+  async getTokenSymbolsForAddresses(addresses) {
+    try {
+      // First try to get from TokenDataLoader (tokens JSON files)
+      const tokenSymbols = await this.tokenDataLoader.getTokenSymbols(addresses, this.network);
+      
+      if (tokenSymbols.length > 0) {
+        this.log(`Found ${tokenSymbols.length} token symbols from local token data`);
+        
+        // Save to database for future use
+        for (const token of tokenSymbols) {
+          await this.queryDB(`
+            INSERT INTO tokens (token_address, network, symbol, name)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (token_address, network) 
+            DO UPDATE SET 
+              symbol = EXCLUDED.symbol,
+              name = EXCLUDED.name
+          `, [token.address.toLowerCase(), this.network, token.symbol, token.name]).catch(() => {});
+        }
+        
+        return tokenSymbols;
+      }
+      
+      // If not found in token data, try database
+      const result = await this.queryDB(`
+        SELECT token_address, symbol, name
+        FROM tokens
+        WHERE token_address = ANY($1)
+        AND network = $2
+      `, [addresses.map(a => a.toLowerCase()), this.network]);
+      
+      const dbTokens = [];
+      const missingAddresses = [];
+      
+      // Check which addresses we have symbols for
+      const foundAddresses = new Set(result.rows.map(r => r.token_address.toLowerCase()));
+      
+      for (const address of addresses) {
+        const found = result.rows.find(r => r.token_address.toLowerCase() === address.toLowerCase());
+        if (found && found.symbol) {
+          dbTokens.push({
+            address: address,
+            symbol: found.symbol,
+            name: found.name
+          });
+        } else {
+          missingAddresses.push(address);
+        }
+      }
+      
+      // For missing addresses, try to get symbols from contract
+      if (missingAddresses.length > 0 && this.web3) {
+        this.log(`Fetching symbols for ${missingAddresses.length} tokens from blockchain...`);
+        
+        for (const address of missingAddresses) {
+          try {
+            const contract = new this.web3.eth.Contract([
+              { constant: true, inputs: [], name: 'symbol', outputs: [{ name: '', type: 'string' }], type: 'function' },
+              { constant: true, inputs: [], name: 'name', outputs: [{ name: '', type: 'string' }], type: 'function' }
+            ], address);
+            
+            const [symbol, name] = await Promise.all([
+              contract.methods.symbol().call().catch(() => null),
+              contract.methods.name().call().catch(() => null)
+            ]);
+            
+            if (symbol) {
+              dbTokens.push({ address, symbol, name: name || symbol });
+              
+              // Save to database for future use
+              await this.queryDB(`
+                INSERT INTO tokens (token_address, network, symbol, name)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (token_address, network) 
+                DO UPDATE SET 
+                  symbol = EXCLUDED.symbol,
+                  name = EXCLUDED.name
+              `, [address.toLowerCase(), this.network, symbol, name || symbol]).catch(() => {});
+            }
+          } catch (error) {
+            // Skip tokens we can't get symbols for
+          }
+        }
+      }
+      
+      return dbTokens;
+    } catch (error) {
+      this.log(`Error fetching token symbols: ${error.message}`, 'warn');
+      return [];
+    }
   }
 
   async updateTokenPricesInDatabase(priceUpdates) {
