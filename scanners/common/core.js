@@ -536,7 +536,8 @@ class HttpRpcClient {
                                  error.message?.includes('Unauthorized') ||
                                  error.message?.includes('method not found') ||
                                  error.message?.includes('Must be authenticated') ||
-                                 error.message?.includes('API key disabled');
+                                 error.message?.includes('API key disabled') ||
+                                 error.message?.includes('sanctioned'); // LlamaRPC sanctioned addresses
 
           if (isPermanentError) {
             console.log(`[${this.network}] RPC endpoint permanently failed: ${rpcUrl} - ${error.message}`);
