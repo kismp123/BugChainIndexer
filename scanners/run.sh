@@ -230,27 +230,6 @@ main() {
             fi
             ;;
             
-        "funds-force"|"FundUpdater-force")
-            log "🔄 Starting FundUpdater scanner with FORCE price update${network:+ for $network}..."
-            if [[ -n "$network" ]]; then
-                lock_and_run "funds-force-$network" "env FORCE_PRICE_UPDATE=true NETWORK=\"$network\" node \"$SCANNERS_DIR/FundUpdater.js\""
-            else
-                # Set environment variable and run parallel function
-                export FORCE_PRICE_UPDATE=true
-                lock_and_run "funds-force-parallel" "run_parallel FundUpdater"
-            fi
-            ;;
-            
-        "funds-daily"|"FundUpdater-daily")
-            log "📅 Starting FundUpdater scanner with 1-day price update interval${network:+ for $network}..."
-            if [[ -n "$network" ]]; then
-                lock_and_run "funds-daily-$network" "env PRICE_UPDATE_INTERVAL_DAYS=1 NETWORK=\"$network\" node \"$SCANNERS_DIR/FundUpdater.js\""
-            else
-                # Set environment variable and run parallel function
-                export PRICE_UPDATE_INTERVAL_DAYS=1
-                lock_and_run "funds-daily-parallel" "run_parallel FundUpdater"
-            fi
-            ;;
             
         "unified"|"UnifiedScanner")
             log "🔍 Starting UnifiedScanner pipeline${network:+ for $network} ($mode mode)..."
@@ -426,11 +405,9 @@ main() {
 Usage: $0 [SCANNER] [MODE] [NETWORK]
 
 Available Scanners:
-  funds         Update asset prices and balances (parallel execution)
-  funds-all     Update asset prices and balances for ALL contracts (ALL_FLAG enabled)
-  funds-high    Update asset prices and balances for high-value addresses (fund >= 100,000)
-  funds-force   Force update all token prices regardless of cache age
-  funds-daily   Update with 1-day price refresh interval (instead of 7-day default)
+  funds         Update asset balances using Moralis API (parallel execution)
+  funds-all     Update asset balances for ALL contracts (ALL_FLAG enabled)
+  funds-high    Update asset balances for high-value addresses (fund >= 100,000)
   unified       Complete blockchain analysis pipeline: addresses + EOA + verification (parallel)
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
   all           Run complete scanner suite (unified + funds + revalidate)
@@ -446,11 +423,9 @@ Networks:
 
 Examples:
   # Run on all networks
-  $0 funds                    # Update funds for all networks (7-day price cache)
+  $0 funds                    # Update funds for all networks using Moralis API
   $0 funds-all                # Update funds for ALL contracts (ALL_FLAG enabled)
   $0 funds-high               # Update funds for high-value addresses (fund >= 100,000)
-  $0 funds-force              # Force update all token prices now (ignore cache)
-  $0 funds-daily              # Update funds with 1-day price refresh interval
   $0 unified                  # Run unified blockchain analysis pipeline (recommended)
   $0 unified parallel         # Run unified pipeline on all networks in parallel
   $0 revalidate               # Run data revalidation for all networks
@@ -460,8 +435,6 @@ Examples:
   NETWORK=ethereum $0 funds        # Update funds for ethereum only
   NETWORK=ethereum $0 funds-all    # Update ALL contracts on ethereum only
   NETWORK=ethereum $0 funds-high   # Update high-value funds on ethereum only
-  NETWORK=ethereum $0 funds-force  # Force update token prices for ethereum only
-  NETWORK=ethereum $0 funds-daily  # Update funds for ethereum with daily price updates
   NETWORK=ethereum $0 unified      # Run unified analysis for ethereum only
   NETWORK=ethereum $0 revalidate   # Run revalidation for ethereum only
   NETWORK=polygon $0 unified       # Run unified analysis for polygon only

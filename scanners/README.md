@@ -2,417 +2,289 @@
 
 > **High-performance multi-blockchain scanner with unified architecture**
 
-The core analysis engine of BugChainIndexer. Simplified from 15+ files to 4 unified modules and 7 scanners to 3 core components, achieving 50% code reduction and 80%+ efficiency improvements.
+The core analysis engine of BugChainIndexer. Streamlined to 3 core scanners and 4 common modules for maximum efficiency.
 
-## 🏗️ Simplified Architecture
+## 🏗️ Current Architecture
 
 ```
 scanners/
-├── core/               # Core scanners (3 essential components)
+├── core/               # Core scanners (3 components)
 │   ├── UnifiedScanner.js    # Main analysis pipeline
-│   ├── FundUpdater.js       # Asset price/balance tracking  
+│   ├── FundUpdater.js       # Asset balance tracking (Moralis API)  
 │   └── DataRevalidator.js   # Data validation & retagging
-├── common/             # Unified library (6 files)
-│   ├── core.js         # Consolidated core functions
-│   ├── database.js     # PostgreSQL schema & batch operations
+├── common/             # Shared library (4 files)
+│   ├── core.js         # Core blockchain functions
+│   ├── database.js     # PostgreSQL operations
 │   ├── Scanner.js      # Base scanner class
-│   ├── MultiSourcePriceHelper.js  # Multi-source price aggregation
-│   ├── TokenDataLoader.js         # Token metadata loader
-│   └── index.js        # Export hub (backward compatibility)
+│   └── index.js        # Export hub
 ├── config/
-│   └── networks.js     # 18 network configurations
-├── cron/               # Automation scheduling
-│   ├── setup-cron.sh   # Automatic cron setup
-│   ├── cron-unified.sh # UnifiedScanner automation
-│   ├── cron-funds.sh   # FundUpdater automation
-│   └── cron-all.sh     # Full suite automation
-└── run.sh              # Unified executor (locking, parallelization)
+│   ├── networks.js     # 18 network configurations
+│   └── genesis-timestamps.js # Genesis block timestamps
+├── tests/              # Test scripts (7 files)
+│   ├── test-fundupdater-moralis.js
+│   ├── test-moralis-single-api.js
+│   └── ...
+├── utils/              # Database utilities (4 files)
+│   ├── db-optimize.js
+│   ├── db-optimize-large.js
+│   ├── db-cleanup.js
+│   └── db-normalize-addresses.js
+├── scripts/            # Production scripts (1 file)
+│   └── production-db-optimizer.sh
+├── cron/               # Automation scripts (10 files)
+│   ├── setup-cron.sh
+│   ├── cron-unified.sh
+│   ├── cron-funds.sh
+│   └── ...
+└── run.sh              # Main executor
 ```
 
-## 🚀 Quick Execution
+## 🚀 Quick Start
 
 ### Basic Operations
 ```bash
-# Main analysis pipeline (recommended)
+# Main blockchain analysis
 ./run.sh unified
 
-# Asset price/balance updates
+# Update asset balances (using Moralis API)
 ./run.sh funds
 
-# Existing data validation (classify empty tag addresses as Contract)
-./run.sh datarevalidator
+# Validate existing data
+./run.sh revalidate
 
-# Full suite (all scanners)
+# Run all scanners
 ./run.sh all
 ```
 
-### Network-specific Execution
+### Network-Specific Execution
 ```bash
-# Single network (RECOMMENDED METHOD)
+# Recommended method
 NETWORK=ethereum ./run.sh unified
 NETWORK=polygon ./run.sh funds
 NETWORK=arbitrum ./run.sh revalidate
 
-# Alternative method with correct parameter order
+# Alternative method
 ./run.sh unified auto ethereum
 ./run.sh funds auto polygon
-./run.sh revalidate auto arbitrum
 ```
 
-### Parallel Processing
-```bash
-# All networks simultaneously
-./run.sh unified parallel
+## ⚙️ Configuration
 
-# Sequential processing
-./run.sh unified sequential
-```
-
-### Direct Script Execution (Development)
-```bash
-cd scanners
-NETWORK=ethereum node core/UnifiedScanner.js
-NETWORK=polygon node core/FundUpdater.js
-NETWORK=arbitrum node core/DataRevalidator.js
-```
-
-## ⚙️ Environment Setup
-
-### 1. Copy Environment Template
+### 1. Environment Setup
 ```bash
 cp .env.example .env
 ```
 
-### 2. Configure API Keys (Required)
+### 2. Required API Keys
 ```bash
-# Default Etherscan API keys (used by ALL networks for simplicity)
-DEFAULT_ETHERSCAN_KEYS=your_key1,your_key2,your_key3
+# Etherscan API keys (for all networks)
+DEFAULT_ETHERSCAN_KEYS=key1,key2,key3
 
-# Price data sources (optional - system will use available sources)
-DEFAULT_COINGECKO_KEY=your_coingecko_key  # Optional, fallback option
-```
+# Moralis API key (required for FundUpdater)
+MORALIS_API_KEY=your_moralis_api_key
 
-**Notes**: 
-- All networks now use `DEFAULT_ETHERSCAN_KEYS` for consistency. Network-specific overrides have been simplified.
-- Price data is automatically fetched from multiple free sources (Binance, Kraken, Coinbase, etc.) without requiring API keys.
-
-### 3. Database Configuration
-```bash
+# Database configuration
 PGHOST=localhost
 PGPORT=5432
 PGDATABASE=bugchain_indexer
-PGUSER=indexer_user
-PGPASSWORD=secure_password
+PGUSER=your_user
+PGPASSWORD=your_password
 ```
 
-### 4. Scanner Settings (Optional)
+### 3. Optional Settings
 ```bash
-TIMEDELAY_HOURS=4              # Activity scan window (default: 4)
-FUNDUPDATEDELAY_DAYS=7         # Price cache validity (default: 7)  
-TIMEOUT_SECONDS=7200           # Script timeout (default: 7200)
+# Scanner timeouts and intervals
+TIMEOUT_SECONDS=7200           # Script timeout (2 hours)
+FUNDUPDATEDELAY=7              # Days before fund update
+FUND_UPDATE_MAX_BATCH=50000    # Max addresses per batch
+
+# Execution flags
+ALL_FLAG=true                  # Process all addresses
+HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 ```
 
-## 🔧 Core Components
+## 📊 Core Components
 
-### UnifiedScanner - Main Analysis Pipeline
-**Revolutionary 5-in-1 approach** combining separate operations into one efficient pipeline:
+### UnifiedScanner
+**Main blockchain analysis pipeline**
+- Transfer event scanning (ERC-20/721)
+- Address discovery and normalization
+- EOA vs Contract classification
+- Contract verification via Etherscan
+- Batch database operations
 
-1. **Transfer Event Scanning** - Monitor ERC-20/ERC-721 transfers with immediate address normalization
-2. **Address Filtering** - Remove already processed addresses (massive efficiency gain)
-3. **EOA Detection** - Contract vs EOA classification via deployment timestamp verification  
-4. **Contract Verification** - Source code, ABI, metadata retrieval from Etherscan
-5. **Database Storage** - Batch upsert operations with comprehensive indexing
+**Performance**: ~50,000 addresses/hour per network
 
-**Performance Metrics:**
-- **Processing Speed**: ~50,000 addresses/hour per network
-- **Efficiency Gain**: 80%+ improvement over individual scanners
-- **Parallel Support**: All 18 networks simultaneously
-- **Batch Processing**: 300-1000 addresses per contract call
+### FundUpdater  
+**Portfolio balance tracking via Moralis API**
+- Uses Moralis `/wallets/{address}/tokens` endpoint
+- Fetches native + ERC-20 token balances
+- Calculates total USD portfolio value
+- Network-specific balance tracking
+- Batch processing with rate limiting
 
-### FundUpdater - Asset Tracking
-- **Multi-Source Price Updates**: Automatic price aggregation from Binance, Kraken, Coinbase, CryptoCompare, and CoinGecko
-- **Smart Fallback System**: Automatic failover between price sources for maximum availability
-- **Native Balance Tracking**: Batch RPC calls for account balances
-- **ERC-20 Balance Queries**: Smart contract integration for token balances
-- **Performance**: 17x improvement (1.4s → 0.08s per batch)
+**Changes from previous version**:
+- ✅ Now uses only Moralis API (removed CoinGecko, Binance, etc.)
+- ✅ Simplified from 798 lines to 258 lines (68% reduction)
+- ✅ Removed all price aggregation code
+- ✅ Direct token balance fetching with USD values
 
-### DataRevalidator - Data Validation (New)
-**Purpose**: Classify 2,607,048 empty tag addresses as Contract type
-- **Simplified Query**: Process only non-EOA addresses without Contract tags
-- **Large Batch Processing**: 20,000 addresses per batch
-- **UnifiedScanner Logic Reuse**: `performEOAFiltering` method integration
-- **Performance**: 455x improvement (23.19s → 0.051s per batch)
+### DataRevalidator
+**Data consistency validation**
+- Validates and tags existing addresses
+- Classifies untagged addresses as Contract/EOA
+- Batch processing (20,000 addresses/batch)
+- Reuses UnifiedScanner's EOA filtering logic
 
-## 🌐 Supported Networks (18 Total)
+## 🌐 Supported Networks (18)
 
-| Network | Chain ID | Explorer API | Smart Contracts |
-|---------|----------|--------------|-----------------|
-| Ethereum | 1 | Etherscan | ✅ Deployed |
-| Binance Smart Chain | 56 | BSCScan | ✅ Deployed |
-| Polygon | 137 | PolygonScan | ✅ Deployed |
-| Arbitrum | 42161 | Arbiscan | ✅ Deployed |
-| Optimism | 10 | Optimism Etherscan | ✅ Deployed |
-| Base | 8453 | BaseScan | ✅ Deployed |
-| Avalanche | 43114 | SnowTrace | ✅ Deployed |
-| Gnosis Chain | 100 | GnosisScan | ✅ Deployed |
-| Linea | 59144 | LineaScan | ✅ Deployed |
-| Scroll | 534352 | ScrollScan | ✅ Deployed |
-| Mantle | 5000 | MantleScan | ✅ Deployed |
-| opBNB | 204 | opBNBScan | ✅ Deployed |
-| Polygon zkEVM | 1101 | Polygon zkEVM | ❌ Not Working |
-| Arbitrum Nova | 42170 | Nova Arbiscan | ❌ Not Working |
-| Celo | 42220 | CeloScan | ❌ Not Working |
-| Cronos | 25 | CronoScan | ❌ Not Working |
-| Moonbeam | 1284 | Moonscan | ❌ Not Working |
-| Moonriver | 1285 | Moonscan | ❌ Not Working |
+| Network | Chain ID | Status | Moralis Support |
+|---------|----------|--------|-----------------|
+| Ethereum | 1 | ✅ Active | ✅ Yes |
+| Binance Smart Chain | 56 | ✅ Active | ✅ Yes |
+| Polygon | 137 | ✅ Active | ✅ Yes |
+| Arbitrum | 42161 | ✅ Active | ✅ Yes |
+| Optimism | 10 | ✅ Active | ✅ Yes |
+| Base | 8453 | ✅ Active | ✅ Yes |
+| Avalanche | 43114 | ✅ Active | ✅ Yes |
+| Gnosis | 100 | ✅ Active | ✅ Yes |
+| Cronos | 25 | ✅ Active | ✅ Yes |
+| Linea | 59144 | ✅ Active | ✅ Yes |
+| Scroll | 534352 | ✅ Active | ❌ No |
+| Mantle | 5000 | ✅ Active | ❌ No |
+| opBNB | 204 | ✅ Active | ❌ No |
+| Polygon zkEVM | 1101 | ⚠️ Limited | ❌ No |
+| Arbitrum Nova | 42170 | ⚠️ Limited | ❌ No |
+| Celo | 42220 | ⚠️ Limited | ❌ No |
+| Moonbeam | 1284 | ✅ Active | ✅ Yes |
+| Moonriver | 1285 | ✅ Active | ✅ Yes |
 
-## 🤖 Automation Setup
+**Note**: FundUpdater only works on networks supported by Moralis API.
 
-### Quick Setup (Recommended)
+## 🤖 Automation (Cron)
+
+### Quick Setup
 ```bash
-cd scanners
 ./cron/setup-cron.sh --auto-setup
 ```
 
-**Automated Schedule:**
-- **Unified Analysis**: Every 4 hours (comprehensive pipeline)
-- **Fund Updates**: Every 6 hours (asset prices and balances)  
-- **Data Validation**: Weekly Sundays 2 AM (tag verification)
-- **DB Daily Optimization**: Daily 5 AM (fast optimization)
-- **DB Regular Maintenance**: Weekly Sundays 3 AM (with VACUUM)
-- **DB Large Optimization**: Monthly 1st day 1 AM (10GB+ optimization)
-- **Log Cleanup**: Daily 4 AM (remove logs >3 days)
+### Schedule
+- **Unified Scanner**: Every 4 hours
+- **Fund Updates**: Every 6 hours  
+- **Data Validation**: Weekly (Sunday 2 AM)
+- **DB Optimization**: Daily (5 AM)
+- **Log Cleanup**: Daily (4 AM)
 
-### Manual Setup
+### Manual Testing
 ```bash
-# Custom options with interactive setup
-./cron/setup-cron.sh --interactive
-
-# View comprehensive guide
-cat cron/CRON_SETUP.md
+./cron/cron-unified.sh      # Test unified scanner
+./cron/cron-funds.sh        # Test fund updater
+./cron/cron-revalidate.sh   # Test data validator
 ```
 
-### Manual Cron Testing
-```bash
-# Scanner automation tests
-./cron/cron-unified.sh                 # Test unified pipeline cron
-./cron/cron-funds.sh                   # Test fund update cron  
-./cron/cron-revalidate.sh              # Test data validation cron
-./cron/cron-all.sh                     # Test full suite cron
+## 🔧 Database Management
 
-# Database maintenance tests
-./cron/cron-db-daily.sh                # Daily DB optimization
-./cron/cron-db-maintenance.sh          # Weekly DB maintenance
-./cron/cron-db-large-optimize.sh       # Monthly large DB optimization
-./cron/cron-cleanup.sh                 # Log cleanup
+### Optimization Tools
+```bash
+# Daily use (fast, no VACUUM)
+./run.sh db-optimize-fast
+
+# Weekly maintenance (with VACUUM)
+./run.sh db-optimize
+
+# Monthly for large DBs (>10GB)
+./run.sh db-optimize-large
+
+# Performance analysis
+./run.sh db-analyze
+
+# Clean up indexes
+./run.sh db-cleanup
+
+# Address normalization
+./run.sh db-normalize-addresses
 ```
 
-## 🔍 UnifiedScanner Deep Dive
+### Performance Improvements
+- DataRevalidator: 455x faster (23.19s → 0.051s)
+- FundUpdater: 17x faster (1.37s → 0.082s)
+- UnifiedScanner: 9x faster (1.21s → 0.131s)
 
-### Step-by-Step Process
-1. **Transfer Event Scanning (Enhanced)**
-   - Monitor recent blocks for ERC-20/ERC-721 transfer events
-   - **Extract 3 address types with immediate normalization**:
-     - `log.address`: Token contract that emitted the event
-     - `log.topics[1]`: Transfer event from address 
-     - `log.topics[2]`: Transfer event to address
-   - Apply `normalizeAddress()` to all addresses (lowercase conversion)
-   - Configurable time window (TIMEDELAY_HOURS)
+## 🧪 Testing
 
-2. **Address Filtering**  
-   - Remove already processed addresses from database
-   - Massive efficiency improvement (often 70-90% reduction)
-   - Prevent duplicate processing
-
-3. **EOA Detection**
-   - Batch contract calls to determine contract vs EOA status
-   - Deployment timestamp verification for accuracy
-   - Handle edge cases where EOA becomes contract
-
-4. **Contract Verification**
-   - Retrieve source code, ABI, metadata from Etherscan
-   - Parallel processing with API key rotation
-   - Handle rate limiting and retry logic
-
-5. **Database Storage**
-   - Batch upsert operations for maximum efficiency  
-   - Comprehensive indexing for fast queries
-   - Maintain data consistency across networks
-
-### Performance Metrics
-- **Processing Speed**: ~50,000 addresses/hour per network
-- **Efficiency Improvement**: 80%+ improvement over individual scanners
-- **Resource Usage**: Optimized memory and CPU utilization
-- **Scalability**: Unlimited network addition support
-
-## 📊 Database Optimization System (New - September 2025)
-
-### Revolutionary Performance Improvements
-BugChainIndexer's database optimization system addresses performance issues with large datasets (10GB+):
-
-#### Achieved Results
-- **DataRevalidator**: 23.19s → 0.051s (455x improvement)
-- **FundUpdater**: 1.373s → 0.082s (17x improvement)  
-- **UnifiedScanner**: 1.212s → 0.131s (9x improvement)
-- **Storage Space**: 4.1GB unnecessary indexes removed
-
-#### Core Optimization Techniques
-1. **Partial Indexes**
-   ```sql
-   -- Index only addresses missing tags
-   CREATE INDEX idx_addresses_missing_tags ON addresses(network, last_updated) 
-   WHERE (tags IS NULL OR tags = '{}' OR NOT ('Contract' = ANY(tags)) AND NOT ('EOA' = ANY(tags)));
-   ```
-
-2. **Composite Indexes**
-   ```sql
-   -- Combined network and update time indexes
-   CREATE INDEX idx_addresses_network_updated ON addresses(network, last_fund_updated) 
-   WHERE last_fund_updated < 1736380800;
-   ```
-
-3. **Intelligent VACUUM Scheduling**
-   - Selective VACUUM execution based on dead tuple ratio
-   - Staged optimization for large datasets
-
-### Optimization Tools Usage
-
-#### Daily Use (Recommended)
+### Unit Tests
 ```bash
-./run.sh db-optimize-fast    # Fast optimization (skip VACUUM)
+# Test Moralis integration
+node tests/test-fundupdater-moralis.js
+node tests/test-moralis-single-api.js
+
+# Test RPC endpoints
+node tests/test-all-rpcs.js
+node tests/test-rpc-failover.js
+
+# Test address handling
+node tests/test-address-case.js
+node tests/test-eoa-check.js
 ```
 
-#### Weekly Maintenance
+### Integration Testing
 ```bash
-./run.sh db-optimize         # Full optimization (with VACUUM)
+# Single network test
+NETWORK=ethereum node core/FundUpdater.js
+
+# With specific flags
+ALL_FLAG=true NETWORK=ethereum ./run.sh funds
+HIGH_FUND_FLAG=true ./run.sh funds-high
 ```
 
-#### Monthly Large Optimization
-```bash
-./run.sh db-optimize-large   # For 10GB+ databases
-```
+## 📁 File Structure Summary
 
-#### Problem Diagnosis
-```bash
-./run.sh db-analyze          # Performance analysis & recommendations
-```
+### Core Files (Minimal)
+- **3 Scanners**: UnifiedScanner, FundUpdater, DataRevalidator
+- **4 Common modules**: core, database, Scanner, index
+- **2 Config files**: networks, genesis-timestamps
 
-### Automated Monitoring
-All optimization tools provide real-time performance metrics:
-- Query execution time measurement
-- Index usage statistics
-- Storage space utilization analysis
-- Optimization recommendations generation
+### Support Files
+- **7 Test scripts**: Focus on Moralis and RPC testing
+- **4 DB utilities**: Optimization and maintenance
+- **1 Production script**: DB optimizer
+- **10 Cron scripts**: Automation
 
-### Cron-based Automatic Maintenance
-```bash
-# Auto-configured with setup-cron.sh --auto-setup
-0 5 * * *   cron-db-daily.sh           # Daily fast optimization
-0 3 * * 0   cron-db-maintenance.sh     # Weekly full maintenance  
-0 1 1 * *   cron-db-large-optimize.sh  # Monthly large optimization
-```
+### Removed Files (Cleanup completed)
+- ❌ 11 outdated test files removed
+- ❌ 6 migration scripts removed  
+- ❌ 3 unused utils removed
+- ❌ 2 helper classes removed (MultiSourcePriceHelper, TokenDataLoader)
+- ❌ All price aggregation code removed
 
-## 🧪 Testing Strategy
+## 🚨 Troubleshooting
 
-### Scanner Testing (Simplified)
-```bash
-# Direct script execution for testing
-cd scanners
-NETWORK=ethereum node core/UnifiedScanner.js
-NETWORK=polygon node core/FundUpdater.js  
-NETWORK=arbitrum node core/DataRevalidator.js
+### Common Issues
+1. **Moralis API errors**: Check MORALIS_API_KEY in .env
+2. **Database slow**: Run `./run.sh db-optimize-fast`
+3. **RPC failures**: Check network config in `config/networks.js`
+4. **Lock file issues**: Remove `/tmp/scanner-*.lock` files
 
-# Single network testing
-./run.sh unified auto polygon
-./run.sh datarevalidator auto ethereum
+### Performance Tips
+- Use `HIGH_FUND_FLAG=true` for testing with fewer addresses
+- Adjust `FUND_UPDATE_MAX_BATCH` for memory management
+- Run DB optimization regularly
+- Monitor logs in `logs/` directory
 
-# Cron testing
-./cron/cron-unified.sh
-./cron/cron-revalidate.sh
+## 📈 Recent Changes (2025)
 
-# Database optimization testing
-./run.sh db-analyze                  # Performance analysis only
-./run.sh db-optimize-fast           # Fast optimization test
-```
+### Major Simplification
+- FundUpdater reduced from 798 to 258 lines (68% reduction)
+- Removed all price aggregation complexity
+- Single API source (Moralis) for simplicity
+- Cleaned up 20+ unused files
 
-### Development Testing
-```bash
-# Environment variable test
-node -e "
-require('dotenv').config();
-const { NETWORKS, CONFIG } = require('./config/networks.js');
-console.log('Loaded networks:', Object.keys(NETWORKS).length);
-console.log('API keys configured:', CONFIG.etherscanApiKeys.length);
-"
-
-# Configuration validation
-node -e "
-const Scanner = require('./common/Scanner.js');
-const scanner = new Scanner('ethereum', 'test-mode');
-console.log('Scanner configured:', scanner.config ? 'Yes' : 'No');
-"
-```
-
-## 🚨 Troubleshooting Guide
-
-### Common Scanner Issues
-- **RPC Failures**: Check RPC URLs in `config/networks.js`, ensure failover endpoints
-- **API Rate Limiting**: Verify Etherscan API keys, check rotation logic
-- **Database Connection**: Validate PostgreSQL credentials and network access
-- **Lock File Issues**: Remove `.lock` files if scripts won't start
-
-### Performance Optimization
-- **Slow Processing**: Increase batch sizes in `common/core.js`
-- **Memory Issues**: Reduce TIMEDELAY_HOURS for smaller processing windows
-- **Database Performance**: Use optimization tools:
-  - `./run.sh db-optimize-fast` - Daily fast optimization
-  - `./run.sh db-cleanup` - Remove unnecessary indexes
-  - `./run.sh db-optimize-large` - Large database specific optimization
-  - `./run.sh db-analyze` - Performance analysis and diagnosis
-- **Query Performance**: Leverage partial indexes for 455x performance gains
-
-### Database Issues
-- **Connection Errors**: Ensure PostgreSQL service is running
-- **Slow Queries**: Run optimization tools and check index usage
-- **Storage Issues**: Clean up old logs and optimize indexes
-
-## 📈 Latest Improvements (September 2025)
-
-### 🚀 Common Folder Major Consolidation
-- **Previous**: 15+ individual files → **Current**: 4 consolidated files
-- **50% file reduction**: Dramatically improved maintainability
-- **Backward compatibility guaranteed**: All existing import patterns supported
-- **Duplicate code removed**: ~20+ unused functions eliminated
-
-### 🎯 Core Scanner Simplification
-- **Previous**: 7 scanners → **Current**: 3 core scanners
-- **Removed scanners**: DeploymentFixer, ContractNameUpdater, ContractDeployedUpdater
-- **DataRevalidator newly added**: Dedicated existing data validation script
-
-### ⚡ Performance Optimization
-- **DataRevalidator batch size**: 50 → 20,000 addresses
-- **UnifiedScanner integration**: Direct `performEOAFiltering` method reuse
-- **Database query optimization**: Tag-based priority queries
-- **Database performance revolution**:
-  - DataRevalidator: 455x performance improvement (23.19s → 0.051s)
-  - FundUpdater: 17x performance improvement (1.37s → 0.082s)
-  - UnifiedScanner: 9x performance improvement (1.21s → 0.131s)
-  - 4.1GB unnecessary indexes removed for storage optimization
-  - Query optimization using partial and composite indexes
-
-### 🛠️ New Database Tools
-- **Automated optimization**: Daily/weekly/monthly automatic maintenance schedules
-- **Large-scale support**: Specialized optimization for 10GB+ databases
-- **Real-time monitoring**: Query performance analysis and index usage tracking
-- **Intelligent VACUUM**: Selective maintenance based on data state
-
-### 🔤 Address Normalization System
-- **UnifiedScanner enhancement**: Immediate address normalization at log extraction
-- **Comprehensive address collection**: Include contract, from, to addresses
-- **Automatic deduplication**: Resolve duplicates caused by case differences
-- **Normalization verification tools**: `db-normalize-addresses.js` script added
-- **Batch normalization**: Completed normalization of 1,764,173 mixed-case addresses in existing database
+### Maintained Features
+- All core scanning functionality intact
+- Database optimization tools preserved
+- Automation scripts maintained
+- Test coverage for essential features
 
 ---
 
-This document provides a comprehensive guide for working with the BugChainIndexer scanner system. For additional technical details, refer to component-specific documentation and the `docs/` directory.
+For detailed technical documentation, refer to individual component files and inline documentation.

@@ -18,11 +18,11 @@ BugChainIndexer is a comprehensive blockchain analysis platform that monitors, a
 - **80%+ Efficiency Gain**: Massive improvement over traditional individual scanners
 
 ### 💰 **Asset & Fund Tracking**
-- **Multi-Source Price Updates**: Integrated price fetching from multiple sources (Binance, Kraken, Coinbase, CryptoCompare, CoinGecko)
-- **Automatic Fallback System**: Smart failover between price sources for maximum availability
-- **Multi-token Balance Queries**: ERC-20, ERC-721, and native token support
-- **Smart Contract Integration**: Custom BalanceHelper contracts for batch operations
-- **Cache Management**: Intelligent price caching with configurable intervals
+- **Moralis API Integration**: Unified portfolio tracking with native + ERC-20 balances
+- **Network-Specific Tracking**: Supports 10+ networks via Moralis API
+- **USD Value Calculation**: Real-time portfolio valuation
+- **Batch Processing**: Efficient processing with rate limiting
+- **Simplified Architecture**: Streamlined from 798 to 258 lines (68% reduction)
 
 ### 🗄️ **Advanced Database Management**
 - **PostgreSQL Optimization**: 455x performance improvement with partial indexes
@@ -114,16 +114,16 @@ NETWORK=ethereum ./run.sh unified
 
 ## 🌐 Supported Networks
 
-**18 Blockchain Networks (12 Fully Operational + 6 Pending):**
+**18 Blockchain Networks (12 with Moralis + 6 Scanner Only):**
 
-✅ **Fully Operational:**
+✅ **Fully Operational (Scanner + Moralis):**
 - Ethereum, Binance Smart Chain, Polygon, Arbitrum
-- Optimism, Base, Avalanche, Gnosis Chain
-- Linea, Scroll, Mantle, opBNB
+- Optimism, Base, Avalanche, Gnosis
+- Cronos, Linea, Moonbeam, Moonriver
 
-❌ **Not Working (Pending Development):**
-- Polygon zkEVM, Arbitrum Nova, Celo
-- Cronos, Moonbeam, Moonriver
+⚠️ **Scanner Only (No Moralis Support):**
+- Scroll, Mantle, opBNB, Celo
+- Polygon zkEVM, Arbitrum Nova
 
 ## 📊 Performance Metrics
 
@@ -137,9 +137,8 @@ NETWORK=ethereum ./run.sh unified
 ### Scanners
 High-performance blockchain analysis engine with unified processing pipeline.
 - **UnifiedScanner**: Main analysis pipeline (transfer events → contract verification)
-- **FundUpdater**: Asset price and balance tracking with multi-source price aggregation
+- **FundUpdater**: Portfolio balance tracking via Moralis API
 - **DataRevalidator**: Existing data validation and tagging
-- **MultiSourcePriceHelper**: Intelligent price fetching from 5+ sources with automatic fallback
 
 ### Smart Contracts  
 Foundry-based Solidity contracts for batch operations.
@@ -157,19 +156,14 @@ Express.js REST API with PostgreSQL database.
 ### API Keys Required
 
 ```bash
-# Blockchain explorer APIs (free tier available)
+# Blockchain explorer APIs (required)
 DEFAULT_ETHERSCAN_KEYS=key1,key2,key3
 
-# Price data sources (optional - system will use available sources)
-DEFAULT_COINGECKO_KEY=your_coingecko_key  # Optional, fallback option
-
-# Network-specific keys (optional)
-ETHERSCAN_API_KEYS=ethereum_keys
-POLYGONSCAN_API_KEYS=polygon_keys
-# ... other networks
+# Moralis API key (required for FundUpdater)
+MORALIS_API_KEY=your_moralis_api_key
 ```
 
-**Note**: Price data is fetched from multiple sources (Binance, Kraken, Coinbase, etc.) without requiring API keys for most providers.
+**Note**: All networks use `DEFAULT_ETHERSCAN_KEYS` for simplicity. FundUpdater requires Moralis API key.
 
 ### Database Settings
 
