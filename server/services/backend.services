@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 ExecStart=/usr/bin/node index.js
-WorkingDirectory=/root/onchainScanner/server/backend
+WorkingDirectory=/root/BugChainIndexer/server/backend
 Restart=always
 RestartSec=10
 User=root

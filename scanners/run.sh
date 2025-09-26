@@ -222,10 +222,11 @@ main() {
         "funds-high"|"FundUpdater-high")
             log "🏛️ Starting FundUpdater scanner for high-value addresses (fund >= 100,000)${network:+ for $network}..."
             if [[ -n "$network" ]]; then
-                lock_and_run "funds-high-$network" "env HIGH_FUND_FLAG=true NETWORK=\"$network\" node \"$SCANNERS_DIR/FundUpdater.js\""
+                lock_and_run "funds-high-$network" "env HIGH_FUND_FLAG=true ALL_FLAG=true NETWORK=\"$network\" node \"$SCANNERS_DIR/FundUpdater.js\""
             else
-                # Set environment variable and run parallel function
+                # Set environment variables for high fund scanning with ALL_FLAG
                 export HIGH_FUND_FLAG=true
+                export ALL_FLAG=true
                 lock_and_run "funds-high-parallel" "run_parallel FundUpdater"
             fi
             ;;
@@ -407,7 +408,7 @@ Usage: $0 [SCANNER] [MODE] [NETWORK]
 Available Scanners:
   funds         Update asset balances using Moralis API (parallel execution)
   funds-all     Update asset balances for ALL contracts (ALL_FLAG enabled)
-  funds-high    Update asset balances for high-value addresses (fund >= 100,000)
+  funds-high    Update asset balances for high-value addresses (fund >= 100,000, includes ALL_FLAG)
   unified       Complete blockchain analysis pipeline: addresses + EOA + verification (parallel)
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
   all           Run complete scanner suite (unified + funds + revalidate)
@@ -425,7 +426,7 @@ Examples:
   # Run on all networks
   $0 funds                    # Update funds for all networks using Moralis API
   $0 funds-all                # Update funds for ALL contracts (ALL_FLAG enabled)
-  $0 funds-high               # Update funds for high-value addresses (fund >= 100,000)
+  $0 funds-high               # Update funds for high-value addresses (fund >= 100,000) with ALL_FLAG
   $0 unified                  # Run unified blockchain analysis pipeline (recommended)
   $0 unified parallel         # Run unified pipeline on all networks in parallel
   $0 revalidate               # Run data revalidation for all networks
@@ -434,7 +435,7 @@ Examples:
   # Run on specific network (RECOMMENDED METHOD)
   NETWORK=ethereum $0 funds        # Update funds for ethereum only
   NETWORK=ethereum $0 funds-all    # Update ALL contracts on ethereum only
-  NETWORK=ethereum $0 funds-high   # Update high-value funds on ethereum only
+  NETWORK=ethereum $0 funds-high   # Update high-value funds on ethereum with ALL_FLAG
   NETWORK=ethereum $0 unified      # Run unified analysis for ethereum only
   NETWORK=ethereum $0 revalidate   # Run revalidation for ethereum only
   NETWORK=polygon $0 unified       # Run unified analysis for polygon only
