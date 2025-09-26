@@ -144,6 +144,14 @@ class FundUpdater extends Scanner {
       // Process each token (native currency is included as a token with native_token flag)
       data.forEach(token => {
         const usdValue = parseFloat(token.usd_value || 0);
+        const tokenAddr = token.token_address?.toLowerCase();
+        
+        // Skip if this token is the contract itself (avoids double counting)
+        // This happens when a token contract queries its own balance
+        if (tokenAddr === address.toLowerCase()) {
+          this.log(`  ⏭️  Skipping self-token to avoid inflation: ${token.symbol} ($${usdValue.toFixed(2)})`);
+          return;
+        }
         
         // Check if this is the native token
         if (token.native_token === true) {
