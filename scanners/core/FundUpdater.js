@@ -5,6 +5,8 @@
  */
 const axios = require('axios');
 const Scanner = require('../common/Scanner');
+const fs = require('fs');
+const path = require('path');
 // Token addresses loaded from network config
 const { batchUpsertAddresses, normalizeAddress } = require('../common');
 const CONFIG = require('../config/networks.js');
@@ -19,6 +21,33 @@ class FundUpdater extends Scanner {
     });
     
     this.delayDays = CONFIG.FUNDUPDATEDELAY || 7;
+    this.whitelistedTokens = null;
+  }
+
+  // Load whitelisted tokens from tokens folder
+  loadWhitelistedTokens() {
+    if (this.whitelistedTokens) return this.whitelistedTokens;
+    
+    try {
+      const tokensFile = path.join(__dirname, '..', 'tokens', `${this.network}.json`);
+      if (fs.existsSync(tokensFile)) {
+        const tokens = JSON.parse(fs.readFileSync(tokensFile, 'utf8'));
+        // Create a Set of token addresses for fast lookup (normalized to lowercase)
+        this.whitelistedTokens = new Set(
+          tokens.map(token => token.address.toLowerCase())
+        );
+        this.log(`📋 Loaded ${this.whitelistedTokens.size} whitelisted tokens for ${this.network}`);
+        return this.whitelistedTokens;
+      } else {
+        this.log(`⚠️  No token whitelist found for ${this.network} at ${tokensFile}`);
+        this.whitelistedTokens = new Set();
+        return this.whitelistedTokens;
+      }
+    } catch (error) {
+      this.log(`❌ Error loading token whitelist: ${error.message}`, 'error');
+      this.whitelistedTokens = new Set();
+      return this.whitelistedTokens;
+    }
   }
 
 
@@ -136,10 +165,15 @@ class FundUpdater extends Scanner {
 
       const data = response.data.result || response.data || [];
       
+      // Load whitelisted tokens for this network
+      const whitelist = this.loadWhitelistedTokens();
+      
       let nativeBalance = '0';
       let nativeUsdValue = 0;
       const tokens = [];
       let totalUsdValue = 0;
+      let skippedTokens = 0;
+      let skippedValue = 0;
 
       // Process each token (native currency is included as a token with native_token flag)
       data.forEach(token => {
@@ -153,17 +187,29 @@ class FundUpdater extends Scanner {
           return;
         }
         
-        // Check if this is the native token
+        // Check if this is the native token (always include)
         if (token.native_token === true) {
           nativeBalance = token.balance || '0';
           nativeUsdValue = usdValue;
-        } else {
+          totalUsdValue += usdValue;
+        } 
+        // For non-native tokens, check if they are whitelisted
+        else if (whitelist.size === 0 || whitelist.has(tokenAddr)) {
           tokens.push(token);
+          totalUsdValue += usdValue;
+        } else {
+          // Token not in whitelist, skip it
+          skippedTokens++;
+          skippedValue += usdValue;
+          if (usdValue > 1000) { // Log significant skipped tokens
+            this.log(`  ⏭️  Skipping non-whitelisted token: ${token.symbol} ($${usdValue.toFixed(2)})`);
+          }
         }
-        
-        // Sum up all USD values (native + tokens)
-        totalUsdValue += usdValue;
       });
+      
+      if (skippedTokens > 0) {
+        this.log(`  📝 Skipped ${skippedTokens} non-whitelisted tokens worth $${skippedValue.toFixed(2)}`);
+      }
 
       this.log(`📊 Moralis: ${address} - Native: $${nativeUsdValue.toFixed(2)}, Tokens: ${tokens.length}, Total: $${totalUsdValue.toFixed(2)}`);
 
