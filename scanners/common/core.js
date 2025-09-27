@@ -824,7 +824,9 @@ class ContractCall {
           return decoded[0];
         } catch (error) {
           const errorMsg = error.message || error.toString();
-          const isGasError = errorMsg.includes('out of gas') || errorMsg.includes('gas required exceeds');
+          const isGasError = errorMsg.includes('out of gas') || 
+                            errorMsg.includes('gas required exceeds') ||
+                            errorMsg.includes('gas exhausted during memory expansion');
           
           // If gas error and batch size > 1, try with half size
           if (isGasError && addrs.length > 1) {
@@ -835,16 +837,8 @@ class ContractCall {
             return [...firstHalf, ...secondHalf];
           }
           
-          // Fallback to individual checks
-          const promises = addrs.map(async (addr) => {
-            try {
-              const code = await rpc.getCode(addr);
-              return code && code !== '0x';
-            } catch (e) {
-              return false;
-            }
-          });
-          return Promise.all(promises);
+          // No fallback - throw the error
+          throw error;
         }
       };
       
@@ -889,7 +883,9 @@ class ContractCall {
           return decoded[0];
         } catch (error) {
           const errorMsg = error.message || error.toString();
-          const isGasError = errorMsg.includes('out of gas') || errorMsg.includes('gas required exceeds');
+          const isGasError = errorMsg.includes('out of gas') || 
+                            errorMsg.includes('gas required exceeds') ||
+                            errorMsg.includes('gas exhausted during memory expansion');
           
           // If gas error and batch size > 1, try with half size
           if (isGasError && addrs.length > 1) {
@@ -900,16 +896,8 @@ class ContractCall {
             return [...firstHalf, ...secondHalf];
           }
           
-          // Fallback to individual checks
-          const promises = addrs.map(async (addr) => {
-            try {
-              const code = await rpc.getCode(addr);
-              return code && code !== '0x' ? ethers.keccak256(code) : ZERO_HASH;
-            } catch (e) {
-              return ZERO_HASH;
-            }
-          });
-          return Promise.all(promises);
+          // No fallback - throw the error
+          throw error;
         }
       };
       
