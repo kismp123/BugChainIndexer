@@ -57,7 +57,8 @@ class DataRevalidator extends Scanner {
     let params;
     
     if (this.recentMode) {
-      // Recent contracts mode - find contracts discovered in the last N days
+      // Recent mode - find ALL addresses discovered in the last N days
+      // No other conditions - process everything recent
       const cutoffTime = this.currentTime - (this.recentDays * 24 * 60 * 60);
       
       query = `
@@ -75,8 +76,7 @@ class DataRevalidator extends Scanner {
           first_seen
         FROM addresses
         WHERE network = $1
-        AND first_seen >= $2                                              -- Discovered within N days
-        AND (tags IS NULL OR tags = '{}' OR NOT 'EOA' = ANY(tags))      -- Non-EOA addresses
+        AND first_seen >= $2                                              -- Only condition: discovered within N days
         ORDER BY first_seen DESC, fund DESC NULLS LAST
         LIMIT $3
       `;
@@ -87,7 +87,8 @@ class DataRevalidator extends Scanner {
         limit            // $3: limit
       ];
       
-      this.log(`🔍 Recent mode: Finding contracts discovered in last ${this.recentDays} days (since ${new Date(cutoffTime * 1000).toISOString()})`);
+      this.log(`🔍 Recent mode: Finding ALL addresses discovered in last ${this.recentDays} days (including EOAs and validated contracts)`);
+      this.log(`📅 Cutoff time: ${new Date(cutoffTime * 1000).toISOString()}`);
     } else {
       // Standard mode - focus on addresses without proper tags
       query = `
@@ -292,11 +293,21 @@ class DataRevalidator extends Scanner {
 
           this.stats.totalProcessed++;
           
-          if (issues.length === 0) {
-            this.stats.validRecords++;
-            batchResults.push({ address, issues: [], corrections: {}, valid: true });
+          // In recent mode, always apply corrections to ensure fresh data
+          if (this.recentMode) {
+            // Force update even if no issues found - ensures fresh validation
+            if (issues.length === 0) {
+              issues.push('recent_mode_refresh');  // Add pseudo-issue to trigger update
+            }
+            batchResults.push({ address, issues, corrections, valid: false, forceUpdate: true });
           } else {
-            batchResults.push({ address, issues, corrections, valid: false });
+            // Standard mode - only update if issues found
+            if (issues.length === 0) {
+              this.stats.validRecords++;
+              batchResults.push({ address, issues: [], corrections: {}, valid: true });
+            } else {
+              batchResults.push({ address, issues, corrections, valid: false });
+            }
           }
         }
       }
@@ -329,13 +340,13 @@ class DataRevalidator extends Scanner {
         continue;
       }
 
-      if (result.valid) {
+      if (result.valid && !result.forceUpdate) {
         this.stats.validRecords++;
         continue;
       }
 
-      // Has issues and corrections
-      if (Object.keys(result.corrections).length > 0) {
+      // Has issues and corrections (or forceUpdate in recent mode)
+      if (Object.keys(result.corrections).length > 0 || result.forceUpdate) {
         // Check if contract needs metadata fetching
         if (result.corrections.needsMetadata) {
           contractsNeedingMetadata.push(result.address);
@@ -374,7 +385,12 @@ class DataRevalidator extends Scanner {
         
         this.stats.correctedRecords++;
         
-        this.log(`🔧 Corrections for ${result.address}: ${result.issues.join(', ')}`);
+        // Different log message for recent mode refresh vs actual corrections
+        if (result.issues.includes('recent_mode_refresh')) {
+          this.log(`🔄 Refreshing ${result.address} (recent mode)`);
+        } else {
+          this.log(`🔧 Corrections for ${result.address}: ${result.issues.join(', ')}`);
+        }
       } else {
         this.validationResults.toFlag.push(result);
         this.log(`🚩 Issues found for ${result.address}: ${result.issues.join(', ')}`);
@@ -492,7 +508,7 @@ class DataRevalidator extends Scanner {
     this.log('🚀 Starting Data Revalidation Process');
     
     if (this.recentMode) {
-      this.log(`📅 RECENT MODE: Validating contracts discovered in last ${this.recentDays} days`);
+      this.log(`📅 RECENT MODE: Re-validating ALL addresses discovered in last ${this.recentDays} days`);
     } else {
       this.log('📋 STANDARD MODE: Using UnifiedScanner validation logic for strict data verification');
     }
