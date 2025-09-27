@@ -619,17 +619,9 @@ const CONTRACT_VALIDATOR_ABI = [
   'function isContract(address[] memory addrs) external view returns(bool[] memory)'
 ];
 
-const BALANCE_HELPER_ABI = [
-  'function getNativeBalance(address[] memory addrs) external view returns(uint256[] memory)',
-  'function getTokenBalance(address addr, address[] memory tokens) external view returns(uint256[] memory, uint256[] memory)'
-];
-
-const ERC20_ABI = ['function balanceOf(address) external view returns(uint256)'];
-
 class ContractCall {
   constructor() {
     this.validatorCache = new Map();
-    this.balanceCache = new Map();
     this.rpcClients = new Map();
   }
 
@@ -656,24 +648,6 @@ class ContractCall {
       });
     }
     return this.validatorCache.get(network);
-  }
-
-  getBalanceContract(network) {
-    if (!this.balanceCache.has(network)) {
-      const config = NETWORKS[network];
-      const balanceAddress = config?.BalanceHelper;
-      
-      if (!balanceAddress) {
-        console.warn(`No balance helper contract configured for network: ${network}`);
-        return null;
-      }
-      
-      this.balanceCache.set(network, {
-        address: balanceAddress,
-        abi: BALANCE_HELPER_ABI
-      });
-    }
-    return this.balanceCache.get(network);
   }
 
   async chunkOperation(addresses, operation, initialChunkSize = 50) {
@@ -903,93 +877,6 @@ class ContractCall {
       
       return processWithRetry(chunk);
     });
-  }
-
-  async fetchNativeBalances(network, addresses) {
-    if (!addresses?.length) return [];
-    
-    const balanceHelper = this.getBalanceContract(network);
-    const rpc = this.getRpcClient(network);
-    
-    if (!balanceHelper) {
-      return this.chunkOperation(addresses, async (chunk) => {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const balance = await rpc.getBalance(addr);
-            return balance;
-          } catch (e) {
-            return '0x0';
-          }
-        });
-        return Promise.all(promises);
-      });
-    }
-    
-    return this.chunkOperation(addresses, async (chunk) => {
-      try {
-        const iface = new ethers.Interface(balanceHelper.abi);
-        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-        const calldata = iface.encodeFunctionData('getNativeBalance', [checksumChunk]);
-        
-        const result = await rpc.call({
-          to: ethers.getAddress(balanceHelper.address),
-          data: calldata
-        });
-        
-        const decoded = iface.decodeFunctionResult('getNativeBalance', result);
-        return decoded[0];
-      } catch (error) {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const balance = await rpc.getBalance(addr);
-            return balance;
-          } catch (e) {
-            return '0x0';
-          }
-        });
-        return Promise.all(promises);
-      }
-    });
-  }
-
-  async fetchErc20Balances(network, holders, tokens) {
-    if (!holders?.length || !tokens?.length) return new Map();
-    
-    const results = new Map();
-    const rpc = this.getRpcClient(network);
-    const erc20Interface = new ethers.Interface(ERC20_ABI);
-    
-    const checksumHolders = holders.map(addr => ethers.getAddress(addr));
-    const checksumTokens = tokens.map(addr => ethers.getAddress(addr));
-    
-    for (let i = 0; i < holders.length; i++) {
-      const holder = holders[i];
-      const checksumHolder = checksumHolders[i];
-      const holderMap = new Map();
-      
-      for (let j = 0; j < tokens.length; j++) {
-        const token = tokens[j];
-        const checksumToken = checksumTokens[j];
-        
-        try {
-          const calldata = erc20Interface.encodeFunctionData('balanceOf', [checksumHolder]);
-          
-          const result = await rpc.call({
-            to: checksumToken,
-            data: calldata
-          });
-          
-          const decoded = erc20Interface.decodeFunctionResult('balanceOf', result);
-          holderMap.set(token, decoded[0].toString());
-        } catch (error) {
-          holderMap.set(token, '0');
-        }
-      }
-      
-      results.set(holder, holderMap);
-    }
-    
-    return results;
   }
 }
 
