@@ -678,7 +678,7 @@ class ContractCall {
 
   async chunkOperation(addresses, operation, initialChunkSize = 50) {
     const results = [];
-    const minChunkSize = 10;
+    const minChunkSize = 5;  // Reduced minimum for better error handling
     const maxChunkSize = 500;  // 증가된 최대 청크 크기
     let currentChunkSize = initialChunkSize;
     
@@ -695,27 +695,41 @@ class ContractCall {
         currentChunkSize = this.adjustChunkSize(currentChunkSize, duration, minChunkSize, maxChunkSize);
         
       } catch (error) {
-        const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.5));
+        // Log the error for debugging
+        const errorMessage = error.message || error;
+        const isGasError = errorMessage.includes('out of gas') || errorMessage.includes('gas required exceeds');
+        
+        // For gas errors, reduce size more aggressively
+        const reductionFactor = isGasError ? 0.25 : 0.5;
+        const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * reductionFactor));
+        
+        console.log(`[ChunkOperation] Error with chunk size ${chunk.length}, retrying with size ${newChunkSize}`);
         
         if (newChunkSize < chunk.length) {
+          // Retry with smaller chunks
           for (let j = 0; j < chunk.length; j += newChunkSize) {
             const smallerChunk = chunk.slice(j, j + newChunkSize);
             try {
               const smallerResult = await operation(smallerChunk);
               results.push(...smallerResult);
             } catch (smallerError) {
+              // Final fallback: process one by one
+              console.log(`[ChunkOperation] Batch of ${smallerChunk.length} failed, processing individually`);
               for (const addr of smallerChunk) {
                 try {
                   const result = await operation([addr]);
                   results.push(...result);
                 } catch (e) {
+                  // Default to false for failed individual addresses
                   results.push(false);
                 }
               }
             }
           }
+          // Update chunk size for next iteration
           currentChunkSize = newChunkSize;
         } else {
+          // Already at minimum chunk size, process individually
           for (const addr of chunk) {
             try {
               const result = await operation([addr]);
