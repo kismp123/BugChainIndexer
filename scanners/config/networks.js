@@ -18,6 +18,9 @@ const DEFAULT_ETHERSCAN_KEYS = envArray('DEFAULT_ETHERSCAN_KEYS', []);
 // Default CoinGecko API key - now loaded from environment variable  
 const DEFAULT_COINGECKO_KEY = process.env.DEFAULT_COINGECKO_KEY || '';
 
+// Alchemy API key for premium RPC access
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || '';
+
 // Script timeout settings (seconds)
 const TIMEOUT_SECONDS = 7200;
 const TIMEOUT_KILL_AFTER = 15;
@@ -29,6 +32,8 @@ const NETWORKS = {
     name: 'Ethereum Mainnet',
 
     rpcUrls: envArray('ETHEREUM_RPC_URL', [
+      // Add Alchemy as priority if API key exists
+      ...(ALCHEMY_API_KEY ? [`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`] : []),
       'https://eth.llamarpc.com',
       'https://ethereum-rpc.publicnode.com',
       'https://1rpc.io/eth',
@@ -94,6 +99,8 @@ const NETWORKS = {
     name: 'Polygon',
 
     rpcUrls: envArray('POLYGON_RPC_URL', [
+      // Add Alchemy as priority if API key exists
+      ...(ALCHEMY_API_KEY ? [`https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`] : []),
       'https://1rpc.io/matic',
       'https://polygon-bor-rpc.publicnode.com',
       'https://polygon.drpc.org',
@@ -126,6 +133,8 @@ const NETWORKS = {
     name: 'Arbitrum One',
 
     rpcUrls: envArray('ARBITRUM_RPC_URL', [
+      // Add Alchemy as priority if API key exists
+      ...(ALCHEMY_API_KEY ? [`https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`] : []),
       'https://1rpc.io/arb',
       'https://arbitrum-one-rpc.publicnode.com',
       'https://arbitrum.meowrpc.com',
@@ -158,6 +167,8 @@ const NETWORKS = {
     name: 'Optimism',
 
     rpcUrls: envArray('OPTIMISM_RPC_URL', [
+      // Add Alchemy as priority if API key exists
+      ...(ALCHEMY_API_KEY ? [`https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`] : []),
       'https://1rpc.io/op',
       'https://optimism-rpc.publicnode.com',
       'https://optimism.meowrpc.com',
@@ -191,6 +202,8 @@ const NETWORKS = {
     name: 'Base',
 
     rpcUrls: envArray('BASE_RPC_URL', [
+      // Add Alchemy as priority if API key exists
+      ...(ALCHEMY_API_KEY ? [`https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`] : []),
       'https://base.llamarpc.com',
       'https://1rpc.io/base',
       'https://base.meowrpc.com',
