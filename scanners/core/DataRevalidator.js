@@ -25,6 +25,10 @@ class DataRevalidator extends Scanner {
     // Initialize UnifiedScanner instance to use its performEOAFiltering method
     this.unifiedScanner = new UnifiedScanner();
     
+    // Check for recent contracts mode
+    this.recentMode = process.env.RECENT_CONTRACTS === 'true';
+    this.recentDays = parseInt(process.env.RECENT_DAYS || '30', 10);
+    
     this.stats = {
       totalProcessed: 0,
       validRecords: 0,
@@ -49,31 +53,68 @@ class DataRevalidator extends Scanner {
    * Focus on non-EOA addresses that don't have Contract tag yet
    */
   async getAddressesToRevalidate(limit = 100000) {
-    // Simplified query for better performance - focus on empty tags first
-    const query = `
-      SELECT 
-        address, 
-        network, 
-        deployed, 
-        code_hash,
-        contract_name,
-        tags,
-        fund,
-        last_updated,
-        name_checked,
-        name_checked_at
-      FROM addresses
-      WHERE network = $1
-      AND (tags IS NULL OR tags = '{}' OR NOT 'EOA' = ANY(tags))           -- Non-EOA addresses
-      AND (tags IS NULL OR tags = '{}' OR NOT 'Contract' = ANY(tags))      -- Without Contract tag
-      ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
-      LIMIT $2
-    `;
+    let query;
+    let params;
     
-    const params = [
-      this.network,     // $1: network
-      limit            // $2: limit
-    ];
+    if (this.recentMode) {
+      // Recent contracts mode - find contracts discovered in the last N days
+      const cutoffTime = this.currentTime - (this.recentDays * 24 * 60 * 60);
+      
+      query = `
+        SELECT 
+          address, 
+          network, 
+          deployed, 
+          code_hash,
+          contract_name,
+          tags,
+          fund,
+          last_updated,
+          name_checked,
+          name_checked_at,
+          first_seen
+        FROM addresses
+        WHERE network = $1
+        AND first_seen >= $2                                              -- Discovered within N days
+        AND (tags IS NULL OR tags = '{}' OR NOT 'EOA' = ANY(tags))      -- Non-EOA addresses
+        ORDER BY first_seen DESC, fund DESC NULLS LAST
+        LIMIT $3
+      `;
+      
+      params = [
+        this.network,     // $1: network
+        cutoffTime,       // $2: cutoff time for recent discovery
+        limit            // $3: limit
+      ];
+      
+      this.log(`🔍 Recent mode: Finding contracts discovered in last ${this.recentDays} days (since ${new Date(cutoffTime * 1000).toISOString()})`);
+    } else {
+      // Standard mode - focus on addresses without proper tags
+      query = `
+        SELECT 
+          address, 
+          network, 
+          deployed, 
+          code_hash,
+          contract_name,
+          tags,
+          fund,
+          last_updated,
+          name_checked,
+          name_checked_at
+        FROM addresses
+        WHERE network = $1
+        AND (tags IS NULL OR tags = '{}' OR NOT 'EOA' = ANY(tags))           -- Non-EOA addresses
+        AND (tags IS NULL OR tags = '{}' OR NOT 'Contract' = ANY(tags))      -- Without Contract tag
+        ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
+        LIMIT $2
+      `;
+      
+      params = [
+        this.network,     // $1: network
+        limit            // $2: limit
+      ];
+    }
     
     const result = await this.queryWithCache('getAddressesToRevalidate', query, params);
     return result.rows;
@@ -449,14 +490,23 @@ class DataRevalidator extends Scanner {
    */
   async run() {
     this.log('🚀 Starting Data Revalidation Process');
-    this.log('📋 Using UnifiedScanner validation logic for strict data verification');
+    
+    if (this.recentMode) {
+      this.log(`📅 RECENT MODE: Validating contracts discovered in last ${this.recentDays} days`);
+    } else {
+      this.log('📋 STANDARD MODE: Using UnifiedScanner validation logic for strict data verification');
+    }
 
     // Initialize UnifiedScanner for performEOAFiltering
     await this.initializeUnifiedScanner();
 
     const addresses = await this.getAddressesToRevalidate();
     if (addresses.length === 0) {
-      this.log('✅ No addresses need revalidation');
+      if (this.recentMode) {
+        this.log(`✅ No contracts discovered in the last ${this.recentDays} days need revalidation`);
+      } else {
+        this.log('✅ No addresses need revalidation');
+      }
       return;
     }
 

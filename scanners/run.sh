@@ -252,6 +252,31 @@ main() {
             fi
             ;;
             
+        "revalidate-recent"|"DataRevalidator-recent")
+            # Parse parameters: [days] [network]
+            local days="${mode:-30}"        # Second param is days (default: 30)
+            local target_network="${network:-}"  # Third param is network
+            
+            # If days is actually a network name, swap them
+            if [[ "$days" =~ ^(ethereum|binance|polygon|avalanche|arbitrum|optimism|base|cronos|gnosis|linea|moonbeam|moonriver|scroll|mantle|opbnb|polygon-zkevm|arbitrum-nova|celo)$ ]]; then
+                target_network="$days"
+                days="30"
+            fi
+            
+            log "📅 Starting DataRevalidator for recent contracts (last ${days} days)${target_network:+ on $target_network}..."
+            
+            if [[ -n "$target_network" ]]; then
+                # Run for specific network
+                lock_and_run "revalidate-recent-$target_network" \
+                    "env RECENT_CONTRACTS=true RECENT_DAYS=\"$days\" NETWORK=\"$target_network\" node \"$SCANNERS_DIR/DataRevalidator.js\""
+            else
+                # Run for all networks in parallel with recent mode
+                export RECENT_CONTRACTS=true
+                export RECENT_DAYS="$days"
+                lock_and_run "revalidate-recent-parallel" "run_parallel DataRevalidator"
+            fi
+            ;;
+            
         "all"|"suite")
             log "🚀 Starting complete scanner suite (unified + funds + revalidate)..."
             
@@ -411,6 +436,7 @@ Available Scanners:
   funds-high    Update asset balances for high-value addresses (fund >= 100,000, includes ALL_FLAG)
   unified       Complete blockchain analysis pipeline: addresses + EOA + verification (parallel)
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
+  revalidate-recent  Revalidate contracts discovered in last N days (default: 30)
   all           Run complete scanner suite (unified + funds + revalidate)
 
 Modes:
@@ -430,6 +456,8 @@ Examples:
   $0 unified                  # Run unified blockchain analysis pipeline (recommended)
   $0 unified parallel         # Run unified pipeline on all networks in parallel
   $0 revalidate               # Run data revalidation for all networks
+  $0 revalidate-recent        # Revalidate contracts discovered in last 30 days
+  $0 revalidate-recent 7      # Revalidate contracts discovered in last 7 days
   $0 all                      # Full unified scanner suite
 
   # Run on specific network (RECOMMENDED METHOD)
@@ -438,6 +466,7 @@ Examples:
   NETWORK=ethereum $0 funds-high   # Update high-value funds on ethereum with ALL_FLAG
   NETWORK=ethereum $0 unified      # Run unified analysis for ethereum only
   NETWORK=ethereum $0 revalidate   # Run revalidation for ethereum only
+  NETWORK=ethereum $0 revalidate-recent    # Revalidate recent contracts on ethereum (last 30 days)
   NETWORK=polygon $0 unified       # Run unified analysis for polygon only
 
   # Alternative method (use correct parameter order)
@@ -465,6 +494,8 @@ Environment Variables:
   NETWORK=network_name       Override network for single-network runs
   HIGH_FUND_FLAG=true        Enable high-value address filtering (fund >= 100,000)
   FUND_UPDATE_MAX_BATCH=50000 Maximum batch size for fund updates
+  RECENT_CONTRACTS=true      Enable recent contracts mode for DataRevalidator
+  RECENT_DAYS=30            Days to look back for recent contracts (default: 30)
 
 Available Core Scanners:
   - UnifiedScanner.js        Complete blockchain analysis pipeline
