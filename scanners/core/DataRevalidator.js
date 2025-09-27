@@ -14,10 +14,14 @@ const {
 
 class DataRevalidator extends Scanner {
   constructor() {
+    // Check for recent contracts mode first
+    const recentMode = process.env.RECENT_CONTRACTS === 'true';
+    
     super('DataRevalidator', {
       timeout: 7200,
       batchSizes: {
-        addresses: 20000,  // Increased to 20,000 for large-scale batch processing
+        // Reduce batch size for recent mode due to larger dataset
+        addresses: recentMode ? 5000 : 20000,  // 5K for recent mode, 20K for standard
         verification: 1000  // Increased verification batch size as well
       }
     });
@@ -25,8 +29,8 @@ class DataRevalidator extends Scanner {
     // Initialize UnifiedScanner instance to use its performEOAFiltering method
     this.unifiedScanner = new UnifiedScanner();
     
-    // Check for recent contracts mode
-    this.recentMode = process.env.RECENT_CONTRACTS === 'true';
+    // Store recent mode settings
+    this.recentMode = recentMode;
     this.recentDays = parseInt(process.env.RECENT_DAYS || '30', 10);
     
     this.stats = {
@@ -53,6 +57,10 @@ class DataRevalidator extends Scanner {
    * Focus on non-EOA addresses that don't have Contract tag yet
    */
   async getAddressesToRevalidate(limit = 100000) {
+    // Override limit for recent mode to prevent memory issues
+    const maxLimit = this.recentMode ? 
+      parseInt(process.env.REVALIDATOR_MAX_BATCH || '50000', 10) : 
+      limit;
     let query;
     let params;
     
@@ -84,11 +92,12 @@ class DataRevalidator extends Scanner {
       params = [
         this.network,     // $1: network
         cutoffTime,       // $2: cutoff time for recent discovery
-        limit            // $3: limit
+        maxLimit         // $3: limit (use maxLimit instead of limit)
       ];
       
       this.log(`🔍 Recent mode: Finding ALL addresses discovered in last ${this.recentDays} days (including EOAs and validated contracts)`);
       this.log(`📅 Cutoff time: ${new Date(cutoffTime * 1000).toISOString()}`);
+      this.log(`📊 Max batch size: ${maxLimit} addresses`);
     } else {
       // Standard mode - focus on addresses without proper tags
       query = `
@@ -113,7 +122,7 @@ class DataRevalidator extends Scanner {
       
       params = [
         this.network,     // $1: network
-        limit            // $2: limit
+        maxLimit         // $2: limit (use maxLimit)
       ];
     }
     
