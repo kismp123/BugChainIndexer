@@ -129,18 +129,29 @@ class UnifiedScanner extends Scanner {
           const existingQuery = `SELECT deployed FROM addresses WHERE address = $1 AND network = $2`;
           const existingResult = await this.queryDB(existingQuery, [address, this.network]);
           
-          if (existingResult.rows.length > 0 && existingResult.rows[0].deployed != 0) {
+          if (existingResult.rows.length > 0 && existingResult.rows[0].deployed && existingResult.rows[0].deployed > 0) {
             deployTime = existingResult.rows[0].deployed;
           } else {
             // Use the dedicated deployment time function
             const { getContractDeploymentTime } = require('../common');
             const deploymentResult = await getContractDeploymentTime(this, address);
-            deployTime = deploymentResult.timestamp;
+            
+            // IMPORTANT: Only use the timestamp if it's valid (not 0)
+            // If we can't get deployment time, keep it as null rather than using currentTime
+            if (deploymentResult.timestamp && deploymentResult.timestamp > 0) {
+              deployTime = deploymentResult.timestamp;
+            } else {
+              // Log warning but don't set to currentTime - keep as null
+              this.log(`⚠️ Could not get deployment time for ${address} - will be set to null`, 'warn');
+              deployTime = null;
+            }
+            
             isGenesisContract = deploymentResult.isGenesis;
           }
         } catch (dbError) {
-          this.log(`⚠️ Database error getting deployment time for ${address} - skipping`, 'warn');
-          continue;
+          this.log(`⚠️ Database error getting deployment time for ${address} - setting to null`, 'warn');
+          deployTime = null;
+          // Don't skip - continue with null deployment time
         }
         
         // Now use actual deployment time for address type classification
@@ -345,7 +356,9 @@ class UnifiedScanner extends Scanner {
       address: normalizeAddress(contract.address),
       network: this.network,
       codeHash: contract.codeHash,
-      deployed: contract.deployTime, // Should always be valid due to strict filtering
+      // IMPORTANT: Keep deployed as null if we couldn't get valid deployment time
+      // Never use currentTime as a fallback for deployed field
+      deployed: (contract.deployTime && contract.deployTime > 0) ? contract.deployTime : null,
       tags: contract.verified ? ['Contract', 'Verified'] : ['Contract', 'Unverified'],
       contractName: contract.contractName,
       lastUpdated: this.currentTime,

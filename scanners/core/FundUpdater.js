@@ -73,11 +73,13 @@ class FundUpdater extends Scanner {
     if (!allFlag) {
       query += `
       AND (last_fund_updated IS NULL OR last_fund_updated < $2)
+      AND (last_updated IS NOT NULL AND last_updated >= $3)
       AND code_hash IS NOT NULL 
-      AND code_hash != $3
+      AND code_hash != $4
       AND code_hash != ''`;
-      params.push(cutoffTime);        // $2: cutoff timestamp
-      params.push(this.ZERO_HASH);    // $3: zero hash to exclude
+      params.push(cutoffTime);        // $2: cutoff timestamp for last_fund_updated
+      params.push(cutoffTime);        // $3: minimum timestamp for last_updated (7 days ago)
+      params.push(this.ZERO_HASH);    // $4: zero hash to exclude
     }
     
     query += `
@@ -85,8 +87,8 @@ class FundUpdater extends Scanner {
     
     // Add high fund filter if enabled
     if (highFundFlag) {
-      const fundParamIndex = allFlag ? '$2' : '$4';
-      const limitParamIndex = allFlag ? '$3' : '$5';
+      const fundParamIndex = allFlag ? '$2' : '$5';
+      const limitParamIndex = allFlag ? '$3' : '$6';
       
       query += ` AND fund >= ${fundParamIndex}`;
       params.push(minFund);
@@ -95,7 +97,7 @@ class FundUpdater extends Scanner {
       
       this.log(`🏛️ High fund mode enabled: targeting addresses with fund >= ${minFund.toLocaleString()}`);
     } else {
-      const limitParamIndex = allFlag ? '$2' : '$4';
+      const limitParamIndex = allFlag ? '$2' : '$5';
       query += ` ORDER BY last_fund_updated ASC NULLS FIRST LIMIT ${limitParamIndex}`;
       params.push(maxBatch);
     }

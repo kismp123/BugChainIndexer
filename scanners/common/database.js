@@ -83,7 +83,9 @@ async function upsertAddress(client, data) {
     data.address,
     data.codeHash,
     data.contractName,
-    data.deployed,
+    // IMPORTANT: Keep deployed as null if not provided or invalid
+    // Never use current time as default for deployed field
+    (data.deployed && data.deployed > 0) ? data.deployed : null,
     data.lastUpdated || now,
     data.network,
     data.firstSeen || now,
@@ -116,7 +118,9 @@ async function batchUpsertAddresses(client, addresses, options = {}) {
         data.address,
         data.codeHash || null,
         data.contractName || null,
-        data.deployed || null,
+        // IMPORTANT: Keep deployed as null if not provided or invalid
+        // Never use current time as default for deployed field
+        (data.deployed && data.deployed > 0) ? data.deployed : null,
         data.lastUpdated || now,
         data.network,
         data.firstSeen || now,
