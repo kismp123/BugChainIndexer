@@ -678,7 +678,7 @@ class ContractCall {
 
   async chunkOperation(addresses, operation, initialChunkSize = 50) {
     const results = [];
-    const minChunkSize = 5;  // Reduced minimum for better error handling
+    const minChunkSize = 10;
     const maxChunkSize = 500;  // 증가된 최대 청크 크기
     let currentChunkSize = initialChunkSize;
     
@@ -695,41 +695,27 @@ class ContractCall {
         currentChunkSize = this.adjustChunkSize(currentChunkSize, duration, minChunkSize, maxChunkSize);
         
       } catch (error) {
-        // Log the error for debugging
-        const errorMessage = error.message || error;
-        const isGasError = errorMessage.includes('out of gas') || errorMessage.includes('gas required exceeds');
-        
-        // For gas errors, reduce size more aggressively
-        const reductionFactor = isGasError ? 0.25 : 0.5;
-        const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * reductionFactor));
-        
-        console.log(`[ChunkOperation] Error with chunk size ${chunk.length}, retrying with size ${newChunkSize}`);
+        const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.5));
         
         if (newChunkSize < chunk.length) {
-          // Retry with smaller chunks
           for (let j = 0; j < chunk.length; j += newChunkSize) {
             const smallerChunk = chunk.slice(j, j + newChunkSize);
             try {
               const smallerResult = await operation(smallerChunk);
               results.push(...smallerResult);
             } catch (smallerError) {
-              // Final fallback: process one by one
-              console.log(`[ChunkOperation] Batch of ${smallerChunk.length} failed, processing individually`);
               for (const addr of smallerChunk) {
                 try {
                   const result = await operation([addr]);
                   results.push(...result);
                 } catch (e) {
-                  // Default to false for failed individual addresses
                   results.push(false);
                 }
               }
             }
           }
-          // Update chunk size for next iteration
           currentChunkSize = newChunkSize;
         } else {
-          // Already at minimum chunk size, process individually
           for (const addr of chunk) {
             try {
               const result = await operation([addr]);
@@ -822,29 +808,47 @@ class ContractCall {
     }
     
     return this.chunkOperation(addresses, async (chunk) => {
-      try {
-        const iface = new ethers.Interface(validator.abi);
-        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-        const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
-        
-        const result = await rpc.call({
-          to: ethers.getAddress(validator.address),
-          data: calldata
-        });
-        
-        const decoded = iface.decodeFunctionResult('isContract', result);
-        return decoded[0];
-      } catch (error) {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const code = await rpc.getCode(addr);
-            return code && code !== '0x';
-          } catch (e) {
-            return false;
+      // Helper function to process with retry on gas error
+      const processWithRetry = async (addrs) => {
+        try {
+          const iface = new ethers.Interface(validator.abi);
+          const checksumChunk = addrs.map(addr => ethers.getAddress(addr));
+          const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
+          
+          const result = await rpc.call({
+            to: ethers.getAddress(validator.address),
+            data: calldata
+          });
+          
+          const decoded = iface.decodeFunctionResult('isContract', result);
+          return decoded[0];
+        } catch (error) {
+          const errorMsg = error.message || error.toString();
+          const isGasError = errorMsg.includes('out of gas') || errorMsg.includes('gas required exceeds');
+          
+          // If gas error and batch size > 1, try with half size
+          if (isGasError && addrs.length > 1) {
+            console.log(`[isContracts] Gas error with ${addrs.length} addresses, retrying with half size`);
+            const midpoint = Math.floor(addrs.length / 2);
+            const firstHalf = await processWithRetry(addrs.slice(0, midpoint));
+            const secondHalf = await processWithRetry(addrs.slice(midpoint));
+            return [...firstHalf, ...secondHalf];
           }
-        });
-        return Promise.all(promises);
-      }
+          
+          // Fallback to individual checks
+          const promises = addrs.map(async (addr) => {
+            try {
+              const code = await rpc.getCode(addr);
+              return code && code !== '0x';
+            } catch (e) {
+              return false;
+            }
+          });
+          return Promise.all(promises);
+        }
+      };
+      
+      return processWithRetry(chunk);
     });
   }
 
@@ -869,29 +873,47 @@ class ContractCall {
     }
     
     return this.chunkOperation(addresses, async (chunk) => {
-      try {
-        const iface = new ethers.Interface(validator.abi);
-        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-        const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
-        
-        const result = await rpc.call({
-          to: ethers.getAddress(validator.address),
-          data: calldata
-        });
-        
-        const decoded = iface.decodeFunctionResult('getCodeHashes', result);
-        return decoded[0];
-      } catch (error) {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const code = await rpc.getCode(addr);
-            return code && code !== '0x' ? ethers.keccak256(code) : ZERO_HASH;
-          } catch (e) {
-            return ZERO_HASH;
+      // Helper function to process with retry on gas error
+      const processWithRetry = async (addrs) => {
+        try {
+          const iface = new ethers.Interface(validator.abi);
+          const checksumChunk = addrs.map(addr => ethers.getAddress(addr));
+          const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
+          
+          const result = await rpc.call({
+            to: ethers.getAddress(validator.address),
+            data: calldata
+          });
+          
+          const decoded = iface.decodeFunctionResult('getCodeHashes', result);
+          return decoded[0];
+        } catch (error) {
+          const errorMsg = error.message || error.toString();
+          const isGasError = errorMsg.includes('out of gas') || errorMsg.includes('gas required exceeds');
+          
+          // If gas error and batch size > 1, try with half size
+          if (isGasError && addrs.length > 1) {
+            console.log(`[getCodeHashes] Gas error with ${addrs.length} addresses, retrying with half size`);
+            const midpoint = Math.floor(addrs.length / 2);
+            const firstHalf = await processWithRetry(addrs.slice(0, midpoint));
+            const secondHalf = await processWithRetry(addrs.slice(midpoint));
+            return [...firstHalf, ...secondHalf];
           }
-        });
-        return Promise.all(promises);
-      }
+          
+          // Fallback to individual checks
+          const promises = addrs.map(async (addr) => {
+            try {
+              const code = await rpc.getCode(addr);
+              return code && code !== '0x' ? ethers.keccak256(code) : ZERO_HASH;
+            } catch (e) {
+              return ZERO_HASH;
+            }
+          });
+          return Promise.all(promises);
+        }
+      };
+      
+      return processWithRetry(chunk);
     });
   }
 
