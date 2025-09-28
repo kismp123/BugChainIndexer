@@ -120,10 +120,11 @@ class UnifiedScanner extends Scanner {
       const codeHash = codeHashes[i] || null;
       
       if (isContract && codeHash && codeHash !== this.ZERO_HASH) {
-        // Active contract - first get actual deployment time
+        // Active contract - defer deployment time fetching for performance
         let deployTime = null;
-        
         let isGenesisContract = false;
+        let needsDeploymentTime = false;
+        
         try {
           // First try to get from database if available
           const existingQuery = `SELECT deployed FROM addresses WHERE address = $1 AND network = $2`;
@@ -132,25 +133,23 @@ class UnifiedScanner extends Scanner {
           if (existingResult.rows.length > 0 && existingResult.rows[0].deployed && existingResult.rows[0].deployed > 0) {
             deployTime = existingResult.rows[0].deployed;
           } else {
-            // Use the dedicated deployment time function
-            const { getContractDeploymentTime } = require('../common');
-            const deploymentResult = await getContractDeploymentTime(this, address);
+            // Mark for async deployment time fetching later
+            needsDeploymentTime = true;
+            deployTime = null; // Will be fetched asynchronously later
             
-            // IMPORTANT: Only use the timestamp if it's valid (not 0)
-            // If we can't get deployment time, keep it as null rather than using currentTime
-            if (deploymentResult.timestamp && deploymentResult.timestamp > 0) {
-              deployTime = deploymentResult.timestamp;
-            } else {
-              // Log warning but don't set to currentTime - keep as null
-              this.log(`⚠️ Could not get deployment time for ${address} - will be set to null`, 'warn');
-              deployTime = null;
+            // Check if it might be a genesis contract (simple check without API call)
+            const { getGenesisTimestamp } = require('../config/genesis-timestamps');
+            const genesisTime = getGenesisTimestamp(this.config?.chainId);
+            if (genesisTime) {
+              // For now, we'll use genesis time as a placeholder for contracts that might be genesis
+              // The actual verification will happen in background
+              isGenesisContract = false; // Will be determined later
             }
-            
-            isGenesisContract = deploymentResult.isGenesis;
           }
         } catch (dbError) {
-          this.log(`⚠️ Database error getting deployment time for ${address} - setting to null`, 'warn');
-          continue
+          this.log(`⚠️ Database error getting deployment time for ${address} - will fetch later`, 'warn');
+          needsDeploymentTime = true;
+          deployTime = null;
         }
         
         // Now use actual deployment time for address type classification
@@ -182,15 +181,20 @@ class UnifiedScanner extends Scanner {
             tags: ['EOA', 'SmartWallet']
           });
         } else if (addressType === 'smart_contract' || addressType === 'contract') {
-          // Smart Contract - deployment time already retrieved above
-          this.log(`📍 Contract ${address} deployment time: ${new Date(deployTime * 1000).toISOString()}`);
+          // Smart Contract - deployment time will be fetched asynchronously if needed
+          if (deployTime) {
+            this.log(`📍 Contract ${address} deployment time: ${new Date(deployTime * 1000).toISOString()}`);
+          } else if (needsDeploymentTime) {
+            this.log(`📍 Contract ${address} - deployment time will be fetched asynchronously`);
+          }
           
           contracts.push({
             address,
             codeHash,
             deployTime,
             type: 'smart_contract',
-            isGenesis: isGenesisContract
+            isGenesis: isGenesisContract,
+            needsDeploymentTime: needsDeploymentTime || false
           });
         } else {
           // Unknown type - skip completely to avoid uncertain data
@@ -219,6 +223,67 @@ class UnifiedScanner extends Scanner {
 
 
 
+
+  /**
+   * Asynchronously fetch deployment times for contracts that need them
+   * This runs in background to avoid blocking the main processing pipeline
+   * @param {Array} contracts - Array of contract objects with needsDeploymentTime flag
+   */
+  async fetchDeploymentTimesAsync(contracts = []) {
+    const contractsNeedingTime = contracts.filter(c => c.needsDeploymentTime);
+    
+    if (contractsNeedingTime.length === 0) return;
+    
+    this.log(`⏳ Starting async deployment time fetch for ${contractsNeedingTime.length} contracts...`);
+    
+    // Process in batches to avoid overwhelming the API
+    const batchSize = 10; // Process 10 contracts concurrently
+    const { getContractDeploymentTime } = require('../common');
+    
+    for (let i = 0; i < contractsNeedingTime.length; i += batchSize) {
+      const batch = contractsNeedingTime.slice(i, i + batchSize);
+      
+      // Create promises for batch processing
+      const promises = batch.map(async (contract) => {
+        try {
+          const deploymentResult = await getContractDeploymentTime(this, contract.address);
+          
+          if (deploymentResult.timestamp && deploymentResult.timestamp > 0) {
+            // Update the contract object
+            contract.deployTime = deploymentResult.timestamp;
+            contract.isGenesis = deploymentResult.isGenesis;
+            
+            // Update database asynchronously
+            const updateQuery = `
+              UPDATE addresses 
+              SET deployed = $1, last_updated = $2
+              WHERE address = $3 AND network = $4
+            `;
+            await this.queryDB(updateQuery, [
+              deploymentResult.timestamp,
+              this.currentTime,
+              contract.address,
+              this.network
+            ]);
+            
+            this.log(`✅ Fetched deployment time for ${contract.address}: ${new Date(deploymentResult.timestamp * 1000).toISOString()}`);
+          }
+        } catch (error) {
+          this.log(`⚠️ Failed to fetch deployment time for ${contract.address}: ${error.message}`, 'warn');
+        }
+      });
+      
+      // Execute batch and wait for completion before next batch
+      await Promise.all(promises);
+      
+      // Small delay between batches to respect API rate limits
+      if (i + batchSize < contractsNeedingTime.length) {
+        await this.sleep(1000); // 1 second delay between batches
+      }
+    }
+    
+    this.log(`✅ Completed async deployment time fetch for ${contractsNeedingTime.length} contracts`);
+  }
 
   async verifyContracts(contracts = []) {
     if (contracts.length === 0) return [];
@@ -650,7 +715,13 @@ class UnifiedScanner extends Scanner {
       // Perform EOA filtering and contract detection
       const { eoas, contracts } = await this.performEOAFiltering(newAddresses);
       
-      // Verify contracts
+      // Start async deployment time fetching in background (non-blocking)
+      // This will update the database asynchronously
+      this.fetchDeploymentTimesAsync(contracts).catch(err => {
+        this.log(`⚠️ Background deployment fetch failed: ${err.message}`, 'warn');
+      });
+      
+      // Verify contracts (can proceed without waiting for deployment times)
       const verifiedContracts = await this.verifyContracts(contracts);
       
       // Store results

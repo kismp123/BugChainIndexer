@@ -196,6 +196,15 @@ class DataRevalidator extends Scanner {
         const filteringResult = await this.unifiedScanner.performEOAFiltering(validAddresses);
         const { eoas, contracts, selfDestructed } = filteringResult;
         
+        // Start async deployment time fetching for contracts that need it
+        // This runs in background and won't block the main processing
+        if (contracts.length > 0) {
+          this.unifiedScanner.fetchDeploymentTimesAsync(contracts).catch(err => {
+            this.log(`⚠️ Background deployment time fetch failed: ${err.message}`, 'warn');
+          });
+          this.log(`🚀 Started background deployment time fetch for ${contracts.filter(c => c.needsDeploymentTime).length} contracts`);
+        }
+        
         // Create lookup maps for efficient processing
         const contractMap = new Map(contracts.map(c => [c.address, c]));
         const selfDestroyedMap = new Map(selfDestructed.map(s => [s.address, s]));
