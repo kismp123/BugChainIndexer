@@ -141,19 +141,24 @@ class Scanner {
   }
 
   async getLogs(filter) {
-    const { globalAPILimiter } = require('./core.js');
+    // Directly call RPC without limiter for now to debug hanging issue
+    // const { globalAPILimiter } = require('./core.js');
     
     // Create request description
     const fromBlock = filter.fromBlock || 'latest';
     const toBlock = filter.toBlock || 'latest';
     const description = `getLogs(${fromBlock}-${toBlock})`;
     
-    // Use RPC limiter for getLogs calls
-    return globalAPILimiter.queueRPCRequest(
-      () => this.rpc.getLogs(filter),
-      this.network,
-      description
-    );
+    // Direct RPC call without limiter
+    // console.log(`[${this.network}] Direct getLogs call: ${description}`);
+    return this.rpc.getLogs(filter);
+    
+    // Original code with limiter (commented for debugging):
+    // return globalAPILimiter.queueRPCRequest(
+    //   () => this.rpc.getLogs(filter),
+    //   this.network,
+    //   description
+    // );
   }
 
   // Etherscan operations  

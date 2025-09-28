@@ -150,8 +150,7 @@ class UnifiedScanner extends Scanner {
           }
         } catch (dbError) {
           this.log(`⚠️ Database error getting deployment time for ${address} - setting to null`, 'warn');
-          deployTime = null;
-          // Don't skip - continue with null deployment time
+          continue
         }
         
         // Now use actual deployment time for address type classification
@@ -498,31 +497,40 @@ class UnifiedScanner extends Scanner {
    */
   async fetchLogsWithAdaptiveBatching(currentBlock, endBlock) {
     const startTime = Date.now();
-    const logs = await withTimeoutAndRetry(
-      () => this.getLogs({
-        fromBlock: `0x${currentBlock.toString(16)}`,
-        toBlock: `0x${endBlock.toString(16)}`,
-        topics: [this.transferEvent]
-      }),
-      TIMEOUTS.GET_LOGS,
-      {
-        operationName: `getLogs(${currentBlock}-${endBlock})`,
-        maxAttempts: 2 // Fewer retries for logs to avoid long delays
-      }
-    );
-    const duration = Date.now() - startTime;
+    this.log(`📥 Calling getLogs for blocks ${currentBlock}-${endBlock} (timeout: 20s)...`);
     
-    // Parse addresses from logs with normalization
-    const addresses = new Set();
-    logs.forEach(log => {
-      addresses.add(normalizeAddress(log.address));
-      if (log.topics[1]) addresses.add(normalizeAddress('0x' + log.topics[1].slice(26)));
-      if (log.topics[2]) addresses.add(normalizeAddress('0x' + log.topics[2].slice(26)));
-    });
-    
-    this.log(`Fetched ${logs.length} logs with ${addresses.size} unique addresses in ${duration}ms`);
-    
-    return { addresses, duration, logCount: logs.length };
+    try {
+      const logs = await withTimeoutAndRetry(
+        () => this.getLogs({
+          fromBlock: `0x${currentBlock.toString(16)}`,
+          toBlock: `0x${endBlock.toString(16)}`,
+          topics: [this.transferEvent]
+        }),
+        TIMEOUTS.GET_LOGS,
+        {
+          operationName: `getLogs(${currentBlock}-${endBlock})`,
+          maxAttempts: 2 // Fewer retries for logs to avoid long delays
+        }
+      );
+      const duration = Date.now() - startTime;
+      this.log(`✅ getLogs completed in ${duration}ms`);
+      
+      // Parse addresses from logs with normalization
+      const addresses = new Set();
+      logs.forEach(log => {
+        addresses.add(normalizeAddress(log.address));
+        if (log.topics[1]) addresses.add(normalizeAddress('0x' + log.topics[1].slice(26)));
+        if (log.topics[2]) addresses.add(normalizeAddress('0x' + log.topics[2].slice(26)));
+      });
+      
+      this.log(`Fetched ${logs.length} logs with ${addresses.size} unique addresses in ${duration}ms`);
+      
+      return { addresses, duration, logCount: logs.length };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.log(`❌ getLogs failed after ${duration}ms: ${error.message}`, 'error');
+      throw error;
+    }
   }
 
   /**

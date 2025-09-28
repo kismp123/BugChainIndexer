@@ -22,7 +22,7 @@ const TIMEOUTS = {
   RPC_CALL: 5000,
   BLOCK_QUERY: 15000,
   BLOCK_QUERY_FAST: 3000,
-  GET_LOGS: 60000,
+  GET_LOGS: 20000,  // Reduced from 60s to 20s for faster failure detection
   TRANSACTION_QUERY: 5000,
   CONTRACT_CREATION: 10000,
 };
@@ -410,6 +410,8 @@ async function etherscanRequest(network, params, maxRetries = 3) {
 // ====== HTTP RPC CLIENT ======
 const rpcRotation = new Map();
 const failedRpcs = new Map();
+const permanentlyFailedRpcs = new Map(); // Track permanently failed RPCs (403, sanctioned, etc)
+const temporarilyFailedRpcs = new Map(); // Track temporarily failed RPCs (can be retried)
 const slowRpcs = new Map(); // Track temporarily slow RPCs
 
 class HttpRpcClient {
@@ -421,6 +423,12 @@ class HttpRpcClient {
     if (!this.config?.rpcUrls?.length) {
       throw new Error(`No RPC URLs configured for network: ${network}`);
     }
+    
+    // Log primary RPC on initialization (commented for production)
+    // const primaryRpc = this.config.rpcUrls[0];
+    // const isAlchemy = primaryRpc.includes('alchemy.com');
+    // console.log(`[${this.network}] 📡 RPC Client initialized with ${this.config.rpcUrls.length} endpoints`);
+    // console.log(`[${this.network}] 🥇 Primary RPC: ${primaryRpc.split('/')[2]}${isAlchemy ? ' (Alchemy)' : ''}`);
   }
 
   markRpcAsFailed(rpcUrl) {
@@ -428,6 +436,29 @@ class HttpRpcClient {
       failedRpcs.set(this.network, new Set());
     }
     failedRpcs.get(this.network).add(rpcUrl);
+  }
+  
+  markRpcAsPermanentlyFailed(rpcUrl) {
+    if (!permanentlyFailedRpcs.has(this.network)) {
+      permanentlyFailedRpcs.set(this.network, new Set());
+    }
+    permanentlyFailedRpcs.get(this.network).add(rpcUrl);
+    // Also add to regular failed list
+    this.markRpcAsFailed(rpcUrl);
+  }
+  
+  markRpcAsTemporarilyFailed(rpcUrl) {
+    if (!temporarilyFailedRpcs.has(this.network)) {
+      temporarilyFailedRpcs.set(this.network, new Set());
+    }
+    temporarilyFailedRpcs.get(this.network).add(rpcUrl);
+    // Set expiry time (5 minutes)
+    setTimeout(() => {
+      const tempFailed = temporarilyFailedRpcs.get(this.network);
+      if (tempFailed) {
+        tempFailed.delete(rpcUrl);
+      }
+    }, 5 * 60 * 1000);
   }
   
   markRpcAsSlow(rpcUrl) {
@@ -468,25 +499,92 @@ class HttpRpcClient {
     
     while (globalRetryCount < maxGlobalRetries) {
       const failedSet = failedRpcs.get(this.network) || new Set();
+      const permanentFailedSet = permanentlyFailedRpcs.get(this.network) || new Set();
+      const tempFailedSet = temporarilyFailedRpcs.get(this.network) || new Set();
       
-      let availableRpcs = this.config.rpcUrls.filter(url => !failedSet.has(url));
+      // Filter out permanently failed RPCs first, then temporarily failed ones
+      let availableRpcs = this.config.rpcUrls.filter(url => 
+        !permanentFailedSet.has(url) && !failedSet.has(url) && !tempFailedSet.has(url)
+      );
       
       if (availableRpcs.length === 0) {
+        // If all RPCs failed, only reset non-permanent failures
         failedRpcs.delete(this.network);
-        availableRpcs = [...this.config.rpcUrls];
+        temporarilyFailedRpcs.delete(this.network);
+        // Try again with RPCs that aren't permanently failed
+        availableRpcs = this.config.rpcUrls.filter(url => !permanentFailedSet.has(url));
+        
+        if (availableRpcs.length === 0) {
+          // If even all non-permanent RPCs are exhausted, reset everything as last resort
+          console.log(`[${this.network}] WARNING: All RPCs permanently failed, resetting for emergency retry`);
+          permanentlyFailedRpcs.delete(this.network);
+          availableRpcs = [...this.config.rpcUrls];
+        }
       }
       
-      // Sort RPCs: non-slow ones first, then slow ones
-      availableRpcs.sort((a, b) => {
-        const aSlow = this.isRpcSlow(a);
-        const bSlow = this.isRpcSlow(b);
-        if (aSlow && !bSlow) return 1;
-        if (!aSlow && bSlow) return -1;
-        return 0;
-      });
+      // Separate slow and non-slow RPCs
+      const slowRpcList = [];
+      const fastRpcList = [];
+      let alchemyRpc = null;
+      
+      for (const rpc of availableRpcs) {
+        // Check if this is an Alchemy RPC (contains alchemy.com)
+        if (rpc.includes('alchemy.com')) {
+          alchemyRpc = rpc;
+        } else if (this.isRpcSlow(rpc)) {
+          slowRpcList.push(rpc);
+        } else {
+          fastRpcList.push(rpc);
+        }
+      }
+      
+      // Shuffle non-Alchemy fast RPCs for load balancing
+      for (let i = fastRpcList.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fastRpcList[i], fastRpcList[j]] = [fastRpcList[j], fastRpcList[i]];
+      }
+      
+      // Shuffle slow RPCs
+      for (let i = slowRpcList.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [slowRpcList[i], slowRpcList[j]] = [slowRpcList[j], slowRpcList[i]];
+      }
+      
+      // Check if this is a contract call (eth_call)
+      const isContractCall = method === 'eth_call';
+      
+      // For contract calls, prioritize Alchemy; for others (like getLogs), use other RPCs first
+      if (isContractCall && alchemyRpc && !this.isRpcSlow(alchemyRpc)) {
+        // Contract calls: Alchemy first
+        availableRpcs = [alchemyRpc, ...fastRpcList, ...slowRpcList];
+      } else {
+        // Non-contract calls (getLogs, etc): Other RPCs first, Alchemy last
+        if (alchemyRpc && !this.isRpcSlow(alchemyRpc)) {
+          availableRpcs = [...fastRpcList, ...slowRpcList, alchemyRpc];
+        } else if (alchemyRpc) {
+          availableRpcs = [...fastRpcList, ...slowRpcList, alchemyRpc];
+        } else {
+          availableRpcs = [...fastRpcList, ...slowRpcList];
+        }
+      }
       
       for (let i = 0; i < availableRpcs.length; i++) {
         const rpcUrl = availableRpcs[i];
+        
+        // Log RPC selection and switching (only for debugging)
+        // Comment out in production to reduce log noise
+        /*
+        if (i === 0 && globalRetryCount === 0) {
+          const isAlchemy = rpcUrl.includes('alchemy.com');
+          const rpcHost = rpcUrl.split('/')[2];
+          console.log(`[${this.network}] 🎯 Selected RPC: ${rpcHost}${isAlchemy ? ' (Alchemy)' : ''}`);
+        } else if (i > 0) {
+          console.log(`[${this.network}] 🔄 Switching to RPC #${i + 1}/${availableRpcs.length}: ${rpcUrl.split('/')[2]}`);
+        } else if (globalRetryCount > 0) {
+          console.log(`[${this.network}] 🔄 Retrying with RPC: ${rpcUrl.split('/')[2]}`);
+        }
+        */
+        
         this.requestId++;
         
         const payload = {
@@ -497,11 +595,24 @@ class HttpRpcClient {
         };
 
         try {
-          const response = await axios.post(rpcUrl, payload, {
-            timeout: 30000,
+          // Create promise with timeout
+          const axiosPromise = axios.post(rpcUrl, payload, {
+            timeout: 25000,  // 25 seconds for axios
             headers: { 'Content-Type': 'application/json' },
-            validateStatus: (status) => status < 500
+            validateStatus: (status) => status < 500,
+            // Additional settings to prevent hanging
+            maxContentLength: 50 * 1024 * 1024,  // 50MB max
+            maxBodyLength: 50 * 1024 * 1024,
+            decompress: true,
+            responseType: 'json'
           });
+          
+          // Wrap with race to enforce timeout
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`RPC timeout after 30s: ${rpcUrl}`)), 30000);
+          });
+          
+          const response = await Promise.race([axiosPromise, timeoutPromise]);
 
           if (response.data.error) {
             throw new Error(`RPC Error: ${response.data.error.message} (code: ${response.data.error.code})`);
@@ -531,17 +642,27 @@ class HttpRpcClient {
             // Don't mark as permanently failed for timeouts, just move to next RPC
           }
           
-          const isPermanentError = error.response?.status === 401 || 
+          // Gas errors should be temporary, not permanent
+          const isGasError = error.message?.includes('out of gas') ||
+                             error.message?.includes('gas exhausted') ||
+                             error.message?.includes('gas required exceeds');
+          
+          const isPermanentError = !isGasError && (
+                                 error.response?.status === 401 || 
                                  error.response?.status === 403 ||
                                  error.message?.includes('Unauthorized') ||
                                  error.message?.includes('method not found') ||
                                  error.message?.includes('Must be authenticated') ||
                                  error.message?.includes('API key disabled') ||
-                                 error.message?.includes('sanctioned'); // LlamaRPC sanctioned addresses
+                                 error.message?.includes('sanctioned')); // LlamaRPC sanctioned addresses
 
           if (isPermanentError) {
-            console.log(`[${this.network}] RPC endpoint permanently failed: ${rpcUrl} - ${error.message}`);
-            this.markRpcAsFailed(rpcUrl);
+            console.log(`[${this.network}] ❌ RPC endpoint permanently failed: ${rpcUrl} - ${error.message}`);
+            this.markRpcAsPermanentlyFailed(rpcUrl);
+            console.log(`[${this.network}] ⚠️  This RPC will be excluded from future attempts in this session`);
+          } else {
+            // For temporary errors, mark as temporarily failed
+            this.markRpcAsTemporarilyFailed(rpcUrl);
           }
           
           // Log the error with RPC URL for better debugging
@@ -565,7 +686,10 @@ class HttpRpcClient {
         console.log(`[${this.network}] Rate limit hit, waiting ${waitTime/1000}s before retry ${globalRetryCount}/${maxGlobalRetries}`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         
+        // Only clear non-permanent failures
         failedRpcs.delete(this.network);
+        temporarilyFailedRpcs.delete(this.network);
+        // Do NOT clear permanentlyFailedRpcs here
       } else if (globalRetryCount < maxGlobalRetries) {
         const waitTime = 2000 * globalRetryCount;
         console.log(`[${this.network}] All RPCs failed, waiting ${waitTime/1000}s before retry ${globalRetryCount}/${maxGlobalRetries}`);
@@ -588,7 +712,11 @@ class HttpRpcClient {
   }
 
   async getLogs(filter) {
-    return this.makeRequest('eth_getLogs', [filter]);
+    // Debug logging (commented for production)
+    // console.log(`[${this.network}] 📡 Calling eth_getLogs with filter:`, JSON.stringify(filter).substring(0, 200));
+    const result = await this.makeRequest('eth_getLogs', [filter]);
+    // console.log(`[${this.network}] ✅ eth_getLogs returned ${result.length} logs`);
+    return result;
   }
 
   async getCode(address) {
@@ -798,9 +926,7 @@ class ContractCall {
           return decoded[0];
         } catch (error) {
           const errorMsg = error.message || error.toString();
-          const isGasError = errorMsg.includes('out of gas') || 
-                            errorMsg.includes('gas required exceeds') ||
-                            errorMsg.includes('gas exhausted during memory expansion');
+          const isGasError = errorMsg.includes('gas');
           
           // If gas error and batch size > 1, try with half size
           if (isGasError && addrs.length > 1) {
@@ -857,9 +983,7 @@ class ContractCall {
           return decoded[0];
         } catch (error) {
           const errorMsg = error.message || error.toString();
-          const isGasError = errorMsg.includes('out of gas') || 
-                            errorMsg.includes('gas required exceeds') ||
-                            errorMsg.includes('gas exhausted during memory expansion');
+          const isGasError = errorMsg.includes('gas');
           
           // If gas error and batch size > 1, try with half size
           if (isGasError && addrs.length > 1) {
