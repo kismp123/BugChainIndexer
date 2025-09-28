@@ -236,45 +236,59 @@ class UnifiedScanner extends Scanner {
     
     this.log(`⏳ Starting async deployment time fetch for ${contractsNeedingTime.length} contracts...`);
     
-    // Process in batches to avoid overwhelming the API
-    const batchSize = 10; // Process 10 contracts concurrently
-    const { getContractDeploymentTime } = require('../common');
+    // Use batch API (max 5 addresses per call)
+    const batchSize = 5;
+    const { getContractDeploymentTimeBatch } = require('../common');
     
     for (let i = 0; i < contractsNeedingTime.length; i += batchSize) {
       const batch = contractsNeedingTime.slice(i, i + batchSize);
+      const batchAddresses = batch.map(c => c.address);
       
-      // Create promises for batch processing
-      const promises = batch.map(async (contract) => {
-        try {
-          const deploymentResult = await getContractDeploymentTime(this, contract.address);
+      try {
+        // Batch API call for up to 5 contracts at once
+        const deploymentResults = await getContractDeploymentTimeBatch(this, batchAddresses);
+        
+        // Process results and update database
+        const updatePromises = [];
+        
+        for (const contract of batch) {
+          const result = deploymentResults.get(contract.address.toLowerCase());
           
-          if (deploymentResult.timestamp && deploymentResult.timestamp > 0) {
+          if (result && result.timestamp && result.timestamp > 0) {
             // Update the contract object
-            contract.deployTime = deploymentResult.timestamp;
-            contract.isGenesis = deploymentResult.isGenesis;
+            contract.deployTime = result.timestamp;
+            contract.isGenesis = result.isGenesis;
             
-            // Update database asynchronously
+            // Queue database update
             const updateQuery = `
               UPDATE addresses 
               SET deployed = $1, last_updated = $2
               WHERE address = $3 AND network = $4
             `;
-            await this.queryDB(updateQuery, [
-              deploymentResult.timestamp,
-              this.currentTime,
-              contract.address,
-              this.network
-            ]);
             
-            this.log(`✅ Fetched deployment time for ${contract.address}: ${new Date(deploymentResult.timestamp * 1000).toISOString()}`);
+            updatePromises.push(
+              this.queryDB(updateQuery, [
+                result.timestamp,
+                this.currentTime,
+                contract.address,
+                this.network
+              ]).then(() => {
+                this.log(`✅ Fetched deployment time for ${contract.address}: ${new Date(result.timestamp * 1000).toISOString()}`);
+              }).catch(error => {
+                this.log(`⚠️ Failed to update deployment time for ${contract.address}: ${error.message}`, 'warn');
+              })
+            );
+          } else {
+            this.log(`⚠️ No deployment time found for ${contract.address}`, 'warn');
           }
-        } catch (error) {
-          this.log(`⚠️ Failed to fetch deployment time for ${contract.address}: ${error.message}`, 'warn');
         }
-      });
-      
-      // Execute batch and wait for completion before next batch
-      await Promise.all(promises);
+        
+        // Execute all database updates for this batch
+        await Promise.all(updatePromises);
+        
+      } catch (error) {
+        this.log(`⚠️ Batch deployment fetch failed for ${batchAddresses.join(', ')}: ${error.message}`, 'warn');
+      }
       
       // Small delay between batches to respect API rate limits
       if (i + batchSize < contractsNeedingTime.length) {

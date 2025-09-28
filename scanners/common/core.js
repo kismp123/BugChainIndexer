@@ -1259,7 +1259,134 @@ async function withTimeoutAndRetry(operation, timeoutMs, retryOptions = {}) {
 // ====== CONTRACT DEPLOYMENT UTILITIES ======
 
 /**
- * Get contract deployment timestamp using Etherscan API
+ * Get contract deployment timestamps for multiple addresses using batch API
+ * @param {Object} scanner - Scanner instance with etherscanCall method
+ * @param {string[]} addresses - Array of contract addresses (max 5)
+ * @returns {Promise<Map>} Map of address to deployment info
+ */
+async function getContractDeploymentTimeBatch(scanner, addresses) {
+  const { getGenesisTimestamp } = require('../config/genesis-timestamps');
+  const results = new Map();
+  
+  // Initialize all addresses with default values
+  for (const address of addresses) {
+    results.set(address.toLowerCase(), { timestamp: 0, isGenesis: false });
+  }
+  
+  if (addresses.length === 0) return results;
+  if (addresses.length > 5) {
+    console.warn(`Batch size ${addresses.length} exceeds limit of 5, processing first 5 only`);
+    addresses = addresses.slice(0, 5);
+  }
+  
+  try {
+    // Batch API call for contract creation data
+    const creationData = await scanner.etherscanCall({
+      module: 'contract',
+      action: 'getcontractcreation',
+      contractaddresses: addresses.join(',')
+    });
+    
+    if (!creationData || !Array.isArray(creationData)) {
+      console.warn('Invalid batch API response for contract creation');
+      return results;
+    }
+    
+    // Process each contract's creation data
+    for (const creation of creationData) {
+      if (!creation || !creation.contractAddress) continue;
+      
+      const address = creation.contractAddress.toLowerCase();
+      const result = { timestamp: 0, isGenesis: false };
+      
+      // Check if it's a genesis contract
+      if (creation.txHash && creation.txHash.startsWith('GENESIS')) {
+        result.isGenesis = true;
+        result.timestamp = getGenesisTimestamp(scanner.config?.chainId) || 0;
+        results.set(address, result);
+        continue;
+      }
+      
+      // For non-genesis contracts, we need to get block timestamps
+      // Store txHash for later batch processing
+      if (creation.txHash) {
+        results.set(address, { 
+          ...result, 
+          txHash: creation.txHash,
+          blockNumber: null // Will be fetched next
+        });
+      }
+    }
+    
+    // Batch fetch transaction details for all contracts with txHash
+    const contractsWithTxHash = Array.from(results.entries())
+      .filter(([_, data]) => data.txHash && !data.isGenesis);
+    
+    // Process transaction details one by one (can't batch eth_getTransactionByHash)
+    for (const [address, data] of contractsWithTxHash) {
+      try {
+        const txData = await scanner.etherscanCall({
+          module: 'proxy',
+          action: 'eth_getTransactionByHash',
+          txhash: data.txHash
+        });
+        
+        if (txData && txData.blockNumber) {
+          results.set(address, { ...data, blockNumber: txData.blockNumber });
+        }
+      } catch (error) {
+        console.warn(`Failed to get tx data for ${address}:`, error.message);
+      }
+    }
+    
+    // Batch fetch block timestamps
+    const uniqueBlockNumbers = [...new Set(
+      Array.from(results.values())
+        .filter(data => data.blockNumber)
+        .map(data => data.blockNumber)
+    )];
+    
+    // Fetch block details for unique block numbers
+    const blockTimestamps = new Map();
+    for (const blockNumber of uniqueBlockNumbers) {
+      try {
+        const blockData = await scanner.etherscanCall({
+          module: 'proxy',
+          action: 'eth_getBlockByNumber',
+          tag: blockNumber,
+          boolean: false
+        });
+        
+        if (blockData && blockData.timestamp) {
+          blockTimestamps.set(blockNumber, parseInt(blockData.timestamp, 16));
+        }
+      } catch (error) {
+        console.warn(`Failed to get block data for ${blockNumber}:`, error.message);
+      }
+    }
+    
+    // Update results with timestamps
+    for (const [address, data] of results.entries()) {
+      if (data.blockNumber && blockTimestamps.has(data.blockNumber)) {
+        results.set(address, {
+          timestamp: blockTimestamps.get(data.blockNumber),
+          isGenesis: data.isGenesis || false
+        });
+      } else if (!data.isGenesis) {
+        // Keep default values for contracts without timestamps
+        results.set(address, { timestamp: 0, isGenesis: false });
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.warn(`Batch deployment time fetch failed:`, error.message);
+    return results;
+  }
+}
+
+/**
+ * Get contract deployment timestamp using Etherscan API (single address)
  * @param {Object} scanner - Scanner instance with etherscanCall method
  * @param {string} address - Contract address
  * @returns {Promise<{timestamp: number, isGenesis: boolean}>} Deployment timestamp and genesis flag
@@ -1407,6 +1534,7 @@ module.exports = {
   
   // Contract utilities
   getContractDeploymentTime,
+  getContractDeploymentTimeBatch,
   getContractNameWithProxy,
   
   // Batch operations
