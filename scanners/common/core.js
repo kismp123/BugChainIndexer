@@ -7,6 +7,8 @@ const { ethers } = require('ethers');
 const axios = require('axios');
 const { Pool } = require('pg');
 const { NETWORKS, CONFIG } = require('../config/networks.js');
+const { cleanAddressParams } = require('./addressUtils');
+const { AlchemyRPCClient } = require('./alchemyRpc');
 // ====== CONSTANTS (MERGED FROM HELPERS.JS) ======
 const BATCH_SIZES = {
   LOGS_MIN: 1,
@@ -310,6 +312,70 @@ function initEtherscan(network, apiKeys) {
 }
 
 async function etherscanRequestInternal(network, params, maxRetries = 3) {
+  // Clean and normalize address parameters before sending
+  const cleanedParams = cleanAddressParams(params);
+  
+  // Check if proxy server is enabled
+  const useProxy = process.env.USE_ETHERSCAN_PROXY === 'true';
+  const proxyUrl = process.env.ETHERSCAN_PROXY_URL || 'http://localhost:3000';
+  
+  if (useProxy) {
+    // Use proxy server for Etherscan API calls
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Prepare params - flatten all parameters
+        const requestBody = {
+          module: cleanedParams.module,
+          action: cleanedParams.action,
+          ...cleanedParams
+        };
+        // Remove apikey as proxy manages it
+        delete requestBody.apikey;
+        
+        const response = await axios.post(`${proxyUrl}/api/etherscan/${network}`, requestBody, {
+          timeout: 30000,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.data?.success) {
+          // Handle proxy module special case - it might return result directly
+          if (cleanedParams.module === 'proxy' && response.data.data?.jsonrpc) {
+            return response.data.data.result;
+          }
+          return response.data.data;
+        }
+        
+        throw new Error(response.data?.error || 'Proxy request failed');
+      } catch (error) {
+        const isRetryable = error.response?.status === 429 || // Rate limited
+                          error.response?.status >= 500 || // Server error
+                          error.code === 'ECONNREFUSED' ||  // Connection refused
+                          error.code === 'ETIMEDOUT';        // Timeout
+        
+        if (attempt < maxRetries && isRetryable) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff
+          console.log(`[${network}] Proxy retry ${attempt}/${maxRetries} after ${delay}ms: ${error.message}`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // Final attempt failed or non-retryable error
+        console.error(`[${network}] Proxy failed for ${cleanedParams.module}.${cleanedParams.action}:`, error.message);
+        
+        // If proxy is down, fall back to direct API calls
+        if (error.code === 'ECONNREFUSED') {
+          console.warn(`[${network}] Proxy server not available, falling back to direct API calls`);
+          break; // Exit loop and use direct API
+        }
+        
+        throw error; // Throw for other errors
+      }
+    }
+  }
+  
+  // Original direct Etherscan API logic
   const config = NETWORKS[network];
   if (!config) throw new Error(`Unknown network: ${network}`);
   
@@ -329,12 +395,12 @@ async function etherscanRequestInternal(network, params, maxRetries = 3) {
     try {
       const apikey = state.keys[state.index % state.keys.length];
       const response = await axios.get(baseURL, {
-        params: { ...params, chainid: config.chainId, apikey },
+        params: { ...cleanedParams, chainid: config.chainId, apikey },
         timeout: 20000
       });
 
       // Handle proxy module differently (no status field)
-      if (params.module === 'proxy') {
+      if (cleanedParams.module === 'proxy') {
         // Proxy responses have jsonrpc format without status field
         if (response.data?.result !== undefined) {
           return response.data.result;
@@ -522,15 +588,14 @@ class HttpRpcClient {
         }
       }
       
-      // Separate slow and non-slow RPCs
+      // Separate slow and non-slow RPCs, excluding Alchemy
       const slowRpcList = [];
       const fastRpcList = [];
-      let alchemyRpc = null;
       
       for (const rpc of availableRpcs) {
-        // Check if this is an Alchemy RPC (contains alchemy.com)
-        if (rpc.includes('alchemy.com')) {
-          alchemyRpc = rpc;
+        // Skip Alchemy URLs as they're handled separately
+        if (rpc.includes('alchemy.com') || rpc.includes(':3001/rpc/')) {
+          continue;
         } else if (this.isRpcSlow(rpc)) {
           slowRpcList.push(rpc);
         } else {
@@ -550,22 +615,11 @@ class HttpRpcClient {
         [slowRpcList[i], slowRpcList[j]] = [slowRpcList[j], slowRpcList[i]];
       }
       
-      // Check if this is a contract call (eth_call)
-      const isContractCall = method === 'eth_call';
+      // Use non-Alchemy RPCs only (Alchemy handled separately)
+      availableRpcs = [...fastRpcList, ...slowRpcList];
       
-      // For contract calls, prioritize Alchemy; for others (like getLogs), use other RPCs first
-      if (isContractCall && alchemyRpc && !this.isRpcSlow(alchemyRpc)) {
-        // Contract calls: Alchemy first
-        availableRpcs = [alchemyRpc, ...fastRpcList, ...slowRpcList];
-      } else {
-        // Non-contract calls (getLogs, etc): Other RPCs first, Alchemy last
-        if (alchemyRpc && !this.isRpcSlow(alchemyRpc)) {
-          availableRpcs = [...fastRpcList, ...slowRpcList, alchemyRpc];
-        } else if (alchemyRpc) {
-          availableRpcs = [...fastRpcList, ...slowRpcList, alchemyRpc];
-        } else {
-          availableRpcs = [...fastRpcList, ...slowRpcList];
-        }
+      if (availableRpcs.length === 0) {
+        throw new Error(`No non-Alchemy RPC endpoints available for ${this.network}`);
       }
       
       for (let i = 0; i < availableRpcs.length; i++) {
@@ -575,9 +629,10 @@ class HttpRpcClient {
         // Comment out in production to reduce log noise
         /*
         if (i === 0 && globalRetryCount === 0) {
-          const isAlchemy = rpcUrl.includes('alchemy.com');
+          const isAlchemy = rpcUrl.includes('alchemy.com') || rpcUrl.includes(':3001/rpc/');
+          const isProxy = rpcUrl.includes(':3001/rpc/');
           const rpcHost = rpcUrl.split('/')[2];
-          console.log(`[${this.network}] 🎯 Selected RPC: ${rpcHost}${isAlchemy ? ' (Alchemy)' : ''}`);
+          console.log(`[${this.network}] 🎯 Selected RPC: ${rpcHost}${isAlchemy ? (isProxy ? ' (Alchemy Proxy)' : ' (Alchemy)') : ''}`);
         } else if (i > 0) {
           console.log(`[${this.network}] 🔄 Switching to RPC #${i + 1}/${availableRpcs.length}: ${rpcUrl.split('/')[2]}`);
         } else if (globalRetryCount > 0) {
@@ -613,6 +668,12 @@ class HttpRpcClient {
           });
           
           const response = await Promise.race([axiosPromise, timeoutPromise]);
+          
+          // Special handling for Alchemy proxy response format
+          if (rpcUrl.includes(':3001/rpc/')) {
+            // Alchemy proxy returns the result directly in the expected format
+            // No special handling needed as proxy returns standard JSON-RPC format
+          }
 
           if (response.data.error) {
             throw new Error(`RPC Error: ${response.data.error.message} (code: ${response.data.error.code})`);
@@ -738,7 +799,21 @@ class HttpRpcClient {
 }
 
 function createRpcClient(network) {
+  // Return both RPC clients separately
+  // HttpRpcClient for getLogs, AlchemyRPCClient for everything else
+  return {
+    logsClient: new HttpRpcClient(network),    // For getLogs only
+    alchemyClient: new AlchemyRPCClient(network)  // For all other calls
+  };
+}
+
+// Backward compatibility wrapper
+function createLogsRpcClient(network) {
   return new HttpRpcClient(network);
+}
+
+function createAlchemyRpcClient(network) {
+  return new AlchemyRPCClient(network);
 }
 
 // ====== CONTRACT CALLS ======
@@ -755,9 +830,21 @@ class ContractCall {
 
   getRpcClient(network) {
     if (!this.rpcClients.has(network)) {
-      this.rpcClients.set(network, createRpcClient(network));
+      // Store both clients
+      const clients = createRpcClient(network);
+      this.rpcClients.set(network, clients);
     }
     return this.rpcClients.get(network);
+  }
+  
+  getAlchemyClient(network) {
+    const clients = this.getRpcClient(network);
+    return clients.alchemyClient;
+  }
+  
+  getLogsClient(network) {
+    const clients = this.getRpcClient(network);
+    return clients.logsClient;
   }
 
   getValidatorContract(network) {
@@ -781,7 +868,7 @@ class ContractCall {
   async chunkOperation(addresses, operation, initialChunkSize = 50) {
     const results = [];
     const minChunkSize = 10;
-    const maxChunkSize = 500;  // 증가된 최대 청크 크기
+    const maxChunkSize = 500;  // Increased maximum chunk size
     let currentChunkSize = initialChunkSize;
     
     for (let i = 0; i < addresses.length; i += currentChunkSize) {
@@ -835,12 +922,12 @@ class ContractCall {
   
   adjustChunkSize(currentChunkSize, duration, minChunkSize, maxChunkSize) {
     const targetDuration = 5000;
-    const fastResponse = 1000;   // 더 빠른 응답 기준
-    const goodResponse = 3000;   // 양호한 응답 기준
-    const slowResponse = 8000;   // 느린 응답 기준
-    const verySlowResponse = 15000; // 매우 느린 응답 기준
+    const fastResponse = 1000;   // Faster response threshold
+    const goodResponse = 3000;   // Good response threshold
+    const slowResponse = 8000;   // Slow response threshold
+    const verySlowResponse = 15000; // Very slow response threshold
     
-    // 매우 빠른 응답: 3배 증가
+    // Very fast response: 3x increase
     if (duration < fastResponse) {
       const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 3.0));
       if (newSize > currentChunkSize) {
@@ -848,7 +935,7 @@ class ContractCall {
         return newSize;
       }
     }
-    // 빠른 응답: 2배 증가
+    // Fast response: 2x increase
     else if (duration < goodResponse) {
       const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 2.0));
       if (newSize > currentChunkSize) {
@@ -856,7 +943,7 @@ class ContractCall {
         return newSize;
       }
     }
-    // 양호한 응답: 1.5배 증가
+    // Good response: 1.5x increase
     else if (duration < targetDuration) {
       const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 1.5));
       if (newSize > currentChunkSize) {
@@ -864,19 +951,19 @@ class ContractCall {
         return newSize;
       }
     }
-    // 매우 느린 응답: 50% 감소
+    // Very slow response: 50% reduction
     else if (duration > verySlowResponse) {
       const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.5));
       console.log(`[ChunkAdjust] Very slow response (${duration}ms): ${currentChunkSize} → ${newSize}`);
       return newSize;
     }
-    // 느린 응답: 70% 감소
+    // Slow response: 70% reduction
     else if (duration > slowResponse) {
       const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.7));
       console.log(`[ChunkAdjust] Slow response (${duration}ms): ${currentChunkSize} → ${newSize}`);
       return newSize;
     }
-    // 타겟 범위 내: 미세 조정
+    // Within target range: fine adjustment
     else if (duration > targetDuration) {
       const ratio = targetDuration / duration;
       const newSize = Math.max(minChunkSize, Math.floor(currentChunkSize * ratio));
@@ -893,7 +980,7 @@ class ContractCall {
     if (!addresses?.length) return [];
     
     const validator = this.getValidatorContract(network);
-    const rpc = this.getRpcClient(network);
+    const rpc = this.getAlchemyClient(network);  // Use Alchemy for contract calls
     
     if (!validator) {
       return this.chunkOperation(addresses, async (chunk) => {
@@ -950,7 +1037,7 @@ class ContractCall {
     if (!addresses?.length) return [];
     
     const validator = this.getValidatorContract(network);
-    const rpc = this.getRpcClient(network);
+    const rpc = this.getAlchemyClient(network);  // Use Alchemy for contract calls
     
     if (!validator) {
       return this.chunkOperation(addresses, async (chunk) => {
@@ -1527,7 +1614,10 @@ module.exports = {
   
   // HTTP RPC
   HttpRpcClient,
+  AlchemyRPCClient,
   createRpcClient,
+  createLogsRpcClient,
+  createAlchemyRpcClient,
   
   // Contract operations
   contractCall,

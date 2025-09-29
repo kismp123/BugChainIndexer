@@ -37,7 +37,7 @@ class DirectDeployer {
 
     for (const [networkName, config] of Object.entries(NETWORKS)) {
       // Skip config properties
-      if (['database', 'coinGeckoAPI', 'etherscanApiKeys', 'TIMEDELAY', 'FUNDUPDATEDELAY', 
+      if (['database', 'etherscanApiKeys', 'TIMEDELAY', 'FUNDUPDATEDELAY', 
            'TIMEOUT_SECONDS', 'TIMEOUT_KILL_AFTER', 'runFixDeployed', 'runVerifyContracts'].includes(networkName)) {
         continue;
       }

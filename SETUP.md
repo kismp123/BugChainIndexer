@@ -46,9 +46,6 @@ Edit the `.env` file with your configuration:
 # Default Etherscan API keys (comma-separated for failover)
 DEFAULT_ETHERSCAN_KEYS=your_key1,your_key2,your_key3
 
-# Default CoinGecko API key for price data
-DEFAULT_COINGECKO_KEY=your_coingecko_key
-
 # ================================
 # DATABASE (PostgreSQL)
 # ================================
@@ -85,14 +82,6 @@ TIMEOUT_SECONDS=7200           # Script timeout
 - **Arbitrum**: [Arbiscan.io](https://arbiscan.io/apis)
 - **Optimism**: [Optimistic Etherscan](https://optimistic.etherscan.io/apis)
 - **Base**: [BaseScan.org](https://basescan.org/apis)
-
-#### 2. CoinGecko API Key
-**Free tier: 10,000 calls/month**
-
-1. Visit [CoinGecko.com](https://coingecko.com/api)
-2. Sign up for account
-3. Get API key from dashboard
-4. Pro tier recommended for higher limits
 
 ### API Key Configuration
 

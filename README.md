@@ -16,13 +16,14 @@ BugChainIndexer is a comprehensive blockchain analysis platform that monitors, a
 - **5-in-1 Pipeline**: Transfer events → Address filtering → EOA detection → Contract verification → Database storage
 - **Smart Batching**: Dynamic batch sizing with 300-1000 addresses per contract call
 - **80%+ Efficiency Gain**: Massive improvement over traditional individual scanners
+- **Etherscan Proxy Server**: Centralized API management with parallel processing (4 concurrent requests)
 
 ### 💰 **Asset & Fund Tracking**
-- **Moralis API Integration**: Unified portfolio tracking with native + ERC-20 balances
-- **Network-Specific Tracking**: Supports 10+ networks via Moralis API
+- **Multi-Network Support**: Portfolio tracking across 18+ blockchain networks
 - **USD Value Calculation**: Real-time portfolio valuation
 - **Batch Processing**: Efficient processing with rate limiting
-- **Simplified Architecture**: Streamlined from 798 to 258 lines (68% reduction)
+- **Contract Balance Queries**: Direct on-chain balance verification
+- **Simplified Architecture**: Streamlined and optimized codebase
 
 ### 🗄️ **Advanced Database Management**
 - **PostgreSQL Optimization**: 455x performance improvement with partial indexes
@@ -52,10 +53,12 @@ BugChainIndexer is a comprehensive blockchain analysis platform that monitors, a
 
 ```
 BugChainIndexer/
-├── scanners/           # Core blockchain analysis engine
-├── contract/           # Foundry-based smart contracts  
-├── server/            # REST API backend
-└── docs/              # Documentation
+├── scanners/                      # Core blockchain analysis engine
+├── contract/                      # Foundry-based smart contracts  
+├── server/                        
+│   ├── backend/                   # REST API backend
+│   └── etherscan-proxy-server/    # Centralized Etherscan API proxy
+└── docs/                          # Documentation
 ```
 
 ## 🚀 Quick Start
@@ -114,16 +117,14 @@ NETWORK=ethereum ./run.sh unified
 
 ## 🌐 Supported Networks
 
-**18 Blockchain Networks (12 with Moralis + 6 Scanner Only):**
+**18 Blockchain Networks:**
 
-✅ **Fully Operational (Scanner + Moralis):**
+✅ **Fully Operational:**
 - Ethereum, Binance Smart Chain, Polygon, Arbitrum
-- Optimism, Base, Avalanche, Gnosis
-- Cronos, Linea, Moonbeam, Moonriver
-
-⚠️ **Scanner Only (No Moralis Support):**
+- Optimism, Base, Avalanche, Gnosis, Linea
 - Scroll, Mantle, opBNB, Celo
 - Polygon zkEVM, Arbitrum Nova
+- Cronos, Moonbeam, Moonriver
 
 ## 📊 Performance Metrics
 
@@ -137,7 +138,7 @@ NETWORK=ethereum ./run.sh unified
 ### Scanners
 High-performance blockchain analysis engine with unified processing pipeline.
 - **UnifiedScanner**: Main analysis pipeline (transfer events → contract verification)
-- **FundUpdater**: Portfolio balance tracking via Moralis API
+- **FundUpdater**: Portfolio balance tracking and valuation
 - **DataRevalidator**: Existing data validation and tagging
 
 ### Smart Contracts  
@@ -151,6 +152,14 @@ Express.js REST API with PostgreSQL database.
 - Real-time contract and address data
 - Network statistics and analytics
 
+### Etherscan Proxy Server
+High-performance centralized Etherscan API management.
+- **Parallel Processing**: 4 concurrent requests with multiple API keys
+- **Address Normalization**: Automatic format validation and correction
+- **BSC Optimization**: Special handling for network congestion
+- **Per-Key Rate Limiting**: Independent 5 req/s limit per API key
+- **Priority Queue**: Smart request prioritization
+
 ## 🔧 Configuration
 
 ### API Keys Required
@@ -159,11 +168,15 @@ Express.js REST API with PostgreSQL database.
 # Blockchain explorer APIs (required)
 DEFAULT_ETHERSCAN_KEYS=key1,key2,key3
 
-# Moralis API key (required for FundUpdater)
-MORALIS_API_KEY=your_moralis_api_key
+# Etherscan V2 API keys (for proxy server)
+ETHERSCAN_API_KEYS=key1,key2,key3,key4
+
+# Proxy server settings (optional but recommended)
+USE_ETHERSCAN_PROXY=true
+ETHERSCAN_PROXY_URL=http://localhost:3000
 ```
 
-**Note**: All networks use `DEFAULT_ETHERSCAN_KEYS` for simplicity. FundUpdater requires Moralis API key.
+**Note**: All networks use `DEFAULT_ETHERSCAN_KEYS` for simplicity. The proxy server uses `ETHERSCAN_API_KEYS` for V2 API.
 
 ### Database Settings
 
@@ -240,7 +253,6 @@ npm start
 
 ### API Limits
 - **Etherscan**: 5 calls/second (free), 10k calls/day
-- **CoinGecko**: 10k calls/month (free tier)
 - **RPC**: Varies by provider (failover supported)
 
 ## 🛠️ Development

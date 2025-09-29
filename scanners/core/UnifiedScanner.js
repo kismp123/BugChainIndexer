@@ -109,6 +109,35 @@ class UnifiedScanner extends Scanner {
     const contractFlags = await this.isContracts(addresses);
     const codeHashes = await this.getCodeHashes(addresses);
     
+    // Batch fetch deployment times from database for all potential contracts
+    const deploymentCache = new Map();
+    
+    try {
+      // Get all existing contract data in a single query
+      const deploymentQuery = `
+        SELECT address, deployed, code_hash, contract_name, name_checked
+        FROM addresses
+        WHERE address = ANY($1)
+        AND network = $2
+      `;
+      const deploymentResult = await this.queryDB(deploymentQuery, [addresses, this.network]);
+      
+      // Build cache map
+      for (const row of deploymentResult.rows) {
+        deploymentCache.set(row.address.toLowerCase(), {
+          deployed: row.deployed,
+          codeHash: row.code_hash,
+          contractName: row.contract_name,
+          nameChecked: row.name_checked
+        });
+      }
+      
+      this.log(`📊 Loaded ${deploymentCache.size} deployment times from cache`);
+    } catch (error) {
+      this.log(`⚠️ Failed to batch fetch deployment times: ${error.message}`, 'warn');
+      // Continue without cache
+    }
+    
     const eoas = [];
     const contracts = [];
     const selfDestructed = [];
@@ -120,36 +149,29 @@ class UnifiedScanner extends Scanner {
       const codeHash = codeHashes[i] || null;
       
       if (isContract && codeHash && codeHash !== this.ZERO_HASH) {
-        // Active contract - defer deployment time fetching for performance
+        // Active contract - check cache first
         let deployTime = null;
         let isGenesisContract = false;
         let needsDeploymentTime = false;
         
-        try {
-          // First try to get from database if available
-          const existingQuery = `SELECT deployed FROM addresses WHERE address = $1 AND network = $2`;
-          const existingResult = await this.queryDB(existingQuery, [address, this.network]);
-          
-          if (existingResult.rows.length > 0 && existingResult.rows[0].deployed && existingResult.rows[0].deployed > 0) {
-            deployTime = existingResult.rows[0].deployed;
-          } else {
-            // Mark for async deployment time fetching later
-            needsDeploymentTime = true;
-            deployTime = null; // Will be fetched asynchronously later
-            
-            // Check if it might be a genesis contract (simple check without API call)
-            const { getGenesisTimestamp } = require('../config/genesis-timestamps');
-            const genesisTime = getGenesisTimestamp(this.config?.chainId);
-            if (genesisTime) {
-              // For now, we'll use genesis time as a placeholder for contracts that might be genesis
-              // The actual verification will happen in background
-              isGenesisContract = false; // Will be determined later
-            }
-          }
-        } catch (dbError) {
-          this.log(`⚠️ Database error getting deployment time for ${address} - will fetch later`, 'warn');
+        // Check if we have cached deployment time
+        const cached = deploymentCache.get(address.toLowerCase());
+        if (cached && cached.deployed && cached.deployed > 0) {
+          deployTime = cached.deployed;
+          this.log(`📋 Using cached deployment time for ${address}`);
+        } else {
+          // Mark for async deployment time fetching later
           needsDeploymentTime = true;
-          deployTime = null;
+          deployTime = null; // Will be fetched asynchronously later
+          
+          // Check if it might be a genesis contract (simple check without API call)
+          const { getGenesisTimestamp } = require('../config/genesis-timestamps');
+          const genesisTime = getGenesisTimestamp(this.config?.chainId);
+          if (genesisTime) {
+            // For now, we'll use genesis time as a placeholder for contracts that might be genesis
+            // The actual verification will happen in background
+            isGenesisContract = false; // Will be determined later
+          }
         }
         
         // Now use actual deployment time for address type classification
@@ -302,88 +324,162 @@ class UnifiedScanner extends Scanner {
   async verifyContracts(contracts = []) {
     if (contracts.length === 0) return [];
     
-    this.log(`🔍 Verifying ${contracts.length} contracts...`);
+    this.log(`🔍 Verifying ${contracts.length} contracts with batch processing...`);
     
     const verifiedContracts = [];
+    const batchSize = 5; // Process 5 contracts concurrently (Etherscan rate limit: 5/sec)
+    const { getContractNameWithProxy } = require('../common');
     
-    for (const contract of contracts) {
-      try {
-        // Direct etherscan call without withEtherscanRetry
-        const result = await this.etherscanCall({
-          module: 'contract',
-          action: 'getsourcecode',
-          address: contract.address || contract
-        });
+    // Process in batches for better performance
+    for (let i = 0; i < contracts.length; i += batchSize) {
+      const batch = contracts.slice(i, i + batchSize);
+      const batchNum = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(contracts.length / batchSize);
+      
+      this.log(`📦 Processing verification batch ${batchNum}/${totalBatches} (${batch.length} contracts)`);
+      
+      // Create promises for parallel verification
+      const batchPromises = batch.map(async (contract) => {
+        const contractAddr = contract.address || contract;
         
-        if (!result || !Array.isArray(result) || result.length === 0) {
-          this.log(`⚠️ Verification error for ${contract.address || contract}: Invalid API response format`);
-          continue;
+        try {
+          const result = await this.etherscanCall({
+            module: 'contract',
+            action: 'getsourcecode',
+            address: contractAddr
+          });
+          
+          if (!result || !Array.isArray(result) || result.length === 0) {
+            return {
+              address: contractAddr,
+              network: this.network,
+              verified: false,
+              error: 'Invalid API response'
+            };
+          }
+          
+          const sourceData = result[0];
+          if (!sourceData.SourceCode || sourceData.SourceCode === '') {
+            return {
+              address: contractAddr,
+              network: this.network,
+              verified: false,
+              error: 'Source code not verified'
+            };
+          }
+          
+          // Get contract name with proxy resolution
+          const finalContractName = await getContractNameWithProxy(this, contractAddr, sourceData);
+          
+          return {
+            address: contractAddr,
+            network: this.network,
+            verified: true,
+            contractName: finalContractName || sourceData.ContractName || 'Unknown',
+            sourceCode: sourceData.SourceCode,
+            abi: sourceData.ABI ? JSON.parse(sourceData.ABI) : null,
+            compilerVersion: sourceData.CompilerVersion || null,
+            optimization: sourceData.OptimizationUsed === '1',
+            runs: parseInt(sourceData.Runs) || 0,
+            constructorArguments: sourceData.ConstructorArguments || null,
+            evmVersion: sourceData.EVMVersion || 'default',
+            library: sourceData.Library || null,
+            licenseType: sourceData.LicenseType || null,
+            proxy: sourceData.Proxy === '1',
+            implementation: sourceData.Implementation || null,
+            swarmSource: sourceData.SwarmSource || null,
+            nameChecked: true,
+            nameCheckedAt: this.currentTime || Math.floor(Date.now() / 1000),
+            lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
+          };
+        } catch (error) {
+          return {
+            address: contractAddr,
+            network: this.network,
+            verified: false,
+            error: error.message
+          };
         }
-        
-        const sourceData = result[0];
-        if (!sourceData.SourceCode || sourceData.SourceCode === '') {
-          this.log(`⚠️ Contract ${contract.address || contract} source code not verified`);
-          continue;
-        }
-        
-        // Get contract name with proxy resolution
-        const { getContractNameWithProxy } = require('../common');
-        const finalContractName = await getContractNameWithProxy(this, contract.address, sourceData);
-        
-        verifiedContracts.push({
-          address: contract.address || contract, // Ensure address is always set
-          network: this.network,
-          verified: true,
-          contractName: finalContractName || sourceData.ContractName || 'Unknown',
-          sourceCode: sourceData.SourceCode,
-          abi: sourceData.ABI ? JSON.parse(sourceData.ABI) : null,
-          compilerVersion: sourceData.CompilerVersion || null,
-          optimization: sourceData.OptimizationUsed === '1',
-          runs: parseInt(sourceData.Runs) || 0,
-          constructorArguments: sourceData.ConstructorArguments || null,
-          evmVersion: sourceData.EVMVersion || 'default',
-          library: sourceData.Library || null,
-          licenseType: sourceData.LicenseType || null,
-          proxy: sourceData.Proxy === '1',
-          implementation: sourceData.Implementation || null,
-          swarmSource: sourceData.SwarmSource || null,
-          nameChecked: true,
-          nameCheckedAt: this.currentTime || Math.floor(Date.now() / 1000),
-          lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
-        });
-        
-        this.log(`✅ Verified: ${contract.address} (${sourceData.ContractName})`);
-        
-      } catch (error) {
-        verifiedContracts.push({
-          address: contract.address || contract, // Ensure address is always set
-          network: this.network,
-          verified: false,
-          contractName: null,
-          sourceCode: null,
-          abi: null,
-          compilerVersion: null,
-          optimization: false,
-          runs: 0,
-          constructorArguments: null,
-          evmVersion: null,
-          library: null,
-          licenseType: null,
-          proxy: false,
-          implementation: null,
-          swarmSource: null
-        });
-        
-        if (!error.message.includes('Contract source code not verified')) {
-          this.log(`⚠️ Verification error for ${contract.address}: ${error.message}`, 'warn');
+      });
+      
+      // Wait for all promises in batch to complete
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      // Process batch results
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          const contractData = result.value;
+          
+          if (contractData.verified) {
+            verifiedContracts.push(contractData);
+            this.log(`✅ Verified: ${contractData.address} (${contractData.contractName})`);
+          } else {
+            // Push unverified contract with default values
+            const unverifiedContract = {
+              address: contractData.address,
+              network: this.network,
+              verified: false,
+              contractName: null,
+              sourceCode: null,
+              abi: null,
+              compilerVersion: null,
+              optimization: false,
+              runs: 0,
+              constructorArguments: null,
+              evmVersion: null,
+              library: null,
+              licenseType: null,
+              proxy: false,
+              implementation: null,
+              swarmSource: null,
+              nameChecked: false,
+              nameCheckedAt: 0,
+              lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
+            };
+            
+            verifiedContracts.push(unverifiedContract);
+            
+            if (contractData.error && !contractData.error.includes('Source code not verified')) {
+              this.log(`⚠️ ${contractData.address}: ${contractData.error}`, 'warn');
+            }
+          }
+        } else {
+          // Handle rejected promise - add as unverified
+          const contractAddr = batch[batchResults.indexOf(result)].address || batch[batchResults.indexOf(result)];
+          verifiedContracts.push({
+            address: contractAddr,
+            network: this.network,
+            verified: false,
+            contractName: null,
+            sourceCode: null,
+            abi: null,
+            compilerVersion: null,
+            optimization: false,
+            runs: 0,
+            constructorArguments: null,
+            evmVersion: null,
+            library: null,
+            licenseType: null,
+            proxy: false,
+            implementation: null,
+            swarmSource: null,
+            nameChecked: false,
+            nameCheckedAt: 0,
+            lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
+          });
+          
+          this.log(`❌ Verification failed for contract: ${result.reason}`, 'error');
         }
       }
       
-      await this.sleep(200);
+      // Delay between batches to respect rate limits (5 requests/sec)
+      if (i + batchSize < contracts.length) {
+        await this.sleep(1000); // 1 second delay between batches for safety
+      }
     }
     
     const verified = verifiedContracts.filter(c => c.verified).length;
-    this.log(`📊 Verification complete: ${verified}/${contracts.length} verified`);
+    this.log(`📊 Batch verification complete: ${verified}/${contracts.length} verified`);
     
     this.stats.contractsFound = contracts.length;
     this.stats.contractsVerified = verified;
@@ -688,6 +784,36 @@ class UnifiedScanner extends Scanner {
         nextBlock: currentBlock, // Retry with smaller batch
         newBatchSize,
         batchCount: batchNum - 1, // Don't increment batch count
+        totalProcessed: 0
+      };
+    } else if (error.message.includes('query returned more than 10000 results') || 
+               error.message.includes('query returned more than') ||
+               error.message.includes('Try with this block range')) {
+      // Too many results error - need smaller batch size
+      const newBatchSize = Math.max(1, Math.floor(currentBatchSize * 0.5));
+      this.log(`Batch ${batchNum} has too many results. Reducing batch size from ${currentBatchSize} to ${newBatchSize}`, 'warn');
+      
+      // Extract suggested range if available
+      const rangeMatch = error.message.match(/\[([0-9xa-fA-F]+),\s*([0-9xa-fA-F]+)\]/);
+      if (rangeMatch) {
+        const suggestedStart = parseInt(rangeMatch[1], 16);
+        const suggestedEnd = parseInt(rangeMatch[2], 16);
+        const suggestedSize = suggestedEnd - suggestedStart + 1;
+        if (suggestedSize > 0 && suggestedSize < currentBatchSize) {
+          this.log(`RPC suggested batch size: ${suggestedSize} blocks`, 'info');
+          return {
+            nextBlock: currentBlock,
+            newBatchSize: Math.min(suggestedSize, newBatchSize),
+            batchCount: batchNum - 1,
+            totalProcessed: 0
+          };
+        }
+      }
+      
+      return {
+        nextBlock: currentBlock, // Retry with smaller batch
+        newBatchSize,
+        batchCount: batchNum - 1,
         totalProcessed: 0
       };
     } else if (error.message.includes('All RPC attempts failed')) {

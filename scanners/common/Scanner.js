@@ -23,7 +23,9 @@ class Scanner {
     this.config = NETWORKS[this.network];
     this.currentTime = now();
     this.db = null;
-    this.rpc = null; // HTTP RPC client
+    this.rpc = null; // Will hold both logsClient and alchemyClient
+    this.logsClient = null; // For getLogs only
+    this.alchemyClient = null; // For all other RPC calls
     this.ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
     
     // Performance settings
@@ -54,10 +56,13 @@ class Scanner {
       throw new Error(`Network "${this.network}" not found in config`);
     }
     
-    this.log('🌐 Initializing RPC client...');
-    // Initialize HTTP RPC client
-    this.rpc = createRpcClient(this.network);
-    this.log('✅ RPC client ready');
+    this.log('🌐 Initializing RPC clients...');
+    // Initialize separate RPC clients
+    const clients = createRpcClient(this.network);
+    this.logsClient = clients.logsClient;
+    this.alchemyClient = clients.alchemyClient;
+    this.rpc = clients; // Keep for backward compatibility
+    this.log('✅ RPC clients ready (logsClient for getLogs, alchemyClient for eth_call)');
     
     this.log('✅ Initialization completed successfully');
   }
@@ -115,7 +120,8 @@ class Scanner {
 
   // RPC operations
   async rpcCall(method, params = []) {
-    return this.rpc.send(method, params);
+    // Use alchemyClient for general RPC calls
+    return this.alchemyClient.makeRequest(method, params);
   }
 
   async getBlockNumber() {
@@ -130,35 +136,25 @@ class Scanner {
       return parseInt(result);
     } catch (error) {
       this.log(`Failed to get current block via API, using RPC: ${error.message}`, 'warn');
-      // Fallback to RPC
-      return this.rpc.getBlockNumber();
+      // Fallback to Alchemy RPC
+      return this.alchemyClient.getBlockNumber();
     }
   }
 
   async getBlockByNumber(blockNumber) {
-    // Use RPC for block data as it's more reliable for this operation
-    return this.rpc.getBlockByNumber(blockNumber);
+    // Use Alchemy RPC for block data as it's more reliable for this operation
+    return this.alchemyClient.getBlock(blockNumber);
   }
 
   async getLogs(filter) {
-    // Directly call RPC without limiter for now to debug hanging issue
-    // const { globalAPILimiter } = require('./core.js');
-    
-    // Create request description
+    // Use logsClient for getLogs (uses regular RPC)
     const fromBlock = filter.fromBlock || 'latest';
     const toBlock = filter.toBlock || 'latest';
     const description = `getLogs(${fromBlock}-${toBlock})`;
     
-    // Direct RPC call without limiter
-    // console.log(`[${this.network}] Direct getLogs call: ${description}`);
-    return this.rpc.getLogs(filter);
-    
-    // Original code with limiter (commented for debugging):
-    // return globalAPILimiter.queueRPCRequest(
-    //   () => this.rpc.getLogs(filter),
-    //   this.network,
-    //   description
-    // );
+    // Use dedicated logs client (HttpRpcClient)
+    // console.log(`[${this.network}] getLogs via regular RPC: ${description}`);
+    return this.logsClient.getLogs(filter);
   }
 
   // Etherscan operations  

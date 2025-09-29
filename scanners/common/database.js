@@ -32,7 +32,6 @@ async function ensureSchema(client) {
       price DECIMAL(20, 8),
       price_updated BIGINT,
       is_valid BOOLEAN DEFAULT true,
-      coingecko_id TEXT,
       PRIMARY KEY (token_address, network)
     )`,
     

@@ -15,8 +15,18 @@ const envArray = (name, fallback = []) => {
 // Alchemy API configuration
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || 'demo';
 
-// Helper function to generate Alchemy URL
+// Alchemy proxy configuration
+const USE_ALCHEMY_PROXY = process.env.USE_ALCHEMY_PROXY === 'true';
+const ALCHEMY_PROXY_URL = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3001';
+
+// Helper function to generate Alchemy URL or proxy URL
 const getAlchemyUrl = (network) => {
+  // If Alchemy proxy is enabled, return proxy URL
+  if (USE_ALCHEMY_PROXY) {
+    return `${ALCHEMY_PROXY_URL}/rpc/${network}`;
+  }
+  
+  // Otherwise use direct Alchemy API
   const networkMap = {
     'ethereum': 'eth-mainnet',
     'polygon': 'polygon-mainnet',
@@ -43,9 +53,6 @@ const getAlchemyUrl = (network) => {
 // Default API keys - now loaded from environment variables
 const DEFAULT_ETHERSCAN_KEYS = envArray('DEFAULT_ETHERSCAN_KEYS', []);
 
-// Default CoinGecko API key - now loaded from environment variable  
-const DEFAULT_COINGECKO_KEY = process.env.DEFAULT_COINGECKO_KEY || '';
-
 // Script timeout settings (seconds)
 const TIMEOUT_SECONDS = 7200;
 const TIMEOUT_KILL_AFTER = 15;
@@ -55,6 +62,7 @@ const NETWORKS = {
   ethereum: {
     chainId: 1,
     name: 'Ethereum Mainnet',
+    alchemyNetwork: 'eth-mainnet',
 
     rpcUrls: envArray('ETHEREUM_RPC_URL', [
       // Alchemy RPC (prioritized for reliability)
@@ -67,13 +75,10 @@ const NETWORKS = {
       'https://eth.meowrpc.com',
       'https://eth.drpc.org',
       'https://endpoints.omniatech.io/v1/eth/mainnet/public',
-      'https://rpc.ankr.com/eth',
       'https://cloudflare-eth.com',
       'https://ethereum.blockpi.network/v1/rpc/public',
       'https://eth-mainnet.public.blastapi.io',
-      'https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79',
       'https://api.securerpc.com/v1',
-      'https://openapi.bitstack.com/v1/wNFxbiJyQsSeLrX8RRCHi7NpRxrlErZk/DjShIqLishPCTB9HiMkPHXjUM9CNM9Na/ETH/mainnet',
       'https://virginia.rpc.blxrbdn.com',
       'https://uk.rpc.blxrbdn.com',
       'https://singapore.rpc.blxrbdn.com',
@@ -89,6 +94,7 @@ const NETWORKS = {
   binance: {
     chainId: 56,
     name: 'BNB Smart Chain',
+    alchemyNetwork: 'bnb-mainnet',
 
     rpcUrls: envArray('BSC_RPC_URL', [
       // Alchemy RPC for BNB Smart Chain
@@ -111,9 +117,7 @@ const NETWORKS = {
       'https://bsc-dataseed4.defibit.io',
       'https://bsc-dataseed1.ninicoin.io',
       'https://bsc-dataseed2.ninicoin.io',
-      'https://rpc.ankr.com/bsc',
       'https://bsc.drpc.org',
-      'https://bsc-mainnet.gateway.pokt.network/v1/lb/6136201a7bad1500343e248d'
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x91Ce20223F35b82E34aC4913615845C7AaA0e2B7',
@@ -124,6 +128,7 @@ const NETWORKS = {
   polygon: {
     chainId: 137,
     name: 'Polygon',
+    alchemyNetwork: 'polygon-mainnet',
 
     rpcUrls: envArray('POLYGON_RPC_URL', [
       // Alchemy RPC
@@ -133,7 +138,6 @@ const NETWORKS = {
       'https://polygon.drpc.org',
       'https://polygon.meowrpc.com',
       'https://endpoints.omniatech.io/v1/matic/mainnet/public',
-      'https://rpc.ankr.com/polygon',
       'https://polygon-public.nodies.app',
       'https://polygon-mainnet.public.blastapi.io',
       'https://polygon.llamarpc.com',
@@ -143,7 +147,6 @@ const NETWORKS = {
       'https://rpc-mainnet.matic.quiknode.pro',
       'https://polygon-mainnet.g.alchemy.com/v2/demo',
       'https://polygon.blockpi.network/v1/rpc/public',
-      'https://polygon-mainnet.gateway.pokt.network/v1/lb/632d30b0b37bed003cb2e52f',
       'https://polygon.gateway.tenderly.co',
       'https://polygon.api.onfinality.io/public',
       'https://gateway.tenderly.co/public/polygon',
@@ -158,6 +161,7 @@ const NETWORKS = {
   arbitrum: {
     chainId: 42161,
     name: 'Arbitrum One',
+    alchemyNetwork: 'arb-mainnet',
 
     rpcUrls: envArray('ARBITRUM_RPC_URL', [
       // Alchemy RPC
@@ -172,12 +176,10 @@ const NETWORKS = {
       'https://arbitrum-one.public.blastapi.io',
       'https://arb1.arbitrum.io/rpc',
       'https://arbitrum.llamarpc.com',
-      'https://rpc.ankr.com/arbitrum',
       'https://endpoints.omniatech.io/v1/arbitrum/one/public',
       'https://arb-mainnet.g.alchemy.com/v2/demo',
       'https://arbitrum-mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
       'https://arb-mainnet-public.unifra.io',
-      'https://rpc.arb1.arbitrum.gateway.fm',
       'https://arbitrum.gateway.tenderly.co',
       'https://gateway.tenderly.co/public/arbitrum',
       'https://arbitrum-one.publicnode.com',
@@ -192,6 +194,7 @@ const NETWORKS = {
   optimism: {
     chainId: 10,
     name: 'Optimism',
+    alchemyNetwork: 'opt-mainnet',
 
     rpcUrls: envArray('OPTIMISM_RPC_URL', [
       // Alchemy RPC
@@ -207,14 +210,12 @@ const NETWORKS = {
       'https://mainnet.optimism.io',
       'https://optimism.llamarpc.com',
       'https://optimism.drpc.org',
-      'https://rpc.ankr.com/optimism',
       'https://optimism.blockpi.network/v1/rpc/public',
       'https://opt-mainnet.g.alchemy.com/v2/demo',
       'https://optimism-mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
       'https://optimism.gateway.tenderly.co',
       'https://gateway.tenderly.co/public/optimism',
       'https://optimism-mainnet.public.blastapi.io',
-      'https://rpc.optimism.gateway.fm',
       'https://optimism.publicnode.com',
       'https://api.zan.top/node/v1/opt/mainnet/public'
     ].filter(Boolean)),
@@ -227,6 +228,7 @@ const NETWORKS = {
   base: {
     chainId: 8453,
     name: 'Base',
+    alchemyNetwork: 'base-mainnet',
 
     rpcUrls: envArray('BASE_RPC_URL', [
       // Alchemy RPC
@@ -247,10 +249,8 @@ const NETWORKS = {
       'https://endpoints.omniatech.io/v1/base/mainnet/public',
       'https://base-pokt.nodies.app',
       'https://base.publicnode.com',
-      'https://base-mainnet.gateway.pokt.network/v1/lb/64be419e85943b0039de7e1a',
       'https://gateway.tenderly.co/public/base',
       'https://base-mainnet-rpc.allthatnode.com',
-      'https://rpc.ankr.com/base'
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
@@ -261,6 +261,7 @@ const NETWORKS = {
   avalanche: {
     chainId: 43114,
     name: 'Avalanche C-Chain',
+    alchemyNetwork: 'avalanche-mainnet',
 
     rpcUrls: envArray('AVALANCHE_RPC_URL', [
       // Alchemy RPC for Avalanche
@@ -272,14 +273,11 @@ const NETWORKS = {
       'https://avax.meowrpc.com',
       'https://avalanche.drpc.org',
       'https://avalanche-mainnet.public.nodies.app',
-      'https://rpc.ankr.com/avalanche',
       'https://avalanche.blockpi.network/v1/rpc/public',
       'https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc',
       'https://avalancheapi.terminet.io/ext/bc/C/rpc',
       'https://avalanche-evm.publicnode.com',
       'https://avalanche.public.blastapi.io',
-      'https://avalanche-mainnet.gateway.pokt.network/v1/lb/605238bf6b986eea7cf36d5e/ext/bc/C/rpc',
-      'https://avax-mainnet.gateway.pokt.network/v1/lb/605238bf6b986eea7cf36d5e/ext/bc/C/rpc',
       'https://avalanche.api.onfinality.io/public/ext/bc/C/rpc',
       'https://avax.network/ext/bc/C/rpc',
       'https://blastapi.io/public-api/avalanche'
@@ -336,7 +334,6 @@ const ADDITIONAL_NETWORKS = {
       'https://rpc.scroll.io',
       'https://1rpc.io/scroll',
       'https://scroll.drpc.org',
-      'https://rpc.ankr.com/scroll',
       'https://endpoints.omniatech.io/v1/scroll/mainnet/public',
       'https://scroll-mainnet.public.blastapi.io',
       'https://scroll-mainnet.unifra.io'
@@ -412,7 +409,6 @@ const ADDITIONAL_NETWORKS = {
 
     rpcUrls: envArray('CELO_RPC_URL', [
       'https://forno.celo.org',
-      'https://rpc.ankr.com/celo',
       'https://celo.drpc.org',
       'https://celo-json-rpc.stakely.io',
       'https://celo.api.onfinality.io/public'
@@ -491,7 +487,6 @@ const CONFIG = {
   TIMEOUT_KILL_AFTER: parseInt(process.env.TIMEOUT_KILL_AFTER || TIMEOUT_KILL_AFTER.toString(), 10),
   
   // API settings
-  coinGeckoAPI: process.env.COINGECKO_API_KEY || DEFAULT_COINGECKO_KEY,
   etherscanApiKeys: DEFAULT_ETHERSCAN_KEYS,
   
   // Database settings (still from env vars for security)

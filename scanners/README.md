@@ -10,19 +10,21 @@ The core analysis engine of BugChainIndexer. Streamlined to 3 core scanners and 
 scanners/
 ├── core/               # Core scanners (3 components)
 │   ├── UnifiedScanner.js    # Main analysis pipeline
-│   ├── FundUpdater.js       # Asset balance tracking (Moralis API)  
+│   ├── FundUpdater.js       # Asset balance tracking  
 │   └── DataRevalidator.js   # Data validation & retagging
-├── common/             # Shared library (4 files)
+├── common/             # Shared library (6 files)
 │   ├── core.js         # Core blockchain functions
 │   ├── database.js     # PostgreSQL operations
 │   ├── Scanner.js      # Base scanner class
+│   ├── addressUtils.js # Address normalization utilities
+│   ├── alchemyRpc.js   # Alchemy RPC client
 │   └── index.js        # Export hub
 ├── config/
 │   ├── networks.js     # 18 network configurations
 │   └── genesis-timestamps.js # Genesis block timestamps
-├── tests/              # Test scripts (7 files)
-│   ├── test-fundupdater-moralis.js
-│   ├── test-moralis-single-api.js
+├── tests/              # Test scripts (14 files)
+│   ├── test-all-rpcs.js
+│   ├── test-rpc-failover.js
 │   └── ...
 ├── utils/              # Database utilities (4 files)
 │   ├── db-optimize.js
@@ -46,7 +48,7 @@ scanners/
 # Main blockchain analysis
 ./run.sh unified
 
-# Update asset balances (using Moralis API)
+# Update asset balances
 ./run.sh funds
 
 # Validate existing data
@@ -80,8 +82,8 @@ cp .env.example .env
 # Etherscan API keys (for all networks)
 DEFAULT_ETHERSCAN_KEYS=key1,key2,key3
 
-# Moralis API key (required for FundUpdater)
-MORALIS_API_KEY=your_moralis_api_key
+# Alchemy API key (for reliable RPC calls)
+ALCHEMY_API_KEY=your_alchemy_key
 
 # Database configuration
 PGHOST=localhost
@@ -89,6 +91,12 @@ PGPORT=5432
 PGDATABASE=bugchain_indexer
 PGUSER=your_user
 PGPASSWORD=your_password
+
+# Optional: Proxy servers for high-volume operations
+USE_ETHERSCAN_PROXY=false    # Set to true if using Etherscan proxy
+ETHERSCAN_PROXY_URL=http://localhost:3000
+USE_ALCHEMY_PROXY=false       # Set to true if using Alchemy proxy  
+ALCHEMY_PROXY_URL=http://localhost:3002
 ```
 
 ### 3. Optional Settings
@@ -116,18 +124,18 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 **Performance**: ~50,000 addresses/hour per network
 
 ### FundUpdater  
-**Portfolio balance tracking via Moralis API**
-- Uses Moralis `/wallets/{address}/tokens` endpoint
+**Portfolio balance tracking and valuation**
 - Fetches native + ERC-20 token balances
 - Calculates total USD portfolio value
 - Network-specific balance tracking
 - Batch processing with rate limiting
+- Direct on-chain balance queries
 
-**Changes from previous version**:
-- ✅ Now uses only Moralis API (removed CoinGecko, Binance, etc.)
-- ✅ Simplified from 798 lines to 258 lines (68% reduction)
-- ✅ Removed all price aggregation code
-- ✅ Direct token balance fetching with USD values
+**Key features**:
+- ✅ Multi-network support across 18 chains
+- ✅ Optimized batch processing
+- ✅ USD value calculation
+- ✅ Efficient caching system
 
 ### DataRevalidator
 **Data consistency validation**
@@ -138,28 +146,28 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 
 ## 🌐 Supported Networks (18)
 
-| Network | Chain ID | Status | Moralis Support |
+| Network | Chain ID | Status | Scanner Support |
 |---------|----------|--------|-----------------|
-| Ethereum | 1 | ✅ Active | ✅ Yes |
-| Binance Smart Chain | 56 | ✅ Active | ✅ Yes |
-| Polygon | 137 | ✅ Active | ✅ Yes |
-| Arbitrum | 42161 | ✅ Active | ✅ Yes |
-| Optimism | 10 | ✅ Active | ✅ Yes |
-| Base | 8453 | ✅ Active | ✅ Yes |
-| Avalanche | 43114 | ✅ Active | ✅ Yes |
-| Gnosis | 100 | ✅ Active | ✅ Yes |
-| Cronos | 25 | ✅ Active | ✅ Yes |
-| Linea | 59144 | ✅ Active | ✅ Yes |
-| Scroll | 534352 | ✅ Active | ❌ No |
-| Mantle | 5000 | ✅ Active | ❌ No |
-| opBNB | 204 | ✅ Active | ❌ No |
-| Polygon zkEVM | 1101 | ⚠️ Limited | ❌ No |
-| Arbitrum Nova | 42170 | ⚠️ Limited | ❌ No |
-| Celo | 42220 | ⚠️ Limited | ❌ No |
-| Moonbeam | 1284 | ✅ Active | ✅ Yes |
-| Moonriver | 1285 | ✅ Active | ✅ Yes |
+| Ethereum | 1 | ✅ Active | ✅ Full |
+| Binance Smart Chain | 56 | ✅ Active | ✅ Full |
+| Polygon | 137 | ✅ Active | ✅ Full |
+| Arbitrum | 42161 | ✅ Active | ✅ Full |
+| Optimism | 10 | ✅ Active | ✅ Full |
+| Base | 8453 | ✅ Active | ✅ Full |
+| Avalanche | 43114 | ✅ Active | ✅ Full |
+| Gnosis | 100 | ✅ Active | ✅ Full |
+| Cronos | 25 | ✅ Active | ✅ Full |
+| Linea | 59144 | ✅ Active | ✅ Full |
+| Scroll | 534352 | ✅ Active | ✅ Full |
+| Mantle | 5000 | ✅ Active | ✅ Full |
+| opBNB | 204 | ✅ Active | ✅ Full |
+| Polygon zkEVM | 1101 | ⚠️ Limited | ✅ Full |
+| Arbitrum Nova | 42170 | ⚠️ Limited | ✅ Full |
+| Celo | 42220 | ⚠️ Limited | ✅ Full |
+| Moonbeam | 1284 | ✅ Active | ✅ Full |
+| Moonriver | 1285 | ✅ Active | ✅ Full |
 
-**Note**: FundUpdater only works on networks supported by Moralis API.
+**Note**: All networks are fully supported by the unified scanner architecture.
 
 ## 🤖 Automation (Cron)
 
@@ -212,19 +220,29 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 
 ## 🧪 Testing
 
-### Unit Tests
+### Available Test Scripts
 ```bash
-# Test Moralis integration
-node tests/test-fundupdater-moralis.js
-node tests/test-moralis-single-api.js
+# RPC and Network Tests
+node tests/test-all-rpcs.js              # Test all RPC endpoints
+node tests/test-rpc-failover.js          # Test RPC failover mechanism
+node tests/test-rpc-comprehensive.js     # Comprehensive RPC testing
+node tests/test-proxy-flags.js           # Test proxy on/off modes
 
-# Test RPC endpoints
-node tests/test-all-rpcs.js
-node tests/test-rpc-failover.js
+# Scanner Component Tests
+node tests/test-datarevalidator.js       # Test data revalidation
+node tests/test-datarevalidator-small.js # Small dataset test
+node tests/test-datarevalidator-deployed.js # Test deployed field
+node tests/test-revalidator-recent.js    # Recent contracts test
+node tests/test-revalidator-reprocess.js # Re-processing test
 
-# Test address handling
-node tests/test-address-case.js
-node tests/test-eoa-check.js
+# Fund and Balance Tests
+node tests/test-fundupdater-moralis.js   # Moralis integration test
+node tests/test-moralis-single-api.js    # Single API endpoint test
+node tests/test-last-updated-filter.js   # Last updated filter test
+
+# Address Tests
+node tests/test-address-case.js          # Case sensitivity test
+node tests/test-eoa-check.js             # EOA vs Contract check
 ```
 
 ### Integration Testing
@@ -245,22 +263,22 @@ HIGH_FUND_FLAG=true ./run.sh funds-high
 - **2 Config files**: networks, genesis-timestamps
 
 ### Support Files
-- **7 Test scripts**: Focus on Moralis and RPC testing
+- **14 Test scripts**: Comprehensive testing coverage
 - **4 DB utilities**: Optimization and maintenance
 - **1 Production script**: DB optimizer
 - **10 Cron scripts**: Automation
 
-### Removed Files (Cleanup completed)
-- ❌ 11 outdated test files removed
-- ❌ 6 migration scripts removed  
-- ❌ 3 unused utils removed
-- ❌ 2 helper classes removed (MultiSourcePriceHelper, TokenDataLoader)
+### Recent Cleanup (2025)
+- ❌ Proxy server folders removed from /server directory
+- ❌ 3 proxy-related test scripts removed
 - ❌ All price aggregation code removed
+- ❌ Proxy configuration set to false by default
+- ✅ Direct API calls now default behavior
 
 ## 🚨 Troubleshooting
 
 ### Common Issues
-1. **Moralis API errors**: Check MORALIS_API_KEY in .env
+1. **API errors**: Check API keys in .env
 2. **Database slow**: Run `./run.sh db-optimize-fast`
 3. **RPC failures**: Check network config in `config/networks.js`
 4. **Lock file issues**: Remove `/tmp/scanner-*.lock` files
@@ -273,17 +291,17 @@ HIGH_FUND_FLAG=true ./run.sh funds-high
 
 ## 📈 Recent Changes (2025)
 
-### Major Simplification
-- FundUpdater reduced from 798 to 258 lines (68% reduction)
-- Removed all price aggregation complexity
-- Single API source (Moralis) for simplicity
-- Cleaned up 20+ unused files
+### Architecture Improvements
+- **RPC Management**: Separate clients for getLogs (free RPCs) and contract calls (Alchemy)
+- **Proxy Optional**: Direct API calls by default, proxy servers now optional
+- **Code Cleanup**: Removed unnecessary proxy infrastructure
+- **Test Suite**: Maintained 14 essential test scripts
 
-### Maintained Features
-- All core scanning functionality intact
-- Database optimization tools preserved
-- Automation scripts maintained
-- Test coverage for essential features
+### Performance Optimizations
+- getLogs uses free public RPCs to save Alchemy compute units
+- Contract calls use reliable Alchemy API for consistency
+- Smart RPC failover with timeout detection
+- Batch processing with dynamic chunk sizing
 
 ---
 
