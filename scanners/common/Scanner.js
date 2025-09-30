@@ -21,13 +21,24 @@ class Scanner {
     this.name = name;
     this.network = options.network || process.env.NETWORK || 'ethereum';
     this.config = NETWORKS[this.network];
+
+    // Validate network configuration exists
+    if (!this.config) {
+      const availableNetworks = Object.keys(NETWORKS).join(', ');
+      throw new Error(
+        `Network '${this.network}' is not configured or has been disabled.\n` +
+        `Available networks: ${availableNetworks}\n` +
+        `If this network was recently disabled, please update your scripts to use active networks only.`
+      );
+    }
+
     this.currentTime = now();
     this.db = null;
     this.rpc = null; // Will hold both logsClient and alchemyClient
     this.logsClient = null; // For getLogs only
     this.alchemyClient = null; // For all other RPC calls
     this.ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
-    
+
     // Performance settings
     this.timeout = options.timeout || parseInt(process.env.TIMEOUT_SECONDS || '7200', 10);
     this.maxRetries = options.maxRetries || 3;

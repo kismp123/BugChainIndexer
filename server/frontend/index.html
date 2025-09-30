@@ -177,9 +177,7 @@
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="polygon-zkevm">Polygon zkEVM</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="arbitrum-nova">Arbitrum Nova</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="celo">Celo</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="cronos">Cronos</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="moonbeam">Moonbeam</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="moonriver">Moonriver</button>
               </div>
             </div>
 
@@ -277,26 +275,9 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     const networkColors = {
       ethereum:'#059669', binance:'#EAB308', optimism:'#DC2626', base:'#0284C7', arbitrum:'#06B6D4', polygon:'#7C3AED',
       avalanche:'#E11D48', fantom:'#4F46E5', gnosis:'#16A34A', linea:'#0D9488', scroll:'#65A30D', mantle:'#D97706',
-      opbnb:'#22C55E', 'polygon-zkevm':'#A21CAF', 'arbitrum-nova':'#22D3EE', celo:'#10B981', cronos:'#1D4ED8',
-      moonbeam:'#DB2777', moonriver:'#EA580C'
+      opbnb:'#22C55E', 'polygon-zkevm':'#A21CAF', 'arbitrum-nova':'#22D3EE', celo:'#10B981',
+      moonbeam:'#DB2777'
     };
-    async function highlightNetworksWithData(){
-      try{
-        const res = await fetch('/networkCounts');
-        const json = await res.json();
-        const counts = json?.networks || {};
-        networkButtons.forEach(btn => {
-          const net = btn.dataset.network;
-          const c = counts[net] || 0;
-          if (c > 0) {
-            const color = networkColors[net] || '#3B82F6';
-            btn.style.borderWidth = '1px';
-            btn.style.borderColor = color;
-            btn.style.boxShadow = `0 0 0 2px ${color}22`;
-          }
-        });
-      }catch(e){ console.warn('networkCounts fetch failed', e); }
-    }
     const resultsSection=document.getElementById('results-section');
     const contractCount=document.getElementById('contract-count');
     const toggleFiltersBtn=document.getElementById('toggle-filters');
@@ -460,7 +441,6 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
 
     function updateTimeRangeDisplay(){
       updateSliderPositions();
-    highlightNetworksWithData();
       const minDisplay=timeRanges[filters.timeMin];
       const maxDisplay=timeRanges[filters.timeMax];
       timeRangeDisplay.innerHTML=`${minDisplay} - ${maxDisplay} ago`;
@@ -468,7 +448,6 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
 
     function updateFundRangeDisplay(){
       updateSliderPositions();
-    highlightNetworksWithData();
       const fmt=a=>{
         if (a>=10000000) return '∞';
         if (a>=1000000) return `${(a/1000000).toFixed(1)}M`;
@@ -500,7 +479,6 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       totalCount = null;
       totalPages = null;
       hasSearched = false;
-      highlightNetworksWithData();
       showEmptyState();
       renderPager();
     }
@@ -552,9 +530,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         'polygon-zkevm':"https://zkevm.polygonscan.com/address/",
         'arbitrum-nova':"https://nova.arbiscan.io/address/",
         celo:"https://celoscan.io/address/",
-        cronos:"https://cronoscan.com/address/",
-        moonbeam:"https://moonscan.io/address/",
-        moonriver:"https://moonriver.moonscan.io/address/"
+        moonbeam:"https://moonscan.io/address/"
       };
       const networkColors={
         ethereum:'bg-blue-500', binance:'bg-yellow-500', optimism:'bg-red-500',
@@ -562,12 +538,12 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         avalanche:'bg-rose-600', fantom:'bg-indigo-600', gnosis:'bg-emerald-600',
         linea:'bg-teal-600', scroll:'bg-lime-600', mantle:'bg-amber-600',
         opbnb:'bg-green-500', 'polygon-zkevm':'bg-fuchsia-600', 'arbitrum-nova':'bg-cyan-500',
-        celo:'bg-emerald-500', cronos:'bg-blue-700', moonbeam:'bg-pink-600', moonriver:'bg-orange-600'
+        celo:'bg-emerald-500', moonbeam:'bg-pink-600'
       };
       const networkEmojis={
         ethereum:'Ξ', binance:'🔶', optimism:'🟥', base:'🟦', arbitrum:'🌀', polygon:'🔺',
         avalanche:'🟥', fantom:'👻', gnosis:'🟩', linea:'🟪', scroll:'🟩', mantle:'🟧',
-        opbnb:'🟩', 'polygon-zkevm':'🟣', 'arbitrum-nova':'🟦', celo:'🟩', cronos:'🌀', moonbeam:'🌙', moonriver:'🌙'
+        opbnb:'🟩', 'polygon-zkevm':'🟣', 'arbitrum-nova':'🟦', celo:'🟩', moonbeam:'🌙'
       };
       const networkLogos={
         ethereum:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/ethereum/info/logo.png',
@@ -587,9 +563,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         'polygon-zkevm':'https://zkevm.polygonscan.com/images/favicon-32x32.png',
         'arbitrum-nova':'https://nova.arbiscan.io/images/favicon-32x32.png',
         celo:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/celo/info/logo.png',
-        cronos:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/cronos/info/logo.png',
-        moonbeam:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/moonbeam/info/logo.png',
-        moonriver:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/moonriver/info/logo.png'
+        moonbeam:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/moonbeam/info/logo.png'
       };
       const fmtFund=n=>{
         if (n==null) return '';
@@ -929,7 +903,6 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     updateTimeRangeDisplay();
     updateFundRangeDisplay();
     updateSliderPositions();
-    highlightNetworksWithData();
 
     // Footer social link clicks → GA
     document.querySelectorAll('a[aria-label="Twitter"], a[aria-label="LinkedIn"]').forEach(a=>{

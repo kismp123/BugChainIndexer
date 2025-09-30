@@ -144,28 +144,37 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 - Batch processing (20,000 addresses/batch)
 - Reuses UnifiedScanner's EOA filtering logic
 
-## 🌐 Supported Networks (18)
+## 🌐 Supported Networks
 
-| Network | Chain ID | Status | Scanner Support |
-|---------|----------|--------|-----------------|
-| Ethereum | 1 | ✅ Active | ✅ Full |
-| Binance Smart Chain | 56 | ✅ Active | ✅ Full |
-| Polygon | 137 | ✅ Active | ✅ Full |
-| Arbitrum | 42161 | ✅ Active | ✅ Full |
-| Optimism | 10 | ✅ Active | ✅ Full |
-| Base | 8453 | ✅ Active | ✅ Full |
-| Avalanche | 43114 | ✅ Active | ✅ Full |
-| Gnosis | 100 | ✅ Active | ✅ Full |
-| Cronos | 25 | ✅ Active | ✅ Full |
-| Linea | 59144 | ✅ Active | ✅ Full |
-| Scroll | 534352 | ✅ Active | ✅ Full |
-| Mantle | 5000 | ✅ Active | ✅ Full |
-| opBNB | 204 | ✅ Active | ✅ Full |
-| Polygon zkEVM | 1101 | ⚠️ Limited | ✅ Full |
-| Arbitrum Nova | 42170 | ⚠️ Limited | ✅ Full |
-| Celo | 42220 | ⚠️ Limited | ✅ Full |
-| Moonbeam | 1284 | ✅ Active | ✅ Full |
-| Moonriver | 1285 | ✅ Active | ✅ Full |
+### Active Networks (12)
+*These networks are enabled in run.sh and actively scanned*
+
+| Network | Chain ID | Alchemy Support | Scanner Support |
+|---------|----------|----------------|-----------------|
+| Ethereum | 1 | ✅ Yes | ✅ Full |
+| Binance Smart Chain | 56 | ✅ Yes | ✅ Full |
+| Polygon | 137 | ✅ Yes | ✅ Full |
+| Arbitrum | 42161 | ✅ Yes | ✅ Full |
+| Optimism | 10 | ✅ Yes | ✅ Full |
+| Base | 8453 | ✅ Yes | ✅ Full |
+| Avalanche | 43114 | ✅ Yes | ✅ Full |
+| Gnosis | 100 | ✅ Yes | ✅ Full |
+| Linea | 59144 | ✅ Yes | ✅ Full |
+| Scroll | 534352 | ✅ Yes | ✅ Full |
+| Mantle | 5000 | ✅ Yes | ✅ Full |
+| opBNB | 204 | ✅ Yes | ✅ Full |
+
+### Disabled Networks (6)
+*Configured in networks.js but excluded from active scanning*
+
+| Network | Chain ID | Alchemy Support | Reason |
+|---------|----------|----------------|--------|
+| Polygon zkEVM | 1101 | ✅ Yes | Operational |
+| Arbitrum Nova | 42170 | ✅ Yes | Operational |
+| Celo | 42220 | ✅ Yes | Operational |
+| Cronos | 25 | ❌ No | No Alchemy support |
+| Moonbeam | 1284 | ✅ Yes | Operational |
+| Moonriver | 1285 | ❌ No | No Alchemy support |
 
 **Note**: All networks are fully supported by the unified scanner architecture.
 

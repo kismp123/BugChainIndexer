@@ -488,24 +488,6 @@ class UnifiedScanner extends Scanner {
     return verifiedContracts;
   }
 
-  async validateRequiredContracts() {
-    this.log('🔍 Validating required contracts...');
-    
-    // Check if BalanceHelper address is configured
-    if (!this.config.BalanceHelper) {
-      throw new Error(`❌ BalanceHelper contract address not configured for network ${this.network}. Please deploy the contract first.`);
-    }
-    
-    // Check if contractValidator address is configured
-    if (!this.config.contractValidator) {
-      throw new Error(`❌ contractValidator contract address not configured for network ${this.network}. Please deploy the contract first.`);
-    }
-    
-    this.log(`✅ BalanceHelper configured: ${this.config.BalanceHelper}`);
-    this.log(`✅ contractValidator configured: ${this.config.contractValidator}`);
-    this.log('🎯 All required contracts are configured');
-  }
-
   async storeResults(eoas, verifiedContracts, selfDestructed = []) {
     this.log(`Storing ${eoas.length + verifiedContracts.length + selfDestructed.length} addresses...`);
     
@@ -900,9 +882,6 @@ class UnifiedScanner extends Scanner {
 
   async run() {
     this.log('🚀 Starting unified blockchain analysis pipeline');
-
-    // Validate required contracts before starting
-    await this.validateRequiredContracts();
 
     // Get target block range
     const { fromBlock, toBlock } = await this.getTargetBlocks();

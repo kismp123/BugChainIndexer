@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /**
- * Fund Updater Scanner - Refactored
- * Updates asset prices and balances using Moralis API
+ * Fund Updater Scanner
+ * Updates asset prices and balances using Alchemy API
  */
 const axios = require('axios');
 const Scanner = require('../common/Scanner');
@@ -9,7 +9,9 @@ const fs = require('fs');
 const path = require('path');
 // Token addresses loaded from network config
 const { batchUpsertAddresses, normalizeAddress } = require('../common');
-const CONFIG = require('../config/networks.js');
+const { CONFIG } = require('../config/networks.js');
+const TokenPriceCache = require('../common/TokenPriceCache');
+const TokenMetadataCache = require('../common/TokenMetadataCache');
 
 class FundUpdater extends Scanner {
   constructor() {
@@ -22,6 +24,8 @@ class FundUpdater extends Scanner {
     
     this.delayDays = CONFIG.FUNDUPDATEDELAY || 7;
     this.whitelistedTokens = null;
+    this.priceCache = new TokenPriceCache();
+    this.metadataCache = new TokenMetadataCache();
   }
 
   // Load whitelisted tokens from tokens folder
@@ -117,120 +121,376 @@ class FundUpdater extends Scanner {
     return addresses;
   }
 
-  // Fetch portfolio data from Moralis API (native + ERC20 in single call)
-  async fetchPortfolioWithMoralis(address) {
-    const apiKey = process.env.MORALIS_API_KEY;
+  // Get native token address for each network
+  getNativeTokenAddress() {
+    const nativeTokens = {
+      'ethereum': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+      'polygon': '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', // WMATIC
+      'arbitrum': '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', // WETH on Arbitrum
+      'optimism': '0x4200000000000000000000000000000000000006', // WETH on Optimism
+      'base': '0x4200000000000000000000000000000000000006', // WETH on Base
+      'binance': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // WBNB
+      'avalanche': '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', // WAVAX
+      'cronos': '0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23', // WCRO
+      'fantom': '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83', // WFTM
+      'moonbeam': '0xAcc15dC74880C9944775448304B263D191c6077F', // WGLMR
+      'moonriver': '0x98878B06940aE243284CA214f92Bb71a2b032B8A', // WMOVR
+      'gnosis': '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d', // WXDAI
+      'celo': '0x471EcE3750Da237f93B8E339c536989b8978a438', // CELO
+      'linea': '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f', // WETH on Linea
+      'scroll': '0x5300000000000000000000000000000000000004', // WETH on Scroll
+      'mantle': '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8', // WMNT
+      'opbnb': '0x4200000000000000000000000000000000000006' // WBNB on opBNB
+    };
+    return nativeTokens[this.network];
+  }
+
+  // Get native token symbol for each network
+  getNativeSymbol() {
+    const nativeSymbols = {
+      'ethereum': 'ETH',
+      'polygon': 'MATIC',
+      'arbitrum': 'ETH',
+      'optimism': 'ETH',
+      'base': 'ETH',
+      'binance': 'BNB',
+      'avalanche': 'AVAX',
+      'cronos': 'CRO',
+      'fantom': 'FTM',
+      'moonbeam': 'GLMR',
+      'moonriver': 'MOVR',
+      'gnosis': 'xDAI',
+      'celo': 'CELO',
+      'linea': 'ETH',
+      'scroll': 'ETH',
+      'mantle': 'MNT',
+      'opbnb': 'BNB'
+    };
+    return nativeSymbols[this.network] || 'ETH';
+  }
+
+  // Fetch token prices using Alchemy Prices API
+  async fetchTokenPrices(tokenAddresses) {
+    const apiKey = process.env.ALCHEMY_API_KEY;
+    if (!apiKey || !tokenAddresses || tokenAddresses.length === 0) {
+      return {};
+    }
+
+    // Validate and normalize all token addresses
+    const validAddresses = tokenAddresses
+      .map(addr => normalizeAddress(addr))
+      .filter(addr => addr !== null);
+
+    if (validAddresses.length === 0) {
+      this.log('⚠️  No valid token addresses to fetch prices for');
+      return {};
+    }
+
+    try {
+      // Use alchemyNetwork from networks.js config
+      const networkConfig = CONFIG[this.network];
+      if (!networkConfig || !networkConfig.alchemyNetwork) {
+        return {};
+      }
+      const network = networkConfig.alchemyNetwork;
+
+      // Use proxy if configured
+      let baseUrl;
+      if (process.env.USE_ALCHEMY_PROXY === 'true') {
+        const proxyUrl = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3002';
+        baseUrl = `${proxyUrl}/v1/${apiKey}/prices/tokens/by-address`;
+      } else {
+        baseUrl = `https://api.g.alchemy.com/prices/v1/${apiKey}/tokens/by-address`;
+      }
+
+      // Prepare request for batch price fetching
+      const requestBody = {
+        addresses: validAddresses.map(addr => ({
+          network: network,
+          address: addr
+        }))
+      };
+
+      const response = await axios.post(baseUrl, requestBody, {
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json'
+        }
+      });
+
+      // Convert response to a map for easy lookup
+      const priceMap = {};
+      if (response.data && response.data.data) {
+        response.data.data.forEach(item => {
+          if (item.prices && item.prices.length > 0) {
+            // Use the first price (usually USD) and convert to number
+            priceMap[item.address.toLowerCase()] = parseFloat(item.prices[0].value);
+          }
+        });
+      }
+
+      return priceMap;
+    } catch (error) {
+      this.log(`⚠️  Error fetching token prices: ${error.message}`);
+      return {};
+    }
+  }
+
+  // Fetch portfolio data from Alchemy Data API (v1)
+  async fetchPortfolioWithAlchemy(address) {
+    const apiKey = process.env.ALCHEMY_API_KEY;
     if (!apiKey) {
-      this.log('⚠️  Moralis API key not found');
+      this.log('⚠️  Alchemy API key not found');
+      return null;
+    }
+
+    // Normalize and validate address before API call
+    const normalizedAddress = normalizeAddress(address);
+    if (!normalizedAddress) {
+      this.log(`❌ Invalid address: ${address}`);
       return null;
     }
 
     try {
-      // Map network names to Moralis chain names
-      // Based on https://docs.moralis.com/supported-chains
-      const chainMap = {
-        'ethereum': 'eth',          // Ethereum (0x1)
-        'binance': 'bsc',           // BNB Smart Chain (0x38)
-        'polygon': 'polygon',       // Polygon (0x89)
-        'avalanche': 'avalanche',   // Avalanche C-Chain (0xa86a)
-        'arbitrum': 'arbitrum',     // Arbitrum One (0xa4b1)
-        'optimism': 'optimism',     // Optimism (0xa)
-        'base': 'base',             // Base (0x2105)
-        'cronos': 'cronos',         // Cronos (0x19)
-        'gnosis': 'gnosis',         // Gnosis (0x64)
-        'linea': 'linea',           // Linea (0xe708)
-        'moonbeam': 'moonbeam',     // Moonbeam (0x504)
-        'moonriver': 'moonriver'    // Moonriver (0x505)
-        // Not supported by Moralis: scroll, mantle, opbnb, celo
-      };
-
-      const moralisChain = chainMap[this.network];
-      if (!moralisChain) {
-        this.log(`⚠️  Network ${this.network} not supported by Moralis`);
+      // Use alchemyNetwork from networks.js config
+      const networkConfig = CONFIG[this.network];
+      if (!networkConfig || !networkConfig.alchemyNetwork) {
+        this.log(`⚠️  Network ${this.network} not supported by Alchemy Data API`);
         return null;
       }
+      const alchemyChain = networkConfig.alchemyNetwork;
 
-      // Single API call to get both native and token balances with prices
-      const response = await axios.get(
-        `https://deep-index.moralis.io/api/v2.2/wallets/${address}/tokens`,
-        {
-          params: { 
-            chain: moralisChain,
-            limit: 50  // Can be increased up to 100 if needed
-          },
-          headers: { 
-            'accept': 'application/json',
-            'X-API-Key': apiKey 
-          }
-        }
-      );
-
-      const data = response.data.result || response.data || [];
-      
-      // Load whitelisted tokens for this network
-      const whitelist = this.loadWhitelistedTokens();
-      
-      let nativeBalance = '0';
-      let nativeUsdValue = 0;
-      const tokens = [];
-      let totalUsdValue = 0;
-      let skippedTokens = 0;
-      let skippedValue = 0;
-
-      // Process each token (native currency is included as a token with native_token flag)
-      data.forEach(token => {
-        const usdValue = parseFloat(token.usd_value || 0);
-        const tokenAddr = token.token_address?.toLowerCase();
-        
-        // Skip if this token is the contract itself (avoids double counting)
-        // This happens when a token contract queries its own balance
-        if (tokenAddr === address.toLowerCase()) {
-          this.log(`  ⏭️  Skipping self-token to avoid inflation: ${token.symbol} ($${usdValue.toFixed(2)})`);
-          return;
-        }
-        
-        // Check if this is the native token (always include)
-        if (token.native_token === true) {
-          nativeBalance = token.balance || '0';
-          nativeUsdValue = usdValue;
-          totalUsdValue += usdValue;
-        } 
-        // For non-native tokens, check if they are whitelisted
-        else if (whitelist.size === 0 || whitelist.has(tokenAddr)) {
-          tokens.push(token);
-          totalUsdValue += usdValue;
-        } else {
-          // Token not in whitelist, skip it
-          skippedTokens++;
-          skippedValue += usdValue;
-          if (usdValue > 1000) { // Log significant skipped tokens
-            this.log(`  ⏭️  Skipping non-whitelisted token: ${token.symbol} ($${usdValue.toFixed(2)})`);
-          }
-        }
-      });
-      
-      if (skippedTokens > 0) {
-        this.log(`  📝 Skipped ${skippedTokens} non-whitelisted tokens worth $${skippedValue.toFixed(2)}`);
+      // Use Alchemy Data API v1 endpoint (API key is in the URL path)
+      let dataApiUrl;
+      if (process.env.USE_ALCHEMY_PROXY === 'true') {
+        const proxyUrl = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3002';
+        dataApiUrl = `${proxyUrl}/data/v1/${apiKey}/assets/tokens/balances/by-address`;
+      } else {
+        dataApiUrl = `https://api.g.alchemy.com/data/v1/${apiKey}/assets/tokens/balances/by-address`;
       }
 
-      this.log(`📊 Moralis: ${address} - Native: $${nativeUsdValue.toFixed(2)}, Tokens: ${tokens.length}, Total: $${totalUsdValue.toFixed(2)}`);
+      // Get all token balances (native + ERC20) in one call
+      const requestBody = {
+        addresses: [
+          {
+            address: normalizedAddress,
+            networks: [alchemyChain]
+          }
+        ],
+        includeNativeTokens: true,
+        includeErc20Tokens: true
+      };
+
+      this.log(`🔍 Fetching portfolio for ${normalizedAddress} on ${alchemyChain}`);
+      
+      const response = await axios.post(dataApiUrl, requestBody, {
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+          // API key is already in the URL, not needed in headers
+        },
+        timeout: 30000
+      });
+
+      if (!response.data || !response.data.data || !response.data.data.tokens) {
+        throw new Error('Invalid response from Alchemy Data API');
+      }
+
+      // Extract tokens from response
+      const tokens = response.data.data.tokens;
+      if (tokens.length === 0) {
+        this.log(`⚠️  No tokens found for ${address} on ${alchemyChain}`);
+        return {
+          nativeBalance: '0',
+          nativeUsdValue: 0,
+          tokens: [],
+          totalUsdValue: 0,
+          source: 'alchemy'
+        };
+      }
+      
+      // Load whitelisted tokens
+      const whitelist = this.loadWhitelistedTokens();
+      
+      // Process all tokens (native + ERC20)
+      const validTokens = [];
+      
+      for (const token of tokens) {
+        // Skip zero balances
+        const balanceBigInt = BigInt(token.tokenBalance || '0x0');
+        if (balanceBigInt === 0n) {
+          continue;
+        }
+
+        // For ERC20 tokens, apply additional filters
+        if (token.tokenAddress !== null) {
+          const tokenAddr = token.tokenAddress.toLowerCase();
+
+          // Skip if this token is the contract itself (self-token)
+          if (tokenAddr === normalizedAddress) {
+            this.log(`  ⏭️  Skipping self-token: ${tokenAddr}`);
+            continue;
+          }
+
+          // Check whitelist if configured
+          if (whitelist.size > 0 && !whitelist.has(tokenAddr)) {
+            this.log(`  ⏭️  Skipping non-whitelisted token: ${tokenAddr}`);
+            continue;
+          }
+        }
+        
+        validTokens.push(token);
+      }
+
+      // Get all token addresses for metadata and price fetching
+      const tokenAddressesToFetch = validTokens
+        .filter(t => t.tokenAddress !== null)
+        .map(t => t.tokenAddress.toLowerCase());
+
+      // Fetch token metadata with caching (30 day cache)
+      let metadataMap = {};
+      if (tokenAddressesToFetch.length > 0) {
+        this.log(`📋 Fetching metadata for ${tokenAddressesToFetch.length} tokens...`);
+        metadataMap = await this.metadataCache.fetchTokenMetadataWithCache(this.network, tokenAddressesToFetch);
+        
+        // Verify all tokens have metadata
+        const missingMetadata = tokenAddressesToFetch.filter(addr => !metadataMap[addr]);
+        if (missingMetadata.length > 0) {
+          this.log(`⚠️  Missing metadata for ${missingMetadata.length} tokens, fetching again...`);
+          // Force refresh for missing tokens
+          const additionalMetadata = await this.metadataCache.fetchTokenMetadataWithCache(
+            this.network, 
+            missingMetadata, 
+            true // force refresh
+          );
+          metadataMap = { ...metadataMap, ...additionalMetadata };
+        }
+      }
+
+      // For native token price, use wrapped native token address
+      const nativeTokenAddress = this.getNativeTokenAddress();
+      const priceAddresses = [...tokenAddressesToFetch];
+      if (nativeTokenAddress) {
+        priceAddresses.push(nativeTokenAddress);
+      }
+
+      // Batch fetch all token prices with caching (7 day cache)
+      let priceMap = {};
+      if (priceAddresses.length > 0) {
+        this.log(`💰 Fetching prices for ${priceAddresses.length} tokens...`);
+        priceMap = await this.priceCache.fetchTokenPricesWithCache(this.network, priceAddresses);
+        
+        // Check for missing prices (not including native token wrapper)
+        const missingPrices = tokenAddressesToFetch.filter(addr => 
+          priceMap[addr] === undefined
+        );
+        
+        if (missingPrices.length > 0) {
+          this.log(`⚠️  Missing prices for ${missingPrices.length} tokens, attempting force refresh...`);
+          // Try to force refresh prices for missing tokens
+          const additionalPrices = await this.priceCache.fetchTokenPricesWithCache(
+            this.network,
+            missingPrices,
+            true // force refresh
+          );
+          priceMap = { ...priceMap, ...additionalPrices };
+        }
+      }
+
+      // Process all tokens (native + ERC20)
+      const processedTokens = [];
+      let totalUsdValue = 0;
+      let nativeBalance = '0x0';
+      let nativeUsdValue = 0;
+
+      for (const tokenData of validTokens) {
+        if (tokenData.tokenAddress === null) {
+          // Native token
+          nativeBalance = tokenData.tokenBalance;
+          const balanceBigInt = BigInt(nativeBalance);
+          const balanceFormatted = Number(balanceBigInt) / 1e18;
+          
+          // Get native price from wrapped token
+          const nativePriceRaw = nativeTokenAddress ? (priceMap[nativeTokenAddress.toLowerCase()] || 0) : 0;
+          const nativePrice = typeof nativePriceRaw === 'number' ? nativePriceRaw : parseFloat(nativePriceRaw);
+          nativeUsdValue = balanceFormatted * nativePrice;
+          totalUsdValue += nativeUsdValue;
+          
+          const nativeSymbol = this.getNativeSymbol();
+          this.log(`  ${nativeSymbol}: ${balanceFormatted.toFixed(4)} ($${nativeUsdValue.toFixed(2)})`);
+          continue;
+        }
+        
+        // ERC20 token
+        const tokenAddr = tokenData.tokenAddress.toLowerCase();
+        
+        // Get metadata from cache (must exist)
+        const metadata = metadataMap[tokenAddr];
+        if (!metadata || metadata.decimals === undefined) {
+          this.log(`  ⚠️  No metadata for token ${tokenAddr}, skipping...`);
+          continue;
+        }
+        
+        const symbol = metadata.symbol || tokenAddr.slice(0, 6).toUpperCase();
+        const name = metadata.name || metadata.symbol || 'Unknown Token';
+        const decimals = metadata.decimals;
+        
+        // Calculate formatted balance
+        const balanceBigInt = BigInt(tokenData.tokenBalance);
+        const balanceFormatted = Number(balanceBigInt) / Math.pow(10, decimals);
+        
+        // Get price from cache/API
+        const price = priceMap[tokenAddr];
+        if (price === undefined) {
+          this.log(`  ⚠️  No price data for ${symbol} (${tokenAddr}), setting to 0`);
+          // If we couldn't get price data, set it to 0 but still include the token
+          priceMap[tokenAddr] = 0;
+        }
+        
+        const finalPrice = typeof priceMap[tokenAddr] === 'number' ? priceMap[tokenAddr] : parseFloat(priceMap[tokenAddr]);
+        const usdValue = balanceFormatted * finalPrice;
+
+        // Include all tokens with balance (even if price is 0)
+        processedTokens.push({
+          token_address: tokenAddr,
+          symbol: symbol,
+          name: name,
+          decimals: decimals,
+          balance: tokenData.tokenBalance,
+          balance_formatted: balanceFormatted.toString(),
+          usd_value: usdValue,
+          usd_price: finalPrice
+        });
+
+        totalUsdValue += usdValue;
+        
+        // Log significant holdings
+        if (usdValue > 100 || (price === 0 && balanceFormatted > 0.01)) {
+          this.log(`  ${symbol}: ${balanceFormatted.toFixed(4)} ($${usdValue.toFixed(2)})`);
+        }
+      }
+
+      this.log(`📊 Alchemy Summary: Native: $${nativeUsdValue.toFixed(2)}, Tokens: ${processedTokens.length}, Total: $${totalUsdValue.toFixed(2)}`);
 
       return {
-        nativeBalance,
+        nativeBalance: nativeBalance,
         nativeUsdValue,
-        tokens,
+        tokens: processedTokens,
         totalUsdValue,
-        source: 'moralis'
+        source: 'alchemy'
       };
     } catch (error) {
-      this.log(`⚠️  Moralis API error for ${address}: ${error.message}`);
+      this.log(`⚠️  Alchemy Data API error for ${address}: ${error.message}`);
+      if (error.response?.data) {
+        this.log(`  Response: ${JSON.stringify(error.response.data)}`);
+      }
       return null;
     }
   }
 
-  // Updated method to use Moralis API with RPC fallback
+  // Use Alchemy API for balance fetching
   async updateAddressFunds(addresses) {
-    this.log('🌐 Using Moralis API for balance fetching');
+    this.log('🌐 Using Alchemy API for balance fetching');
 
     const processor = async (addressBatch) => {
       const updates = [];
@@ -238,11 +498,11 @@ class FundUpdater extends Scanner {
       for (const addressObj of addressBatch) {
         const addressStr = addressObj.address || addressObj;
         try {
-          // Try Moralis API first
-          const portfolio = await this.fetchPortfolioWithMoralis(addressStr);
+          // Try Alchemy API first
+          const portfolio = await this.fetchPortfolioWithAlchemy(addressStr);
           
           if (portfolio && portfolio.totalUsdValue >= 0) {
-            this.log(`✅ Moralis: ${addressStr} = $${portfolio.totalUsdValue.toFixed(2)}`);
+            this.log(`✅ Alchemy: ${addressStr} = $${portfolio.totalUsdValue.toFixed(2)}`);
             
             updates.push({
               address: normalizeAddress(addressStr),
@@ -251,8 +511,8 @@ class FundUpdater extends Scanner {
               lastFundUpdated: this.currentTime
             });
           } else {
-            // Skip if Moralis fails - will update later
-            this.log(`⏸️  Moralis failed for ${addressStr}, skipping for later update`);
+            // Skip if Alchemy fails - will update later
+            this.log(`⏸️  Alchemy failed for ${addressStr}, skipping for later update`);
           }
           
           // Rate limiting

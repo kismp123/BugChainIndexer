@@ -1,26 +1,27 @@
 /**
  * Address validation and normalization utilities
  */
+const { getAddress } = require('ethers');
 
 /**
- * Normalize Ethereum address to standard format
+ * Normalize Ethereum address to standard format using ethers checksum validation
  * @param {string} address - The address to normalize
- * @returns {string|null} - Normalized address or null if invalid
+ * @returns {string|null} - Normalized lowercase address or null if invalid
  */
 function normalizeAddress(address) {
   if (!address) return null;
-  
+
   // Convert to string and trim whitespace
   address = String(address).trim();
-  
+
   // Handle empty or invalid input
   if (!address || address === 'undefined' || address === 'null') {
     return null;
   }
-  
+
   // Remove any quotes that might wrap the address
   address = address.replace(/['"]/g, '');
-  
+
   // Handle missing 0x prefix
   if (!/^0x/i.test(address)) {
     // If it's 40 hex chars without 0x, add the prefix
@@ -30,25 +31,18 @@ function normalizeAddress(address) {
       return null; // Invalid format
     }
   }
-  
-  // Extract just the hex part after 0x
-  const hexPart = address.slice(2);
-  
-  // Remove any non-hex characters
-  const cleanHex = hexPart.replace(/[^a-fA-F0-9]/g, '');
-  
-  // Must be exactly 40 hex characters
-  if (cleanHex.length !== 40) {
-    // Try padding with zeros if it's shorter
-    if (cleanHex.length < 40 && cleanHex.length > 0) {
-      const padded = cleanHex.padStart(40, '0');
-      return '0x' + padded.toLowerCase();
-    }
-    return null; // Invalid length
+
+  try {
+    // Use ethers getAddress() for validation and checksum conversion
+    // This validates the address format and returns proper checksum address
+    const checksumAddress = getAddress(address);
+
+    // Return lowercase for database consistency
+    return checksumAddress.toLowerCase();
+  } catch (error) {
+    // Invalid address (bad checksum, wrong length, invalid characters, etc.)
+    return null;
   }
-  
-  // Return normalized address in lowercase
-  return ('0x' + cleanHex).toLowerCase();
 }
 
 /**

@@ -34,14 +34,40 @@ async function ensureSchema(client) {
       is_valid BOOLEAN DEFAULT true,
       PRIMARY KEY (token_address, network)
     )`,
+
+    // Token metadata cache table (30 day cache for token metadata)
+    `CREATE TABLE IF NOT EXISTS token_metadata_cache (
+      network TEXT NOT NULL,
+      token_address TEXT NOT NULL,
+      symbol TEXT,
+      name TEXT,
+      decimals INTEGER,
+      logo_url TEXT,
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (network, token_address)
+    )`,
+
+    // Token price cache table (7 day cache for token prices)
+    `CREATE TABLE IF NOT EXISTS token_price_cache (
+      network TEXT NOT NULL,
+      token_address TEXT NOT NULL,
+      symbol TEXT,
+      name TEXT,
+      price_usd DECIMAL(20, 8),
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (network, token_address)
+    )`,
     
     // Essential indexes for performance - optimized for common queries
     `CREATE INDEX IF NOT EXISTS idx_addresses_network ON addresses(network)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_tags_gin ON addresses USING GIN(tags)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_fund ON addresses(network, fund)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_last_updated ON addresses(network, last_updated)`,
+    `CREATE INDEX IF NOT EXISTS idx_addresses_network_notags ON addresses(network) WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags))`,
     `CREATE INDEX IF NOT EXISTS idx_tokens_network ON tokens(network)`,
-    `CREATE INDEX IF NOT EXISTS idx_tokens_price_updated ON tokens(network, price_updated)`
+    `CREATE INDEX IF NOT EXISTS idx_tokens_price_updated ON tokens(network, price_updated)`,
+    `CREATE INDEX IF NOT EXISTS idx_token_metadata_cache_updated ON token_metadata_cache(network, last_updated)`,
+    `CREATE INDEX IF NOT EXISTS idx_token_price_cache_updated ON token_price_cache(network, last_updated)`
   ];
 
   for (const schema of schemas) {

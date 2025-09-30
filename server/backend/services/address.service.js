@@ -20,7 +20,7 @@ exports.getAddressesByFilter = async (filters = {}) => {
   const dataSql = `
     SELECT address, contract_name, deployed, fund, network
     FROM addresses
-    WHERE 
+    WHERE
       (tags IS NULL OR NOT 'EOA' = ANY(tags))
       ${whereSql ? 'AND ' + whereSql.replace('WHERE ', '') : ''}
     ORDER BY fund DESC NULLS LAST, deployed DESC NULLS LAST, address ASC
@@ -28,9 +28,35 @@ exports.getAddressesByFilter = async (filters = {}) => {
   `;
 
   const dataPromise = pool.query(dataSql, params);
-  const countPromise = includeTotal
-    ? pool.query(`SELECT COUNT(*)::bigint AS total FROM addresses WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags)) ${whereSqlNoCursor ? 'AND ' + whereSqlNoCursor.replace('WHERE ', '') : ''}`, paramsNoCursor)
-    : Promise.resolve({ rows: [{ total: null }] });
+
+  // Optimize count query: use cached network counts when possible
+  let countPromise;
+  if (includeTotal) {
+    const hasOnlyNetworkFilter = rest.networks?.length > 0
+      && !rest.address && !rest.contractName
+      && !rest.deployedFrom && !rest.deployedTo
+      && !rest.fundFrom && !rest.fundTo;
+
+    if (hasOnlyNetworkFilter) {
+      // Fast path: sum cached network counts
+      countPromise = (async () => {
+        const networkCounts = await exports.getNetworkCounts();
+        const total = rest.networks.reduce((sum, net) => sum + (networkCounts[net] || 0), 0);
+        return { rows: [{ total: BigInt(total) }] };
+      })();
+    } else if (rest.networks?.length >= 10) {
+      // Skip expensive count for too many networks
+      countPromise = Promise.resolve({ rows: [{ total: null }] });
+    } else {
+      // Exact count for specific filters
+      countPromise = pool.query(
+        `SELECT COUNT(*)::bigint AS total FROM addresses WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags)) ${whereSqlNoCursor ? 'AND ' + whereSqlNoCursor.replace('WHERE ', '') : ''}`,
+        paramsNoCursor
+      );
+    }
+  } else {
+    countPromise = Promise.resolve({ rows: [{ total: null }] });
+  }
 
   const [{ rows }, { rows: countRows }] = await Promise.all([dataPromise, countPromise]);
 
@@ -115,8 +141,21 @@ function buildWhere({
 // ensureDbUrl is provided by ./db; local duplicate removed
 
 
+// Cache for network counts (refreshed every 4 hours)
+let networkCountsCache = null;
+let networkCountsCacheTime = 0;
+const NETWORK_COUNTS_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+
 exports.getNetworkCounts = async () => {
   ensureDbUrl();
+
+  // Return cached result if still valid
+  const now = Date.now();
+  if (networkCountsCache && (now - networkCountsCacheTime) < NETWORK_COUNTS_CACHE_TTL) {
+    return networkCountsCache;
+  }
+
+  // Query database
   const { rows } = await pool.query(`
     SELECT network, COUNT(*)::bigint AS count
     FROM addresses
@@ -127,5 +166,10 @@ exports.getNetworkCounts = async () => {
   for (const r of rows) {
     out[r.network] = Number(r.count);
   }
+
+  // Update cache
+  networkCountsCache = out;
+  networkCountsCacheTime = now;
+
   return out;
 }

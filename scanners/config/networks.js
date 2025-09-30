@@ -41,7 +41,9 @@ const getAlchemyUrl = (network) => {
     'mantle': 'mantle-mainnet',  // Mantle
     'arbitrum-nova': 'arbnova-mainnet',  // Arbitrum Nova
     'moonbeam': 'moonbeam-mainnet',  // Moonbeam
-    'gnosis': 'gnosis-mainnet'  // Gnosis (xDAI)
+    'gnosis': 'gnosis-mainnet',  // Gnosis (xDAI)
+    'opbnb': 'opbnb-mainnet',  // opBNB
+    'celo': 'celo-mainnet'  // Celo
   };
   
   const alchemyNetwork = networkMap[network];
@@ -87,7 +89,6 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xfE53a230a2AEd6E52f2dEf488DA408d47a80A8bF',
-    BalanceHelper: '0x5CD47B1F62e3BD40C669024CA52B40946C8b641b',
     nativeCurrency: 'ETH'
   },
 
@@ -121,7 +122,6 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x91Ce20223F35b82E34aC4913615845C7AaA0e2B7',
-    BalanceHelper: '0x5B9a623Fc8eDFE96B9504B6B801EF439c8acc333',
     nativeCurrency: 'BNB'
   },
 
@@ -154,7 +154,6 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xC7bAd40fE8c4B8aA380cBfAE63B9b39a9684F8B4',
-    BalanceHelper: '0x1af03A9a9c7F1D3Ed1E7900d9f76F09EE01B0344',
     nativeCurrency: 'MATIC'
   },
 
@@ -187,7 +186,6 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x20f776Bd5FA50822fb872573C80453dA18A8CA34',
-    BalanceHelper: '0x04eD457F1A445f2a90132028C2A0Cfa09e823bEc',
     nativeCurrency: 'ETH'
   },
 
@@ -221,7 +219,6 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
-    BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
     nativeCurrency: 'ETH'
   },
 
@@ -254,7 +251,6 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
-    BalanceHelper: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
     nativeCurrency: 'ETH'
   },
 
@@ -264,9 +260,8 @@ const NETWORKS = {
     alchemyNetwork: 'avalanche-mainnet',
 
     rpcUrls: envArray('AVALANCHE_RPC_URL', [
-      // Alchemy RPC for Avalanche
-      getAlchemyUrl('avalanche'),
-      'https://avalanche-c-chain-rpc.publicnode.com',  // Working endpoint moved to first
+      // Public RPCs first (Alchemy AVAX not enabled on free tier)
+      'https://avalanche-c-chain-rpc.publicnode.com',
       'https://api.avax.network/ext/bc/C/rpc',
       'https://1rpc.io/avax/c',
       'https://endpoints.omniatech.io/v1/avax/mainnet/public',
@@ -280,11 +275,12 @@ const NETWORKS = {
       'https://avalanche.public.blastapi.io',
       'https://avalanche.api.onfinality.io/public/ext/bc/C/rpc',
       'https://avax.network/ext/bc/C/rpc',
-      'https://blastapi.io/public-api/avalanche'
+      'https://blastapi.io/public-api/avalanche',
+      // Alchemy RPC (last fallback - requires AVAX enabled in dashboard)
+      getAlchemyUrl('avalanche')
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
-    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc', // Fixed: corrected swap
-    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384', // Fixed: corrected swap
+    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
     nativeCurrency: 'AVAX'
   }
 };
@@ -294,8 +290,10 @@ const ADDITIONAL_NETWORKS = {
   gnosis: {
     chainId: 100,
     name: 'Gnosis Chain',
+    alchemyNetwork: 'gnosis-mainnet',
 
     rpcUrls: envArray('GNOSIS_RPC_URL', [
+      getAlchemyUrl('gnosis'),
       'https://gnosis.drpc.org',
       'https://endpoints.omniatech.io/v1/gnosis/mainnet/public',
       'https://gnosis-rpc.publicnode.com',
@@ -304,33 +302,34 @@ const ADDITIONAL_NETWORKS = {
       'https://gnosis.blockpi.network/v1/rpc/public',
       'https://gnosis.therpc.io'
     ].filter(Boolean)),
-    nativeCurrency: 'xDAI',
-    contractValidator: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A', // Fixed: corrected swap 
-    BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550', // Fixed: corrected swap
-
+    contractValidator: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
+    nativeCurrency: 'xDAI'
   },
   
   linea: {
     chainId: 59144,
     name: 'Linea',
+    alchemyNetwork: 'linea-mainnet',
 
     rpcUrls: envArray('LINEA_RPC_URL', [
+      getAlchemyUrl('linea'),
       'https://rpc.linea.build',
       'https://1rpc.io/linea',
       'https://linea.drpc.org',
       'https://linea.decubate.com',
       'https://linea.publicnode.com'
     ].filter(Boolean)),
-    nativeCurrency: 'ETH',   
-    BalanceHelper: '0xa3ba28ccdda4ba986f20e395d41f5bb37f8f900d', 
     contractValidator: '0xeabb01920c41e1c010ba74628996eea65df03550',
+    nativeCurrency: 'ETH'
   },
   
   scroll: {
     chainId: 534352,
     name: 'Scroll',
+    alchemyNetwork: 'scroll-mainnet',
 
     rpcUrls: envArray('SCROLL_RPC_URL', [
+      getAlchemyUrl('scroll'),
       'https://rpc.scroll.io',
       'https://1rpc.io/scroll',
       'https://scroll.drpc.org',
@@ -338,48 +337,55 @@ const ADDITIONAL_NETWORKS = {
       'https://scroll-mainnet.public.blastapi.io',
       'https://scroll-mainnet.unifra.io'
     ].filter(Boolean)),
-    nativeCurrency: 'ETH',
-    BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
     contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
+    nativeCurrency: 'ETH'
   },
-  
+
   mantle: {
     chainId: 5000,
     name: 'Mantle',
+    alchemyNetwork: 'mantle-mainnet',
 
     rpcUrls: envArray('MANTLE_RPC_URL', [
+      getAlchemyUrl('mantle'),
       'https://rpc.mantle.xyz',
       'https://mantle-rpc.publicnode.com',
       'https://mantle.drpc.org',
       'https://1rpc.io/mantle',
       'https://endpoints.omniatech.io/v1/mantle/mainnet/public'
     ].filter(Boolean)),
-    nativeCurrency: 'MNT',
     contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
-    BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
+    nativeCurrency: 'MNT'
   },
   
   opbnb: {
     chainId: 204,
     name: 'opBNB',
+    alchemyNetwork: 'opbnb-mainnet',
 
     rpcUrls: envArray('OPBNB_RPC_URL', [
+      getAlchemyUrl('opbnb'),
       'https://opbnb-mainnet-rpc.bnbchain.org',
       'https://opbnb-rpc.publicnode.com',
       'https://1rpc.io/opbnb',
       'https://opbnb.drpc.org',
       'https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3'
     ].filter(Boolean)),
-    nativeCurrency: 'BNB',
     contractValidator: '0xa3ba28ccdda4ba986f20e395d41f5bb37f8f900d',
-    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384'
-  },
-  
+    nativeCurrency: 'BNB'
+  }
+};
+
+// Disabled networks (no contractValidator deployed)
+// These networks are disabled until contractValidator contracts are deployed
+const DISABLED_NETWORKS = {
   'polygon-zkevm': {
     chainId: 1101,
     name: 'Polygon zkEVM',
-
+    alchemyNetwork: 'polygonzkevm-mainnet',
+    reason: 'No contractValidator deployed',
     rpcUrls: envArray('POLYGON_ZKEVM_RPC_URL', [
+      getAlchemyUrl('polygon-zkevm'),
       'https://1rpc.io/polygon/zkevm',
       'https://polygon-zkevm.drpc.org',
       'https://node.histori.xyz/polygon-zkevm-mainnet/8ry9f6t9dct1se2hlagxnd9n2a',
@@ -389,12 +395,14 @@ const ADDITIONAL_NETWORKS = {
     ].filter(Boolean)),
     nativeCurrency: 'ETH'
   },
-  
+
   'arbitrum-nova': {
     chainId: 42170,
     name: 'Arbitrum Nova',
-
+    alchemyNetwork: 'arbnova-mainnet',
+    reason: 'No contractValidator deployed',
     rpcUrls: envArray('ARBITRUM_NOVA_RPC_URL', [
+      getAlchemyUrl('arbitrum-nova'),
       'https://arbitrum-nova-rpc.publicnode.com',
       'https://arbitrum-nova.drpc.org',
       'https://arbitrum-nova.public.blastapi.io',
@@ -402,12 +410,14 @@ const ADDITIONAL_NETWORKS = {
     ].filter(Boolean)),
     nativeCurrency: 'ETH'
   },
-  
+
   celo: {
     chainId: 42220,
     name: 'Celo',
-
+    alchemyNetwork: 'celo-mainnet',
+    reason: 'No contractValidator deployed',
     rpcUrls: envArray('CELO_RPC_URL', [
+      getAlchemyUrl('celo'),
       'https://forno.celo.org',
       'https://celo.drpc.org',
       'https://celo-json-rpc.stakely.io',
@@ -415,28 +425,14 @@ const ADDITIONAL_NETWORKS = {
     ].filter(Boolean)),
     nativeCurrency: 'CELO'
   },
-  
-  cronos: {
-    chainId: 25,
-    name: 'Cronos',
 
-    rpcUrls: envArray('CRONOS_RPC_URL', [
-      'https://evm.cronos.org',
-      'https://cronos-rpc.elk.finance',
-      'https://cronos-evm-rpc.publicnode.com',
-      'https://1rpc.io/cro',
-      'https://cronos.drpc.org',
-      'https://rpc.vvs.finance',
-      'https://mmf-rpc.xstaking.sg'
-    ].filter(Boolean)),
-    nativeCurrency: 'CRO'
-  },
-  
   moonbeam: {
     chainId: 1284,
     name: 'Moonbeam',
-
+    alchemyNetwork: 'moonbeam-mainnet',
+    reason: 'No contractValidator deployed',
     rpcUrls: envArray('MOONBEAM_RPC_URL', [
+      getAlchemyUrl('moonbeam'),
       'https://rpc.api.moonbeam.network',
       'https://moonbeam.api.onfinality.io/public',
       'https://moonbeam.unitedbloc.com',
@@ -446,33 +442,14 @@ const ADDITIONAL_NETWORKS = {
       'https://moonbeam.therpc.io'
     ].filter(Boolean)),
     nativeCurrency: 'GLMR'
-  },
-  
-  moonriver: {
-    chainId: 1285,
-    name: 'Moonriver',
-
-    rpcUrls: envArray('MOONRIVER_RPC_URL', [
-      'https://rpc.api.moonriver.moonbeam.network',
-      'https://moonriver.api.onfinality.io/public',
-      'https://moonriver-rpc.dwellir.com',
-      'https://moonriver-rpc.publicnode.com',
-      'https://moonriver.drpc.org',
-      'https://moonriver.unitedbloc.com'
-    ].filter(Boolean)),
-    nativeCurrency: 'MOVR'
   }
 };
 
 // Apply configuration to additional networks
 Object.entries(ADDITIONAL_NETWORKS).forEach(([key, config]) => {
-  const upperKey = key.toUpperCase().replace('-', '_');
   NETWORKS[key] = {
     ...config,
-    apiKeys: DEFAULT_ETHERSCAN_KEYS,
-    // Keep existing contract addresses if set, otherwise null
-    contractValidator: config.contractValidator || null,
-    BalanceHelper: config.BalanceHelper || null
+    apiKeys: DEFAULT_ETHERSCAN_KEYS
   };
 });
 

@@ -851,12 +851,12 @@ class ContractCall {
     if (!this.validatorCache.has(network)) {
       const config = NETWORKS[network];
       const validatorAddress = config?.contractValidator;
-      
+
       if (!validatorAddress) {
         console.warn(`No validator contract configured for network: ${network}`);
         return null;
       }
-      
+
       this.validatorCache.set(network, {
         address: validatorAddress,
         abi: CONTRACT_VALIDATOR_ABI
@@ -978,10 +978,10 @@ class ContractCall {
 
   async isContracts(network, addresses) {
     if (!addresses?.length) return [];
-    
+
     const validator = this.getValidatorContract(network);
     const rpc = this.getAlchemyClient(network);  // Use Alchemy for contract calls
-    
+
     if (!validator) {
       return this.chunkOperation(addresses, async (chunk) => {
         const promises = chunk.map(async (addr) => {
@@ -995,7 +995,7 @@ class ContractCall {
         return Promise.all(promises);
       });
     }
-    
+
     return this.chunkOperation(addresses, async (chunk) => {
       // Helper function to process with retry on gas error
       const processWithRetry = async (addrs) => {
@@ -1003,18 +1003,18 @@ class ContractCall {
           const iface = new ethers.Interface(validator.abi);
           const checksumChunk = addrs.map(addr => ethers.getAddress(addr));
           const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
-          
+
           const result = await rpc.call({
             to: ethers.getAddress(validator.address),
             data: calldata
           });
-          
+
           const decoded = iface.decodeFunctionResult('isContract', result);
           return decoded[0];
         } catch (error) {
           const errorMsg = error.message || error.toString();
           const isGasError = errorMsg.includes('gas');
-          
+
           // If gas error and batch size > 1, try with half size
           if (isGasError && addrs.length > 1) {
             console.log(`[isContracts] Gas error with ${addrs.length} addresses, retrying with half size`);
@@ -1023,22 +1023,22 @@ class ContractCall {
             const secondHalf = await processWithRetry(addrs.slice(midpoint));
             return [...firstHalf, ...secondHalf];
           }
-          
+
           // No fallback - throw the error
           throw error;
         }
       };
-      
+
       return processWithRetry(chunk);
     });
   }
 
   async getCodeHashes(network, addresses) {
     if (!addresses?.length) return [];
-    
+
     const validator = this.getValidatorContract(network);
     const rpc = this.getAlchemyClient(network);  // Use Alchemy for contract calls
-    
+
     if (!validator) {
       return this.chunkOperation(addresses, async (chunk) => {
         const promises = chunk.map(async (addr) => {
@@ -1052,7 +1052,7 @@ class ContractCall {
         return Promise.all(promises);
       });
     }
-    
+
     return this.chunkOperation(addresses, async (chunk) => {
       // Helper function to process with retry on gas error
       const processWithRetry = async (addrs) => {
@@ -1060,18 +1060,18 @@ class ContractCall {
           const iface = new ethers.Interface(validator.abi);
           const checksumChunk = addrs.map(addr => ethers.getAddress(addr));
           const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
-          
+
           const result = await rpc.call({
             to: ethers.getAddress(validator.address),
             data: calldata
           });
-          
+
           const decoded = iface.decodeFunctionResult('getCodeHashes', result);
           return decoded[0];
         } catch (error) {
           const errorMsg = error.message || error.toString();
           const isGasError = errorMsg.includes('gas');
-          
+
           // If gas error and batch size > 1, try with half size
           if (isGasError && addrs.length > 1) {
             console.log(`[getCodeHashes] Gas error with ${addrs.length} addresses, retrying with half size`);
@@ -1080,12 +1080,12 @@ class ContractCall {
             const secondHalf = await processWithRetry(addrs.slice(midpoint));
             return [...firstHalf, ...secondHalf];
           }
-          
+
           // No fallback - throw the error
           throw error;
         }
       };
-      
+
       return processWithRetry(chunk);
     });
   }

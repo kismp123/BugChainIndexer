@@ -10,7 +10,7 @@ LOG_DIR="$SCRIPT_DIR/logs"
 
 # Configuration
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-7200}"
-NETWORKS=(ethereum binance optimism base arbitrum polygon avalanche gnosis linea scroll mantle opbnb polygon-zkevm arbitrum-nova celo cronos moonbeam moonriver)
+NETWORKS=(ethereum binance optimism base arbitrum polygon avalanche gnosis linea scroll mantle opbnb)
 
 # Create logs directory
 mkdir -p "$LOG_DIR"
@@ -256,9 +256,14 @@ main() {
             # Parse parameters: [days] [network]
             local days="${mode:-30}"        # Second param is days (default: 30)
             local target_network="${network:-}"  # Third param is network
-            
+
+            # If days is "auto" or non-numeric, use default
+            if [[ "$days" == "auto" ]] || ! [[ "$days" =~ ^[0-9]+$ ]]; then
+                days="30"
+            fi
+
             # If days is actually a network name, swap them
-            if [[ "$days" =~ ^(ethereum|binance|polygon|avalanche|arbitrum|optimism|base|cronos|gnosis|linea|moonbeam|moonriver|scroll|mantle|opbnb|polygon-zkevm|arbitrum-nova|celo)$ ]]; then
+            if [[ "$days" =~ ^(ethereum|binance|polygon|avalanche|arbitrum|optimism|base|gnosis|linea|scroll|mantle|opbnb)$ ]]; then
                 target_network="$days"
                 days="30"
             fi
