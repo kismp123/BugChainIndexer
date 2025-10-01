@@ -89,6 +89,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xfE53a230a2AEd6E52f2dEf488DA408d47a80A8bF',
+    BalanceHelper: '0x5CD47B1F62e3BD40C669024CA52B40946C8b641b',
     nativeCurrency: 'ETH'
   },
 
@@ -122,6 +123,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x91Ce20223F35b82E34aC4913615845C7AaA0e2B7',
+    BalanceHelper: '0x5B9a623Fc8eDFE96B9504B6B801EF439c8acc333',
     nativeCurrency: 'BNB'
   },
 
@@ -154,6 +156,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xC7bAd40fE8c4B8aA380cBfAE63B9b39a9684F8B4',
+    BalanceHelper: '0x1af03A9a9c7F1D3Ed1E7900d9f76F09EE01B0344',
     nativeCurrency: 'MATIC'
   },
 
@@ -186,6 +189,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x20f776Bd5FA50822fb872573C80453dA18A8CA34',
+    BalanceHelper: '0x04eD457F1A445f2a90132028C2A0Cfa09e823bEc',
     nativeCurrency: 'ETH'
   },
 
@@ -219,6 +223,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
+    BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
     nativeCurrency: 'ETH'
   },
 
@@ -251,6 +256,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
+    BalanceHelper: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
     nativeCurrency: 'ETH'
   },
 
@@ -281,6 +287,7 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
+    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
     nativeCurrency: 'AVAX'
   }
 };

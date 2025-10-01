@@ -21,11 +21,51 @@ class FundUpdater extends Scanner {
         addresses: 1000
       }
     });
-    
+
     this.delayDays = CONFIG.FUNDUPDATEDELAY || 7;
     this.whitelistedTokens = null;
     this.priceCache = new TokenPriceCache();
     this.metadataCache = new TokenMetadataCache();
+
+    // Dynamic batch sizing for balance calls (for BalanceHelper mode)
+    this.currentBatchSize = 200;  // Start with 200
+    this.minBatchSize = 20;       // Minimum batch size
+    this.maxBatchSize = 500;      // Maximum batch size
+    this.failureCount = 0;        // Track consecutive failures
+    this.successCount = 0;        // Track consecutive successes
+  }
+
+  // Adjust batch size based on success/failure patterns
+  adjustBatchSize(isSuccess) {
+    if (isSuccess) {
+      this.successCount++;
+      this.failureCount = 0;
+
+      // After 3 consecutive successes, try to increase batch size
+      if (this.successCount >= 3 && this.currentBatchSize < this.maxBatchSize) {
+        this.currentBatchSize = Math.min(this.maxBatchSize, this.currentBatchSize + 50);
+        this.log(`🔼 Increased batch size to ${this.currentBatchSize} after consecutive successes`);
+        this.successCount = 0;
+      }
+    } else {
+      this.failureCount++;
+      this.successCount = 0;
+
+      // On any failure, reduce batch size immediately
+      if (this.currentBatchSize > this.minBatchSize) {
+        this.currentBatchSize = Math.max(this.minBatchSize, Math.floor(this.currentBatchSize * 0.6));
+        this.log(`🔽 Reduced batch size to ${this.currentBatchSize} after failure`);
+      }
+    }
+  }
+
+  // Split addresses into dynamic-sized chunks
+  chunkAddresses(addresses) {
+    const chunks = [];
+    for (let i = 0; i < addresses.length; i += this.currentBatchSize) {
+      chunks.push(addresses.slice(i, i + this.currentBatchSize));
+    }
+    return chunks;
   }
 
   // Load whitelisted tokens from tokens folder
@@ -167,6 +207,25 @@ class FundUpdater extends Scanner {
       'opbnb': 'BNB'
     };
     return nativeSymbols[this.network] || 'ETH';
+  }
+
+  // Get token addresses from database for BalanceHelper mode
+  async getTokenAddressesFromDatabase() {
+    try {
+      const result = await this.queryDB(`
+        SELECT token_address
+        FROM tokens
+        WHERE network = $1 AND is_valid = true
+        ORDER BY token_address
+      `, [this.network]);
+
+      const addresses = result.rows.map(row => row.token_address.toLowerCase());
+      this.log(`📋 Found ${addresses.length} valid tokens for ${this.network}`);
+      return addresses;
+    } catch (error) {
+      this.log(`Error fetching token addresses: ${error.message}`, 'warn');
+      return []; // Return empty array as fallback
+    }
   }
 
   // Fetch token prices using Alchemy Prices API
@@ -488,39 +547,102 @@ class FundUpdater extends Scanner {
     }
   }
 
-  // Use Alchemy API for balance fetching
+  // Update address funds using BalanceHelper contract (batch method)
   async updateAddressFunds(addresses) {
-    this.log('🌐 Using Alchemy API for balance fetching');
+    this.log('🔗 Using BalanceHelper contract for batch balance fetching');
+
+    // Get token addresses from database
+    const tokenAddresses = await this.getTokenAddressesFromDatabase();
+
+    // Fetch all token prices including wrapped native token
+    const nativeTokenAddress = this.getNativeTokenAddress();
+    const priceAddresses = [...tokenAddresses];
+    if (nativeTokenAddress) {
+      priceAddresses.push(nativeTokenAddress);
+    }
+
+    let priceMap = {};
+    if (priceAddresses.length > 0) {
+      this.log(`💰 Fetching prices for ${priceAddresses.length} tokens...`);
+      priceMap = await this.priceCache.fetchTokenPricesWithCache(this.network, priceAddresses);
+    }
 
     const processor = async (addressBatch) => {
-      const updates = [];
-      
-      for (const addressObj of addressBatch) {
-        const addressStr = addressObj.address || addressObj;
-        try {
-          // Try Alchemy API first
-          const portfolio = await this.fetchPortfolioWithAlchemy(addressStr);
-          
-          if (portfolio && portfolio.totalUsdValue >= 0) {
-            this.log(`✅ Alchemy: ${addressStr} = $${portfolio.totalUsdValue.toFixed(2)}`);
-            
-            updates.push({
-              address: normalizeAddress(addressStr),
-              network: this.network,
-              fund: Math.floor(portfolio.totalUsdValue),
-              lastFundUpdated: this.currentTime
-            });
-          } else {
-            // Skip if Alchemy fails - will update later
-            this.log(`⏸️  Alchemy failed for ${addressStr}, skipping for later update`);
+      let nativeBalances = [];
+      let erc20Balances = new Map();
+
+      // Dynamic chunking with error handling for native balances
+      try {
+        const addressChunks = this.chunkAddresses(addressBatch);
+        this.log(`Processing ${addressBatch.length} addresses in ${addressChunks.length} chunks (chunk size: ${this.currentBatchSize})`);
+
+        for (const chunk of addressChunks) {
+          try {
+            this.log(`[DEBUG] Attempting batch balance call for ${chunk.length} addresses`);
+            const chunkNativeBalances = await this.getNativeBalances(chunk);
+            nativeBalances.push(...chunkNativeBalances);
+
+            this.adjustBatchSize(true); // Success
+            this.log(`[DEBUG] Batch balance call succeeded for ${chunk.length} addresses`);
+
+          } catch (error) {
+            this.log(`❌ Native balance batch failed for chunk of ${chunk.length}: ${error.message}`, 'warn');
+            this.adjustBatchSize(false); // Failure
+
+            // Fallback: try smaller chunks or individual calls
+            for (const address of chunk) {
+              try {
+                const balance = await this.getNativeBalances([address]);
+                nativeBalances.push(...balance);
+              } catch (individualError) {
+                this.log(`❌ Individual balance call failed for ${address}: ${individualError.message}`, 'warn');
+                nativeBalances.push('0'); // Use 0 as fallback
+              }
+              await this.sleep(100); // Rate limiting for individual calls
+            }
           }
-          
-          // Rate limiting
-          await this.sleep(100);
-        } catch (error) {
-          this.log(`❌ Error processing ${addressStr}: ${error.message}`, 'warn');
+
+          await this.sleep(200); // Rate limiting between chunks
         }
+      } catch (error) {
+        this.log(`❌ Critical error in native balance processing: ${error.message}`, 'error');
+        // Fill with zeros as fallback
+        nativeBalances = new Array(addressBatch.length).fill('0');
       }
+
+      // ERC20 balances with similar error handling
+      try {
+        erc20Balances = await this.getERC20Balances(addressBatch, tokenAddresses);
+      } catch (error) {
+        this.log(`❌ ERC20 balance processing failed: ${error.message}`, 'warn');
+        erc20Balances = new Map(); // Empty map as fallback
+      }
+
+      // Process each address
+      const updates = addressBatch.map((address, index) => {
+        const nativeBalance = nativeBalances[index]?.toString() || '0';
+        const nativePrice = nativeTokenAddress ? (priceMap[nativeTokenAddress.toLowerCase()] || 0) : 0;
+        const nativeValue = (parseFloat(nativeBalance) / 1e18) * nativePrice;
+
+        let totalValue = nativeValue;
+
+        // Calculate token values
+        const addressTokens = erc20Balances.get(address) || new Map();
+        tokenAddresses.forEach(tokenAddr => {
+          const balance = addressTokens.get(tokenAddr) || '0';
+          const price = priceMap[tokenAddr.toLowerCase()] || 0;
+          const value = (parseFloat(balance) / 1e18) * price;
+
+          totalValue += value;
+        });
+
+        return {
+          address: normalizeAddress(address),
+          network: this.network,
+          fund: Math.floor(totalValue),
+          lastFundUpdated: this.currentTime
+        };
+      });
 
       // Batch database updates
       if (updates.length > 0) {
@@ -531,8 +653,8 @@ class FundUpdater extends Scanner {
     };
 
     return this.processBatch(addresses, processor, {
-      batchSize: 20, // Smaller batches for API calls
-      concurrency: 2, // Less concurrency for API rate limits
+      batchSize: this.batchSizes.addresses,
+      concurrency: 3,
       delayMs: 500
     });
   }

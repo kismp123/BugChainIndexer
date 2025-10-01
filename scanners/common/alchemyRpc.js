@@ -27,11 +27,11 @@ class AlchemyRPCClient {
       if (!apiKey) {
         throw new Error('ALCHEMY_API_KEY not configured and USE_ALCHEMY_PROXY is false');
       }
-      
+
       // Get network config for Alchemy endpoint
       const networkConfig = NETWORKS[network];
       const alchemyNetwork = networkConfig?.alchemyNetwork || network;
-      
+
       // Construct direct Alchemy URL
       this.alchemyUrl = `https://${alchemyNetwork}.g.alchemy.com/v2/${apiKey}`;
       this.useProxy = false;

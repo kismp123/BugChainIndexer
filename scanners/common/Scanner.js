@@ -129,6 +129,14 @@ class Scanner {
     return contractCall.getCodeHashes(this.network, addresses);
   }
 
+  async getNativeBalances(addresses) {
+    return contractCall.fetchNativeBalances(this.network, addresses);
+  }
+
+  async getERC20Balances(holders, tokens) {
+    return contractCall.fetchErc20Balances(this.network, holders, tokens);
+  }
+
   // RPC operations
   async rpcCall(method, params = []) {
     // Use alchemyClient for general RPC calls
