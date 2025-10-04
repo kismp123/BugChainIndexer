@@ -3,300 +3,350 @@
         "rank": 1,
         "name": "StellaSwap",
         "symbol": "STELLA",
-        "address": "0x0e358838ce72d5e61e0018a2ffac4bec5f4c88d2"
+        "address": "0x0e358838ce72d5e61e0018a2ffac4bec5f4c88d2",
+        "decimals": 18
     },
     {
         "rank": 2,
         "name": "Manta",
         "symbol": "xcMANTA",
-        "address": "0xffffffff7d3875460d4509eb8d0362c611b4e841"
+        "address": "0xffffffff7d3875460d4509eb8d0362c611b4e841",
+        "decimals": 18
     },
     {
         "rank": 3,
         "name": "Wrapped Ether",
         "symbol": "WETH",
-        "address": "0xab3f0245b83feb11d15aaffefd7ad465a59817ed"
+        "address": "0xab3f0245b83feb11d15aaffefd7ad465a59817ed",
+        "decimals": 18
     },
     {
         "rank": 4,
         "name": "xcDOT",
         "symbol": "xcDOT",
-        "address": "0xffffffff1fcacbd218edc0eba20fc2308c778080"
+        "address": "0xffffffff1fcacbd218edc0eba20fc2308c778080",
+        "decimals": 10
     },
     {
         "rank": 5,
         "name": "Stella stDOT",
         "symbol": "stDOT",
-        "address": "0xbc7e02c4178a7df7d3e564323a5c359dc96c4db4"
+        "address": "0xbc7e02c4178a7df7d3e564323a5c359dc96c4db4",
+        "decimals": 10
     },
     {
         "rank": 6,
         "name": "Wrapped BTC",
         "symbol": "WBTC",
-        "address": "0xe57ebd2d67b462e9926e04a8e33f01cd0d64346d"
+        "address": "0xe57ebd2d67b462e9926e04a8e33f01cd0d64346d",
+        "decimals": 8
     },
     {
         "rank": 7,
         "name": "USD Coin",
         "symbol": "xcUSDC",
-        "address": "0xffffffff7d2b0b761af01ca8e25242976ac0ad7d"
+        "address": "0xffffffff7d2b0b761af01ca8e25242976ac0ad7d",
+        "decimals": 6
     },
     {
         "rank": 8,
         "name": "XEN Crypto",
         "symbol": "mbXEN",
-        "address": "0xb564a5767a00ee9075cac561c427643286f8f4e1"
+        "address": "0xb564a5767a00ee9075cac561c427643286f8f4e1",
+        "decimals": 18
     },
     {
         "rank": 9,
         "name": "Bifrost Voucher MANTA",
         "symbol": "xcvMANTA",
-        "address": "0xffffffffda2a05fb50e7ae99275f4341aed43379"
+        "address": "0xffffffffda2a05fb50e7ae99275f4341aed43379",
+        "decimals": 18
     },
     {
         "rank": 10,
         "name": "Staked Frax Ether",
         "symbol": "sfrxETH",
-        "address": "0xecf91116348af1cffe335e9807f0051332be128d"
+        "address": "0xecf91116348af1cffe335e9807f0051332be128d",
+        "decimals": 18
     },
     {
         "rank": 11,
         "name": "Multichain Wrapped USDC",
         "symbol": "USDC",
-        "address": "0x818ec0a7fe18ff94269904fced6ae3dae6d6dc0b"
+        "address": "0x818ec0a7fe18ff94269904fced6ae3dae6d6dc0b",
+        "decimals": 6
     },
     {
         "rank": 12,
         "name": "Tether USD",
         "symbol": "xcUSDT",
-        "address": "0xffffffffea09fb06d082fd1275cd48b191cbcd1d"
+        "address": "0xffffffffea09fb06d082fd1275cd48b191cbcd1d",
+        "decimals": 6
     },
     {
         "rank": 13,
         "name": "Axelar Wrapped USDC",
         "symbol": "axlUSDC",
-        "address": "0xca01a1d0993565291051daff390892518acfad3a"
+        "address": "0xca01a1d0993565291051daff390892518acfad3a",
+        "decimals": 6
     },
     {
         "rank": 14,
         "name": "USD Coin",
         "symbol": "USDC",
-        "address": "0x931715fee2d06333043d11f658c8ce934ac61d0c"
+        "address": "0x931715fee2d06333043d11f658c8ce934ac61d0c",
+        "decimals": 6
     },
     {
         "rank": 15,
         "name": "Wrapped GLMR",
         "symbol": "WGLMR",
-        "address": "0xacc15dc74880c9944775448304b263d191c6077f"
+        "address": "0xacc15dc74880c9944775448304b263d191c6077f",
+        "decimals": 18
     },
     {
         "rank": 16,
         "name": "Frax",
         "symbol": "FRAX",
-        "address": "0x322e86852e492a7ee17f28a78c663da38fb33bfb"
+        "address": "0x322e86852e492a7ee17f28a78c663da38fb33bfb",
+        "decimals": 18
     },
     {
         "rank": 17,
         "name": "Frax Share",
         "symbol": "FXS",
-        "address": "0x2cc0a9d8047a5011defe85328a6f26968c8aaa1c"
+        "address": "0x2cc0a9d8047a5011defe85328a6f26968c8aaa1c",
+        "decimals": 18
     },
     {
         "rank": 18,
         "name": "Take Flight Alpha",
         "symbol": "TFA",
-        "address": "0xe065ffaf3f7ded69bb5cf5fdd1fd1dda2eee8493"
+        "address": "0xe065ffaf3f7ded69bb5cf5fdd1fd1dda2eee8493",
+        "decimals": 18
     },
     {
         "rank": 19,
         "name": "Tether USD",
         "symbol": "USDT",
-        "address": "0xc30e9ca94cf52f3bf5692aacf81353a27052c46f"
+        "address": "0xc30e9ca94cf52f3bf5692aacf81353a27052c46f",
+        "decimals": 6
     },
     {
         "rank": 20,
         "name": "Dai Stablecoin",
         "symbol": "DAI",
-        "address": "0x06e605775296e851ff43b4daa541bb0984e9d6fd"
+        "address": "0x06e605775296e851ff43b4daa541bb0984e9d6fd",
+        "decimals": 18
     },
     {
         "rank": 21,
         "name": "Bifrost Voucher DOT",
         "symbol": "xcvDOT",
-        "address": "0xffffffff15e1b7e3df971dd813bc394deb899abf"
+        "address": "0xffffffff15e1b7e3df971dd813bc394deb899abf",
+        "decimals": 10
     },
     {
         "rank": 22,
         "name": "Binance-Peg BUSD Token",
         "symbol": "BUSD",
-        "address": "0xa649325aa7c5093d12d6f98eb4378deae68ce23f"
+        "address": "0xa649325aa7c5093d12d6f98eb4378deae68ce23f",
+        "decimals": 18
     },
     {
         "rank": 23,
         "name": "Acala Liquid DOT",
         "symbol": "xcLDOT",
-        "address": "0xffffffffa9cfffa9834235fe53f4733f1b8b28d4"
+        "address": "0xffffffffa9cfffa9834235fe53f4733f1b8b28d4",
+        "decimals": 10
     },
     {
         "rank": 24,
         "name": "Tether USD",
         "symbol": "USDT",
-        "address": "0xefaeee334f0fd1712f9a8cc375f427d9cdd40d73"
+        "address": "0xefaeee334f0fd1712f9a8cc375f427d9cdd40d73",
+        "decimals": 6
     },
     {
         "rank": 25,
         "name": "Beamswap Token",
         "symbol": "GLINT",
-        "address": "0xcd3b51d98478d53f4515a306be565c6eebef1d58"
+        "address": "0xcd3b51d98478d53f4515a306be565c6eebef1d58",
+        "decimals": 18
     },
     {
         "rank": 26,
         "name": "Centrifuge",
         "symbol": "xcCFG",
-        "address": "0xffffffff44bd9d2ffee20b25d1cf9e78edb6eae3"
+        "address": "0xffffffff44bd9d2ffee20b25d1cf9e78edb6eae3",
+        "decimals": 18
     },
     {
         "rank": 27,
         "name": "Avalanche",
         "symbol": "AVAX",
-        "address": "0x4792c1ecb969b036eb51330c63bd27899a13d84e"
+        "address": "0x4792c1ecb969b036eb51330c63bd27899a13d84e",
+        "decimals": 18
     },
     {
         "rank": 28,
         "name": "Dai Stablecoin",
         "symbol": "DAI",
-        "address": "0x765277eebeca2e31912c9946eae1021199b39c61"
+        "address": "0x765277eebeca2e31912c9946eae1021199b39c61",
+        "decimals": 18
     },
     {
         "rank": 29,
         "name": "RMRK",
         "symbol": "RMRK",
-        "address": "0x524d524b4c9366be706d3a90dcf70076ca037ae3"
+        "address": "0x524d524b4c9366be706d3a90dcf70076ca037ae3",
+        "decimals": 18
     },
     {
         "rank": 30,
         "name": "Astar",
         "symbol": "xcASTR",
-        "address": "0xffffffffa893ad19e540e172c10d78d4d479b5cf"
+        "address": "0xffffffffa893ad19e540e172c10d78d4d479b5cf",
+        "decimals": 18
     },
     {
         "rank": 31,
         "name": "BOBA Token",
         "symbol": "BOBA",
-        "address": "0x18d17a9fd652d7d6a59903e23792ab97f832ed6c"
+        "address": "0x18d17a9fd652d7d6a59903e23792ab97f832ed6c",
+        "decimals": 18
     },
     {
         "rank": 32,
         "name": "Energyfi Token",
         "symbol": "EFT",
-        "address": "0xa423e7eeb60547d9c7b65005477b63ae7ce67e62"
+        "address": "0xa423e7eeb60547d9c7b65005477b63ae7ce67e62",
+        "decimals": 18
     },
     {
         "rank": 33,
         "name": "Fantom",
         "symbol": "FTM",
-        "address": "0xc19281f22a075e0f10351cd5d6ea9f0ac63d4327"
+        "address": "0xc19281f22a075e0f10351cd5d6ea9f0ac63d4327",
+        "decimals": 18
     },
     {
         "rank": 34,
         "name": "Staked GLINT",
         "symbol": "stGLINT",
-        "address": "0x63d43d0edda7de4b5ed9b2f2aa855f81fbd71697"
+        "address": "0x63d43d0edda7de4b5ed9b2f2aa855f81fbd71697",
+        "decimals": 18
     },
     {
         "rank": 35,
         "name": "BNC",
         "symbol": "xcBNC",
-        "address": "0xffffffff7cc06abdf7201b350a1265c62c8601d2"
+        "address": "0xffffffff7cc06abdf7201b350a1265c62c8601d2",
+        "decimals": 12
     },
     {
         "rank": 36,
         "name": "MoonBeans",
         "symbol": "BEANS",
-        "address": "0x65b09ef8c5a096c5fd3a80f1f7369e56eb932412"
+        "address": "0x65b09ef8c5a096c5fd3a80f1f7369e56eb932412",
+        "decimals": 18
     },
     {
         "rank": 37,
         "name": "Matic",
         "symbol": "MATIC",
-        "address": "0x3405a1bd46b85c5c029483fbecf2f3e611026e45"
+        "address": "0x3405a1bd46b85c5c029483fbecf2f3e611026e45",
+        "decimals": 18
     },
     {
         "rank": 38,
         "name": "Bifrost Voucher GLMR",
         "symbol": "xcvGLMR",
-        "address": "0xffffffff99dabe1a8de0ea22baa6fd48fde96f6c"
+        "address": "0xffffffff99dabe1a8de0ea22baa6fd48fde96f6c",
+        "decimals": 18
     },
     {
         "rank": 39,
         "name": "Pendulum",
         "symbol": "xcPEN",
-        "address": "0xffffffff2257622f345e1acde0d4f46d7d1d77d0"
+        "address": "0xffffffff2257622f345e1acde0d4f46d7d1d77d0",
+        "decimals": 12
     },
     {
         "rank": 40,
         "name": "Phala Token",
         "symbol": "xcPHA",
-        "address": "0xffffffff63d24ecc8eb8a7b5d0803e900f7b6ced"
+        "address": "0xffffffff63d24ecc8eb8a7b5d0803e900f7b6ced",
+        "decimals": 12
     },
     {
         "rank": 41,
         "name": "Frax Ether",
         "symbol": "frxETH",
-        "address": "0x82bbd1b6f6de2b7bb63d3e1546e6b1553508be99"
+        "address": "0x82bbd1b6f6de2b7bb63d3e1546e6b1553508be99",
+        "decimals": 18
     },
     {
         "rank": 42,
         "name": "Equilibrium Token",
         "symbol": "xcEQ",
-        "address": "0xffffffff8f6267e040d8a0638c576dfba4f0f6d6"
+        "address": "0xffffffff8f6267e040d8a0638c576dfba4f0f6d6",
+        "decimals": 9
     },
     {
         "rank": 43,
         "name": "Bifrost Filecoin Native Token",
         "symbol": "xcFIL",
-        "address": "0xffffffff6c57e17d210df507c82807149ffd70b2"
+        "address": "0xffffffff6c57e17d210df507c82807149ffd70b2",
+        "decimals": 18
     },
     {
         "rank": 44,
         "name": "Acala",
         "symbol": "xcACA",
-        "address": "0xffffffffa922fef94566104a6e5a35a4fcddaa9f"
+        "address": "0xffffffffa922fef94566104a6e5a35a4fcddaa9f",
+        "decimals": 12
     },
     {
         "rank": 45,
         "name": "BEPRO Network",
         "symbol": "BEPRO",
-        "address": "0x4edf8e0778967012d46968ceadb75436d0426f88"
+        "address": "0x4edf8e0778967012d46968ceadb75436d0426f88",
+        "decimals": 18
     },
     {
         "rank": 46,
         "name": "Cougar Token",
         "symbol": "CGS",
-        "address": "0x2dfc76901bb2ac2a5fa5fc479590a490bbb10a5f"
+        "address": "0x2dfc76901bb2ac2a5fa5fc479590a490bbb10a5f",
+        "decimals": 18
     },
     {
         "rank": 47,
         "name": "Subsocial",
         "symbol": "xcSUB",
-        "address": "0xffffffff43b4560bc0c451a3386e082bff50ac90"
+        "address": "0xffffffff43b4560bc0c451a3386e082bff50ac90",
+        "decimals": 10
     },
     {
         "rank": 48,
         "name": "Interlay",
         "symbol": "xcINTR",
-        "address": "0xffffffff4c1cbcd97597339702436d4f18a375ab"
+        "address": "0xffffffff4c1cbcd97597339702436d4f18a375ab",
+        "decimals": 10
     },
     {
         "rank": 49,
         "name": "Zeitgeist",
         "symbol": "xcZTG",
-        "address": "0xffffffff71815ab6142e0e20c7259126c6b40612"
+        "address": "0xffffffff71815ab6142e0e20c7259126c6b40612",
+        "decimals": 10
     },
     {
         "rank": 50,
         "name": "HydraDX",
         "symbol": "xcHDX",
-        "address": "0xffffffff345dc44ddae98df024eb494321e73fcc"
+        "address": "0xffffffff345dc44ddae98df024eb494321e73fcc",
+        "decimals": 12
     }
 ]

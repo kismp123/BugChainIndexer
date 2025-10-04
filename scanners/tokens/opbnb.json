@@ -3,54 +3,63 @@
         "rank": 1,
         "name": "Wrapped BNB",
         "symbol": "WBNB",
-        "address": "0x4200000000000000000000000000000000000006"
+        "address": "0x4200000000000000000000000000000000000006",
+        "decimals": 18
     },
     {
         "rank": 2,
         "name": "PancakeSwap Token",
         "symbol": "Cake",
-        "address": "0x2779106e4f4a8a28d77a24c18283651a2ae22d1c"
+        "address": "0x2779106e4f4a8a28d77a24c18283651a2ae22d1c",
+        "decimals": 18
     },
     {
         "rank": 3,
         "name": "Tether USD",
         "symbol": "USDT",
-        "address": "0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3"
+        "address": "0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3",
+        "decimals": 18
     },
     {
         "rank": 4,
         "name": "Ethereum Token",
         "symbol": "ETH",
-        "address": "0xe7798f023fc62146e8aa1b36da45fb70855a77ea"
+        "address": "0xe7798f023fc62146e8aa1b36da45fb70855a77ea",
+        "decimals": 18
     },
     {
         "rank": 5,
         "name": "binaryswap.io",
         "symbol": "0101",
-        "address": "0xa41b3067ec694dbec668c389550ba8fc589e5797"
+        "address": "0xa41b3067ec694dbec668c389550ba8fc589e5797",
+        "decimals": 18
     },
     {
         "rank": 6,
         "name": "Luigiswap",
         "symbol": "LUIGI",
-        "address": "0x196ad5a70279fc112db4f8baf6f5022c9b1cf0a5"
+        "address": "0x196ad5a70279fc112db4f8baf6f5022c9b1cf0a5",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "AllInXSwap Token",
         "symbol": "X",
-        "address": "0x9214a3e9b5c49eb146b2247bf0c892fab1bebf06"
+        "address": "0x9214a3e9b5c49eb146b2247bf0c892fab1bebf06",
+        "decimals": 18
     },
     {
         "rank": 8,
         "name": "CubiSwap Finance Token",
         "symbol": "CUBI",
-        "address": "0xb01d49c26416a352fac4fbb3d555d5f2543e3247"
+        "address": "0xb01d49c26416a352fac4fbb3d555d5f2543e3247",
+        "decimals": 18
     },
     {
         "rank": 9,
         "name": "opMoon",
         "symbol": "opMoon",
-        "address": "0xb26cfc2c8a5656cfe599fc344cbefec260ba9c0b"
+        "address": "0xb26cfc2c8a5656cfe599fc344cbefec260ba9c0b",
+        "decimals": 18
     }
 ]

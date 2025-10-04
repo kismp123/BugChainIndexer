@@ -2,28 +2,33 @@
 
 > **Multi-blockchain contract analysis and indexing system**
 
-BugChainIndexer is a comprehensive blockchain analysis platform that monitors, analyzes, and indexes contract data across 12 blockchain networks. The system uses Alchemy API for reliable data access and features an optimized backend delivering sub-second response times.
+BugChainIndexer is a comprehensive blockchain analysis platform that monitors, analyzes, and indexes contract data across 18 blockchain networks. The system uses Alchemy API for reliable data access and features an optimized backend delivering sub-second response times.
 
 ## ✨ Key Features
 
 ### 🔍 **Multi-Chain Analysis**
-- **12 Blockchain Networks**: Ethereum, Binance Smart Chain, Polygon, Arbitrum, Optimism, Base, Avalanche, Gnosis, Linea, Scroll, Mantle, opBNB
+- **18 Blockchain Networks**: Ethereum, BSC, Polygon, Arbitrum, Optimism, Base, Avalanche, Gnosis, Linea, Scroll, Mantle, opBNB, Arbitrum Nova, Polygon zkEVM, Celo, Cronos, Moonbeam, Moonriver
 - **Unified Processing**: Single codebase handles all networks with consistent data structures
 - **Parallel Execution**: Process multiple networks simultaneously for maximum efficiency
+- **Network-Specific Token Decimals**: Accurate decimals for 1,254 tokens across all networks
 
 ### 🚀 **High-Performance Scanning**
 - **50,000+ addresses/hour**: Revolutionary processing speed per network
 - **5-in-1 Pipeline**: Transfer events → Address filtering → EOA detection → Contract verification → Database storage
 - **Smart Batching**: Dynamic batch sizing with 300-1000 addresses per contract call
 - **80%+ Efficiency Gain**: Massive improvement over traditional individual scanners
-- **Dual RPC Architecture**: Separate clients for getLogs (regular RPC) and eth_call (Alchemy)
+- **Unified Alchemy RPC**: All RPC calls (getLogs, eth_call, eth_getTransactionByHash, etc.) use Alchemy for reliability
+- **Optimized Deployment Time Fetching**: Uses Alchemy API for eth_getTransactionByHash and eth_getBlockByNumber
 
 ### 💰 **Asset & Fund Tracking**
-- **Alchemy API Integration**: Token balances and portfolio data via Alchemy Data API v1
-- **Token Metadata Cache**: 30-day cache for symbol, name, decimals, logo
-- **Price Cache**: 4-hour cache for token prices with USD valuation
-- **Multi-Network Support**: Portfolio tracking across 12 blockchain networks
-- **Whitelisted Tokens**: Configurable token filtering per network
+- **BalanceHelper Contracts**: Batch balance queries using on-chain contracts (550M gas limit optimized)
+- **Alchemy Prices API**: Real-time token prices with 7-day update cycle
+- **Accurate Token Decimals**: Network-specific decimals from tokens files (not DB)
+- **Multi-Network Support**: Portfolio tracking across 18 blockchain networks
+- **PostgreSQL Advisory Locks**: Concurrent-safe fund updates across multiple networks
+- **ERC20 Balance Checking**: UnifiedScanner includes contracts with token holdings
+- **Dynamic Batch Sizing**: Adaptive chunk sizes (50-1000 addresses) based on performance
+- **Multi-level Fallback**: Full chunk → half chunk → individual calls for reliability
 
 ### 🗄️ **Advanced Database Management**
 - **PostgreSQL Optimization**: 455x performance improvement with partial indexes
@@ -66,16 +71,22 @@ BugChainIndexer is a comprehensive blockchain analysis platform that monitors, a
 BugChainIndexer/
 ├── scanners/                      # Core blockchain analysis engine
 │   ├── common/                    # Shared utilities and base classes
-│   │   ├── TokenMetadataCache.js  # 30-day token metadata cache
-│   │   ├── TokenPriceCache.js     # 4-hour token price cache
+│   │   ├── core.js                # Core blockchain functions with Alchemy integration
+│   │   ├── database.js            # PostgreSQL operations
 │   │   ├── Scanner.js             # Base scanner with dual RPC clients
+│   │   ├── alchemyRpc.js          # Alchemy RPC client with Prices API support
+│   │   ├── TokenPriceCache.js     # Token price fetching (price only)
 │   │   └── addressUtils.js        # EIP-55 address validation
 │   ├── core/                      # Scanner implementations
-│   │   ├── UnifiedScanner.js      # Main analysis pipeline
-│   │   ├── FundUpdater.js         # Alchemy-based portfolio tracker
+│   │   ├── UnifiedScanner.js      # Main pipeline with ERC20 balance checking
+│   │   ├── FundUpdater.js         # Portfolio tracker with advisory locks
 │   │   └── DataRevalidator.js     # Data validation and tagging
+│   ├── tokens/                    # Token configurations (18 networks)
+│   │   ├── ethereum.json          # 99 tokens with decimals
+│   │   ├── binance.json           # 100 tokens with decimals
+│   │   └── ...                    # 16 more networks (1,254 total)
 │   └── config/
-│       └── networks.js            # Network configurations (12 active)
+│       └── networks.js            # Network configurations (18 active)
 ├── server/
 │   ├── backend/                   # REST API backend
 │   │   └── services/
@@ -165,19 +176,18 @@ npm start  # Starts HTTPS server on port 443
 
 ## 🌐 Supported Networks
 
-**12 Active Networks:**
+**18 Active Networks:**
 
 ✅ **Fully Operational:**
-- Ethereum, Binance Smart Chain, Polygon
-- Arbitrum, Optimism, Base
-- Avalanche, Gnosis, Linea
-- Scroll, Mantle, opBNB
+- **Tier 1**: Ethereum, Binance Smart Chain, Polygon
+- **Tier 2**: Arbitrum, Optimism, Base
+- **Tier 3**: Avalanche, Gnosis, Linea, Scroll, Mantle, opBNB
+- **Tier 4**: Arbitrum Nova, Polygon zkEVM, Celo, Cronos, Moonbeam, Moonriver
 
-⚠️ **Disabled Networks** (available in config but not in active list):
-- Celo, Polygon zkEVM, Arbitrum Nova
-- Cronos, Moonbeam, Moonriver
-
-*Note: These networks are defined in networks.js but excluded from the active NETWORKS array in run.sh for operational reasons.*
+**Network Support:**
+- All networks have token decimals configured
+- Alchemy API integration for supported networks
+- Network-specific RPC fallbacks for reliability
 
 ## 📊 Performance Metrics
 
@@ -203,9 +213,15 @@ npm start  # Starts HTTPS server on port 443
 
 ### Scanners
 High-performance blockchain analysis engine with Alchemy API integration.
-- **UnifiedScanner**: Main analysis pipeline (transfer events → contract verification)
-- **FundUpdater**: Alchemy-based portfolio tracking with token metadata/price caching
+- **UnifiedScanner**: Main analysis pipeline with ERC20 balance checking
+- **FundUpdater**: Portfolio tracking with PostgreSQL advisory locks and network-specific decimals
 - **DataRevalidator**: Existing data validation and tagging
+
+**Key Improvements:**
+- Network-specific token decimals (1,254 tokens across 18 networks)
+- PostgreSQL advisory locks prevent concurrent update conflicts
+- ERC20 balance checking includes contracts with token holdings
+- Accurate fund calculations using tokens file decimals (not DB)
 
 ### Backend Server
 Express.js REST API with PostgreSQL database.
@@ -387,9 +403,10 @@ NETWORK=ethereum ./run.sh unified auto
 ### Moralis → Alchemy Migration
 This version has migrated from Moralis to Alchemy API:
 - **Removed**: Moralis SDK dependencies
-- **Added**: Alchemy Data API v1 for token balances
-- **Added**: Token metadata and price caching (30-day and 4-hour TTL)
+- **Added**: Alchemy Data API v1 for token balances and metadata
+- **Added**: Token price caching (7-day TTL)
 - **Improved**: Address validation with ethers.getAddress()
+- **Optimized**: Contract deployment time fetching via Alchemy RPC (eth_getTransactionByHash, eth_getBlockByNumber)
 - **Performance**: 99.5% improvement in multi-network queries
 
 ### Breaking Changes

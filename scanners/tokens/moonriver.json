@@ -3,138 +3,161 @@
         "rank": 1,
         "name": "BitcoinBR",
         "symbol": "BTCBR",
-        "address": "0xe57425f1598f9b0d6219706b77f4b3da573a3695"
+        "address": "0xe57425f1598f9b0d6219706b77f4b3da573a3695",
+        "decimals": 18
     },
     {
         "rank": 2,
         "name": "USD Coin",
         "symbol": "USDC",
-        "address": "0xe3f5a90f9cb311505cd691a46596599aa1a0ad7d"
+        "address": "0xe3f5a90f9cb311505cd691a46596599aa1a0ad7d",
+        "decimals": 6
     },
     {
         "rank": 3,
         "name": "Frax",
         "symbol": "FRAX",
-        "address": "0x1a93b23281cc1cde4c4741353f3064709a16197d"
+        "address": "0x1a93b23281cc1cde4c4741353f3064709a16197d",
+        "decimals": 18
     },
     {
         "rank": 4,
         "name": "RiverBoat",
         "symbol": "RIB",
-        "address": "0xbd90a6125a84e5c512129d622a75cdde176ade5e"
+        "address": "0xbd90a6125a84e5c512129d622a75cdde176ade5e",
+        "decimals": 18
     },
     {
         "rank": 5,
         "name": "Tether USD",
         "symbol": "USDT",
-        "address": "0xb44a9b6905af7c801311e8f4e76932ee959c663c"
+        "address": "0xb44a9b6905af7c801311e8f4e76932ee959c663c",
+        "decimals": 6
     },
     {
         "rank": 6,
         "name": "Dai Stablecoin",
         "symbol": "DAI",
-        "address": "0x80a16016cc4a2e6a2caca8a4a498b1699ff0f844"
+        "address": "0x80a16016cc4a2e6a2caca8a4a498b1699ff0f844",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "xcKSM",
         "symbol": "xcKSM",
-        "address": "0xffffffff1fcacbd218edc0eba20fc2308c778080"
+        "address": "0xffffffff1fcacbd218edc0eba20fc2308c778080",
+        "decimals": 12
     },
     {
         "rank": 8,
         "name": "Fantohm",
         "symbol": "FHM",
-        "address": "0xfa1fbb8ef55a4855e5688c0ee13ac3f202486286"
+        "address": "0xfa1fbb8ef55a4855e5688c0ee13ac3f202486286",
+        "decimals": 9
     },
     {
         "rank": 9,
         "name": "Wrapped MOVR",
         "symbol": "WMOVR",
-        "address": "0x98878b06940ae243284ca214f92bb71a2b032b8a"
+        "address": "0x98878b06940ae243284ca214f92bb71a2b032b8a",
+        "decimals": 18
     },
     {
         "rank": 10,
         "name": "MAI",
         "symbol": "miMatic",
-        "address": "0x7f5a79576620c046a293f54ffcdbd8f2468174f1"
+        "address": "0x7f5a79576620c046a293f54ffcdbd8f2468174f1",
+        "decimals": 18
     },
     {
         "rank": 11,
         "name": "Frax Share",
         "symbol": "FXS",
-        "address": "0x6f1d1ee50846fcbc3de91723e61cb68cfa6d0e98"
+        "address": "0x6f1d1ee50846fcbc3de91723e61cb68cfa6d0e98",
+        "decimals": 18
     },
     {
         "rank": 12,
         "name": "Crowns",
         "symbol": "CWS",
-        "address": "0x6fc9651f45b262ae6338a701d563ab118b1ec0ce"
+        "address": "0x6fc9651f45b262ae6338a701d563ab118b1ec0ce",
+        "decimals": 18
     },
     {
         "rank": 13,
         "name": "Moonscape",
         "symbol": "MSCP",
-        "address": "0x5c22ba65f65adffadfc0947382f2e7c286a0fe45"
+        "address": "0x5c22ba65f65adffadfc0947382f2e7c286a0fe45",
+        "decimals": 18
     },
     {
         "rank": 14,
         "name": "SolarBeam Token",
         "symbol": "SOLAR",
-        "address": "0x6bd193ee6d2104f14f94e2ca6efefae561a4334b"
+        "address": "0x6bd193ee6d2104f14f94e2ca6efefae561a4334b",
+        "decimals": 18
     },
     {
         "rank": 15,
         "name": "Zenlink Network Token",
         "symbol": "ZLK",
-        "address": "0x0f47ba9d9bde3442b42175e51d6a367928a1173b"
+        "address": "0x0f47ba9d9bde3442b42175e51d6a367928a1173b",
+        "decimals": 18
     },
     {
         "rank": 16,
         "name": "beefy.finance",
         "symbol": "BIFI",
-        "address": "0x173fd7434b8b50df08e3298f173487ebdb35fd14"
+        "address": "0x173fd7434b8b50df08e3298f173487ebdb35fd14",
+        "decimals": 18
     },
     {
         "rank": 17,
         "name": "HYDRO TOKEN",
         "symbol": "HYDRO",
-        "address": "0x946112efab61c3636cbd52de2e1392d7a75a6f01"
+        "address": "0x946112efab61c3636cbd52de2e1392d7a75a6f01",
+        "decimals": 18
     },
     {
         "rank": 18,
         "name": "Bifrost Voucher MOVR",
         "symbol": "xcvMOVR",
-        "address": "0xffffffff98e37bf6a393504b5adc5b53b4d0ba11"
+        "address": "0xffffffff98e37bf6a393504b5adc5b53b4d0ba11",
+        "decimals": 18
     },
     {
         "rank": 19,
         "name": "Voucher Ethereum",
         "symbol": "vETH",
-        "address": "0x3b25bc1dc591d24d60560d0135d6750a561d4764"
+        "address": "0x3b25bc1dc591d24d60560d0135d6750a561d4764",
+        "decimals": 18
     },
     {
         "rank": 20,
         "name": "MoonBeans",
         "symbol": "BEANS",
-        "address": "0xc2392dd3e3fed2c8ed9f7f0bdf6026fcd1348453"
+        "address": "0xc2392dd3e3fed2c8ed9f7f0bdf6026fcd1348453",
+        "decimals": 18
     },
     {
         "rank": 21,
         "name": "Impossible Decentralized Incubator Access Token",
         "symbol": "IDIA",
-        "address": "0x2d28aa28fa1e5e6bf121cf688309bf3faaae3c70"
+        "address": "0x2d28aa28fa1e5e6bf121cf688309bf3faaae3c70",
+        "decimals": 18
     },
     {
         "rank": 22,
         "name": "Space Token",
         "symbol": "SPACE",
-        "address": "0x55af5865807b196bd0197e0902746f31fbccfa58"
+        "address": "0x55af5865807b196bd0197e0902746f31fbccfa58",
+        "decimals": 18
     },
     {
         "rank": 23,
         "name": "Bifrost Voucher KSM",
         "symbol": "xcvKSM",
-        "address": "0xffffffffc6deec7fc8b11a2c8dde9a59f8c62efe"
+        "address": "0xffffffffc6deec7fc8b11a2c8dde9a59f8c62efe",
+        "decimals": 12
     }
 ]

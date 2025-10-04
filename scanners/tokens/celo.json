@@ -3,228 +3,266 @@
         "rank": 1,
         "name": "Tether USD",
         "symbol": "USD₮",
-        "address": "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e"
+        "address": "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e",
+        "decimals": 6
     },
     {
         "rank": 2,
         "name": "Celo native asset",
         "symbol": "CELO",
-        "address": "0x471ece3750da237f93b8e339c536989b8978a438"
+        "address": "0x471ece3750da237f93b8e339c536989b8978a438",
+        "decimals": 18
     },
     {
         "rank": 3,
         "name": "USDC",
         "symbol": "USDC",
-        "address": "0xceba9300f2b948710d2653dd7b07f33a8b32118c"
+        "address": "0xceba9300f2b948710d2653dd7b07f33a8b32118c",
+        "decimals": 6
     },
     {
         "rank": 4,
         "name": "Celo Dollar",
         "symbol": "cUSD",
-        "address": "0x765de816845861e75a25fca122bb6898b8b1282a"
+        "address": "0x765de816845861e75a25fca122bb6898b8b1282a",
+        "decimals": 18
     },
     {
         "rank": 5,
         "name": "Wrapped Ether",
         "symbol": "Celo native bridge",
-        "address": "0xd221812de1bd094f35587ee8e174b07b6167d9af"
+        "address": "0xd221812de1bd094f35587ee8e174b07b6167d9af",
+        "decimals": 18
     },
     {
         "rank": 6,
         "name": "BRLA Token",
         "symbol": "BRLA",
-        "address": "0xfecb3f7c54e2caae9dc6ac9060a822d47e053760"
+        "address": "0xfecb3f7c54e2caae9dc6ac9060a822d47e053760",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "Ethix",
         "symbol": "Wormhole",
-        "address": "0x9995cc8f20db5896943afc8ee0ba463259c931ed"
+        "address": "0x9995cc8f20db5896943afc8ee0ba463259c931ed",
+        "decimals": 18
     },
     {
         "rank": 8,
         "name": "SecureChain AI",
         "symbol": "SCAI",
-        "address": "0x774b9dd3977a7556bf16cc22b74b2991e4511e13"
+        "address": "0x774b9dd3977a7556bf16cc22b74b2991e4511e13",
+        "decimals": 18
     },
     {
         "rank": 9,
         "name": "Celo Euro",
         "symbol": "cEUR",
-        "address": "0xd8763cba276a3738e6de85b4b3bf5fded6d6ca73"
+        "address": "0xd8763cba276a3738e6de85b4b3bf5fded6d6ca73",
+        "decimals": 18
     },
     {
         "rank": 10,
         "name": "Mai Stablecoin",
         "symbol": "MAI",
-        "address": "0xb9c8f0d3254007ee4b98970b94544e473cd610ec"
+        "address": "0xb9c8f0d3254007ee4b98970b94544e473cd610ec",
+        "decimals": 18
     },
     {
         "rank": 11,
         "name": "GoodDollar",
         "symbol": "G$",
-        "address": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a"
+        "address": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a",
+        "decimals": 18
     },
     {
         "rank": 12,
         "name": "Ubeswap",
         "symbol": "UBE",
-        "address": "0x71e26d0e519d14591b9de9a0fe9513a398101490"
+        "address": "0x71e26d0e519d14591b9de9a0fe9513a398101490",
+        "decimals": 18
     },
     {
         "rank": 13,
         "name": "PLASTIK Token",
         "symbol": "PLASTIK",
-        "address": "0x27cd006548df7c8c8e9fdc4a67fa05c2e3ca5cf9"
+        "address": "0x27cd006548df7c8c8e9fdc4a67fa05c2e3ca5cf9",
+        "decimals": 9
     },
     {
         "rank": 14,
         "name": "Wrapped Bitcoin",
         "symbol": "BTC",
-        "address": "0xd629eb00deced2a080b7ec630ef6ac117e614f1b"
+        "address": "0xd629eb00deced2a080b7ec630ef6ac117e614f1b",
+        "decimals": 18
     },
     {
         "rank": 15,
         "name": "Wrapped Ether",
         "symbol": "Wormhole",
-        "address": "0x66803fb87abd4aac3cbb3fad7c3aa01f6f3fb207"
+        "address": "0x66803fb87abd4aac3cbb3fad7c3aa01f6f3fb207",
+        "decimals": 18
     },
     {
         "rank": 16,
         "name": "Celo Brazilian Real",
         "symbol": "cREAL",
-        "address": "0xe8537a3d056da446677b9e9d6c5db704eaab4787"
+        "address": "0xe8537a3d056da446677b9e9d6c5db704eaab4787",
+        "decimals": 18
     },
     {
         "rank": 17,
         "name": "Moola",
         "symbol": "MOO",
-        "address": "0x17700282592d6917f6a73d0bf8accf4d578c131e"
+        "address": "0x17700282592d6917f6a73d0bf8accf4d578c131e",
+        "decimals": 18
     },
     {
         "rank": 18,
         "name": "USD Coin",
         "symbol": "USDC",
-        "address": "0xef4229c8c3250c675f21bcefa42f58efbff6002a"
+        "address": "0xef4229c8c3250c675f21bcefa42f58efbff6002a",
+        "decimals": 6
     },
     {
         "rank": 19,
         "name": "JumpToken",
         "symbol": "JMPT",
-        "address": "0x1d18d0386f51ab03e7e84e71bda1681eba865f1f"
+        "address": "0x1d18d0386f51ab03e7e84e71bda1681eba865f1f",
+        "decimals": 18
     },
     {
         "rank": 20,
         "name": "USD Coin",
         "symbol": "Wormhole",
-        "address": "0x37f750b7cc259a2f741af45294f6a16572cf5cad"
+        "address": "0x37f750b7cc259a2f741af45294f6a16572cf5cad",
+        "decimals": 6
     },
     {
         "rank": 21,
         "name": "Tether USD",
         "symbol": "USDT",
-        "address": "0x617f3112bf5397d0467d315cc709ef968d9ba546"
+        "address": "0x617f3112bf5397d0467d315cc709ef968d9ba546",
+        "decimals": 6
     },
     {
         "rank": 22,
         "name": "Celo Canadian Dollar",
         "symbol": "cCAD",
-        "address": "0xff4ab19391af240c311c54200a492233052b6325"
+        "address": "0xff4ab19391af240c311c54200a492233052b6325",
+        "decimals": 18
     },
     {
         "rank": 23,
         "name": "Celo British Pound",
         "symbol": "cGBP",
-        "address": "0xccf663b1ff11028f0b19058d0f7b674004a40746"
+        "address": "0xccf663b1ff11028f0b19058d0f7b674004a40746",
+        "decimals": 18
     },
     {
         "rank": 24,
         "name": "Celo Australian Dollar",
         "symbol": "cAUD",
-        "address": "0x7175504c455076f15c04a2f90a8e352281f492f9"
+        "address": "0x7175504c455076f15c04a2f90a8e352281f492f9",
+        "decimals": 18
     },
     {
         "rank": 25,
         "name": "celoLaunch",
         "symbol": "cLA",
-        "address": "0x5927fd244e11db1c7b1215619144d2aabac80a4f"
+        "address": "0x5927fd244e11db1c7b1215619144d2aabac80a4f",
+        "decimals": 18
     },
     {
         "rank": 26,
         "name": "Celo Swiss Franc",
         "symbol": "cCHF",
-        "address": "0xb55a79f398e759e43c95b979163f30ec87ee131d"
+        "address": "0xb55a79f398e759e43c95b979163f30ec87ee131d",
+        "decimals": 18
     },
     {
         "rank": 27,
         "name": "Allbridge",
         "symbol": "ABR",
-        "address": "0x6e512bfc33be36f2666754e996ff103ad1680cc9"
+        "address": "0x6e512bfc33be36f2666754e996ff103ad1680cc9",
+        "decimals": 18
     },
     {
         "rank": 28,
         "name": "Celo South African Rand",
         "symbol": "cZAR",
-        "address": "0x4c35853a3b4e647fd266f4de678dcc8fec410bf6"
+        "address": "0x4c35853a3b4e647fd266f4de678dcc8fec410bf6",
+        "decimals": 18
     },
     {
         "rank": 29,
         "name": "VNX British Pound",
         "symbol": "VGBP",
-        "address": "0x7ae4265ecfc1f31bc0e112dfcfe3d78e01f4bb7f"
+        "address": "0x7ae4265ecfc1f31bc0e112dfcfe3d78e01f4bb7f",
+        "decimals": 18
     },
     {
         "rank": 30,
         "name": "SushiToken",
         "symbol": "SUSHI",
-        "address": "0x29dfce9c22003a4999930382fd00f9fd6133acd1"
+        "address": "0x29dfce9c22003a4999930382fd00f9fd6133acd1",
+        "decimals": 18
     },
     {
         "rank": 31,
         "name": "VNX Euro",
         "symbol": "VEUR",
-        "address": "0x9346f43c1588b6df1d52bdd6bf846064f92d9cba"
+        "address": "0x9346f43c1588b6df1d52bdd6bf846064f92d9cba",
+        "decimals": 18
     },
     {
         "rank": 32,
         "name": "VNX Franc",
         "symbol": "VCHF",
-        "address": "0xc5ebea9984c485ec5d58ca5a2d376620d93af871"
+        "address": "0xc5ebea9984c485ec5d58ca5a2d376620d93af871",
+        "decimals": 18
     },
     {
         "rank": 33,
         "name": "Celo Nigerian Naira",
         "symbol": "cNGN",
-        "address": "0xe2702bd97ee33c88c8f6f92da3b733608aa76f71"
+        "address": "0xe2702bd97ee33c88c8f6f92da3b733608aa76f71",
+        "decimals": 18
     },
     {
         "rank": 34,
         "name": "Mountain Protocol USD",
         "symbol": "USDM",
-        "address": "0x59d9356e565ab3a36dd77763fc0d87feaf85508c"
+        "address": "0x59d9356e565ab3a36dd77763fc0d87feaf85508c",
+        "decimals": 18
     },
     {
         "rank": 35,
         "name": "O3 Swap Token",
         "symbol": "O3",
-        "address": "0xee9801669c6138e84bd50deb500827b776777d28"
+        "address": "0xee9801669c6138e84bd50deb500827b776777d28",
+        "decimals": 18
     },
     {
         "rank": 36,
         "name": "Euro Coin",
         "symbol": "EUROC",
-        "address": "0xbddc3554269053544be0d6d027a73271225e9859"
+        "address": "0xbddc3554269053544be0d6d027a73271225e9859",
+        "decimals": 6
     },
     {
         "rank": 37,
         "name": "Wrapped Mountain Protocol USD",
         "symbol": "wUSDM",
-        "address": "0x57f5e098cad7a3d1eed53991d4d66c45c9af7812"
+        "address": "0x57f5e098cad7a3d1eed53991d4d66c45c9af7812",
+        "decimals": 18
     },
     {
         "rank": 38,
         "name": "SWEAT",
         "symbol": "SWEAT",
-        "address": "0x718aa4f7f026fd16086c842a68ce9ef55203b54f"
+        "address": "0x718aa4f7f026fd16086c842a68ce9ef55203b54f",
+        "decimals": 18
     }
 ]

@@ -538,15 +538,33 @@ class HttpRpcClient {
   isRpcSlow(rpcUrl) {
     const slowMap = slowRpcs.get(this.network);
     if (!slowMap) return false;
-    
+
     const slowUntil = slowMap.get(rpcUrl);
     if (!slowUntil) return false;
-    
+
     if (Date.now() > slowUntil) {
       slowMap.delete(rpcUrl);
       return false;
     }
     return true;
+  }
+
+  /**
+   * Force switch to next RPC by marking current rotation index RPC as temporarily failed
+   * Used when timeout occurs at scanner level before RPC level can detect it
+   */
+  forceNextRpc() {
+    const currentIndex = rpcRotation.get(this.network) || 0;
+    const currentRpc = this.config.rpcUrls[currentIndex];
+
+    if (currentRpc) {
+      console.log(`[${this.network}] 🔄 Forcing RPC switch from ${currentRpc.split('/')[2]} (timeout at scanner level)`);
+      this.markRpcAsTemporarilyFailed(currentRpc);
+      this.markRpcAsSlow(currentRpc);
+
+      // Move to next RPC in rotation
+      rpcRotation.set(this.network, (currentIndex + 1) % this.config.rpcUrls.length);
+    }
   }
 
   async makeRequest(method, params = [], maxGlobalRetries = 3) {
@@ -707,27 +725,63 @@ class HttpRpcClient {
           const isGasError = error.message?.includes('out of gas') ||
                              error.message?.includes('gas exhausted') ||
                              error.message?.includes('gas required exceeds');
-          
-          const isPermanentError = !isGasError && (
-                                 error.response?.status === 401 || 
+
+          // Method not supported errors should be temporary (RPC may not support specific methods)
+          const isMethodError = error.message?.toLowerCase().includes('method not found') ||
+                               error.message?.toLowerCase().includes('method not available');
+
+          // Network/DNS errors should be temporary (may be intermittent)
+          const isNetworkError = error.code === 'ENOTFOUND' ||
+                                error.code === 'ECONNREFUSED' ||
+                                error.code === 'ECONNRESET' ||
+                                error.message?.includes('getaddrinfo ENOTFOUND') ||
+                                error.message?.includes('ECONNREFUSED') ||
+                                error.message?.includes('ECONNRESET');
+
+          // Response format errors should be temporary
+          const isResponseError = error.message?.includes('Invalid RPC response') ||
+                                 error.message?.includes('missing result') ||
+                                 error.message?.includes('invalid json response');
+
+          const isPermanentError = !isGasError && !isMethodError && !isNetworkError && !isResponseError && (
+                                 error.response?.status === 401 ||
                                  error.response?.status === 403 ||
                                  error.message?.includes('Unauthorized') ||
-                                 error.message?.includes('method not found') ||
                                  error.message?.includes('Must be authenticated') ||
                                  error.message?.includes('API key disabled') ||
+                                 error.message?.includes('Please specify an address') ||
+                                 error.message?.includes('does not match certificate') ||
                                  error.message?.includes('sanctioned')); // LlamaRPC sanctioned addresses
 
           if (isPermanentError) {
             console.log(`[${this.network}] ❌ RPC endpoint permanently failed: ${rpcUrl} - ${error.message}`);
             this.markRpcAsPermanentlyFailed(rpcUrl);
             console.log(`[${this.network}] ⚠️  This RPC will be excluded from future attempts in this session`);
+          } else if (isMethodError) {
+            // Method not supported - mark as temporarily failed and try later
+            console.log(`[${this.network}] ⚠️  RPC method not supported on ${rpcUrl.split('/')[2]} - will retry later`);
+            this.markRpcAsTemporarilyFailed(rpcUrl);
+            this.markRpcAsSlow(rpcUrl); // Also mark as slow to deprioritize
+          } else if (isNetworkError) {
+            // Network/DNS error - mark as temporarily failed
+            console.log(`[${this.network}] 🔌 Network error for ${rpcUrl.split('/')[2]} - will retry later`);
+            this.markRpcAsTemporarilyFailed(rpcUrl);
+            this.markRpcAsSlow(rpcUrl); // Deprioritize unreachable endpoints
+          } else if (isResponseError) {
+            // Invalid response - mark as temporarily failed
+            console.log(`[${this.network}] 📡 Invalid response from ${rpcUrl.split('/')[2]} - will retry later`);
+            this.markRpcAsTemporarilyFailed(rpcUrl);
           } else {
-            // For temporary errors, mark as temporarily failed
+            // For other temporary errors, mark as temporarily failed
             this.markRpcAsTemporarilyFailed(rpcUrl);
           }
-          
+
           // Log the error with RPC URL for better debugging
-          const errorType = isTimeoutError ? 'TIMEOUT' : (isPermanentError ? 'PERMANENT' : 'TEMPORARY');
+          const errorType = isTimeoutError ? 'TIMEOUT' :
+                           (isPermanentError ? 'PERMANENT' :
+                           (isMethodError ? 'METHOD_UNSUPPORTED' :
+                           (isNetworkError ? 'NETWORK_ERROR' :
+                           (isResponseError ? 'INVALID_RESPONSE' : 'TEMPORARY'))));
           console.log(`[${this.network}][${errorType}] RPC error on ${rpcUrl.split('/')[2]}: ${error.message?.slice(0, 100)}`);
           
           if (i < availableRpcs.length - 1) {
@@ -772,6 +826,10 @@ class HttpRpcClient {
     return this.makeRequest('eth_getBlockByNumber', [blockHex, includeTxs]);
   }
 
+  async getTransactionByHash(txHash) {
+    return this.makeRequest('eth_getTransactionByHash', [txHash]);
+  }
+
   async getLogs(filter) {
     // Debug logging (commented for production)
     // console.log(`[${this.network}] 📡 Calling eth_getLogs with filter:`, JSON.stringify(filter).substring(0, 200));
@@ -799,11 +857,11 @@ class HttpRpcClient {
 }
 
 function createRpcClient(network) {
-  // Return both RPC clients separately
-  // HttpRpcClient for getLogs, AlchemyRPCClient for everything else
+  // Use Alchemy RPC for all RPC calls including getLogs
+  const alchemyClient = new AlchemyRPCClient(network);
   return {
-    logsClient: new HttpRpcClient(network),    // For getLogs only
-    alchemyClient: new AlchemyRPCClient(network)  // For all other calls
+    logsClient: alchemyClient,    // Same as alchemyClient (for backward compatibility)
+    alchemyClient: alchemyClient  // Primary client for all RPC calls
   };
 }
 
@@ -824,7 +882,7 @@ const CONTRACT_VALIDATOR_ABI = [
 
 const BALANCE_HELPER_ABI = [
   'function getNativeBalance(address[] memory addrs) external view returns(uint256[] memory)',
-  'function getTokenBalance(address addr, address[] memory tokens) external view returns(uint256[] memory, uint256[] memory)'
+  'function getTokenBalance(address[] memory addrs, address[] memory tokens) external view returns(uint256[] memory)'
 ];
 
 const ERC20_ABI = ['function balanceOf(address) external view returns(uint256)'];
@@ -891,10 +949,10 @@ class ContractCall {
     return this.balanceCache.get(network);
   }
 
-  async chunkOperation(addresses, operation, initialChunkSize = 50) {
+  async chunkOperation(addresses, operation, initialChunkSize = 100, maxChunkSize = null) {
     const results = [];
-    const minChunkSize = 10;
-    const maxChunkSize = 500;  // Increased maximum chunk size
+    const minChunkSize = 50;  // Increased from 20 for better performance
+    const effectiveMaxChunkSize = maxChunkSize || Math.max(initialChunkSize * 2, 200);
     let currentChunkSize = initialChunkSize;
     
     for (let i = 0; i < addresses.length; i += currentChunkSize) {
@@ -907,7 +965,7 @@ class ContractCall {
         
         results.push(...chunkResult);
         
-        currentChunkSize = this.adjustChunkSize(currentChunkSize, duration, minChunkSize, maxChunkSize);
+        currentChunkSize = this.adjustChunkSize(currentChunkSize, duration, minChunkSize, effectiveMaxChunkSize);
         
       } catch (error) {
         const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.5));
@@ -1019,125 +1077,93 @@ class ContractCall {
           }
         });
         return Promise.all(promises);
-      });
+      }, 500); // No contract validator - use individual calls with larger chunks
     }
 
+    // isContract: ~30k gas per address
+    // 900M / 30k = ~30,000 addresses theoretical max
+    // Use conservative 12,000 initial, max 25,000 for 900M gas target
     return this.chunkOperation(addresses, async (chunk) => {
-      // Helper function to process with retry on gas error
-      const processWithRetry = async (addrs) => {
-        try {
-          const iface = new ethers.Interface(validator.abi);
-          const checksumChunk = addrs.map(addr => ethers.getAddress(addr));
-          const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
+      const iface = new ethers.Interface(validator.abi);
+      const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
+      const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
 
-          const result = await rpc.call({
-            to: ethers.getAddress(validator.address),
-            data: calldata
-          });
+      const result = await rpc.call({
+        to: ethers.getAddress(validator.address),
+        data: calldata
+      });
 
-          const decoded = iface.decodeFunctionResult('isContract', result);
-          return decoded[0];
-        } catch (error) {
-          const errorMsg = error.message || error.toString();
-          const isGasError = errorMsg.includes('gas');
-
-          // If gas error and batch size > 1, try with half size
-          if (isGasError && addrs.length > 1) {
-            console.log(`[isContracts] Gas error with ${addrs.length} addresses, retrying with half size`);
-            const midpoint = Math.floor(addrs.length / 2);
-            const firstHalf = await processWithRetry(addrs.slice(0, midpoint));
-            const secondHalf = await processWithRetry(addrs.slice(midpoint));
-            return [...firstHalf, ...secondHalf];
-          }
-
-          // No fallback - throw the error
-          throw error;
-        }
-      };
-
-      return processWithRetry(chunk);
-    });
+      const decoded = iface.decodeFunctionResult('isContract', result);
+      return decoded[0];
+    }, 12000, 25000); // initialChunkSize, maxChunkSize
   }
 
   async fetchNativeBalances(network, addresses) {
     if (!addresses?.length) return [];
 
     const balanceHelper = this.getBalanceContract(network);
-    const rpc = this.getAlchemyClient(network);
-
     if (!balanceHelper) {
-      return this.chunkOperation(addresses, async (chunk) => {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const balance = await rpc.getBalance(addr);
-            return balance;
-          } catch (e) {
-            return '0x0';
-          }
-        });
-        return Promise.all(promises);
-      });
+      throw new Error(`BalanceHelper contract not configured for network: ${network}`);
     }
 
+    const rpc = this.getAlchemyClient(network);
+
+    // getNativeBalance: ~50k gas per address
+    // 900M / 50k = ~18,000 addresses theoretical max
+    // Use conservative 10,000 initial, max 17,000 for 900M gas target
     return this.chunkOperation(addresses, async (chunk) => {
-      try {
-        const iface = new ethers.Interface(balanceHelper.abi);
-        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-        const calldata = iface.encodeFunctionData('getNativeBalance', [checksumChunk]);
+      const iface = new ethers.Interface(balanceHelper.abi);
+      const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
+      const calldata = iface.encodeFunctionData('getNativeBalance', [checksumChunk]);
 
-        const result = await rpc.call({
-          to: ethers.getAddress(balanceHelper.address),
-          data: calldata
-        });
+      const result = await rpc.call({
+        to: ethers.getAddress(balanceHelper.address),
+        data: calldata
+      });
 
-        const decoded = iface.decodeFunctionResult('getNativeBalance', result);
-        return decoded[0];
-      } catch (error) {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const balance = await rpc.getBalance(addr);
-            return balance;
-          } catch (e) {
-            return '0x0';
-          }
-        });
-        return Promise.all(promises);
-      }
-    });
+      const decoded = iface.decodeFunctionResult('getNativeBalance', result);
+      return decoded[0];
+    }, 10000, 17000); // initialChunkSize, maxChunkSize
   }
 
   async fetchErc20Balances(network, holders, tokens) {
     if (!holders?.length || !tokens?.length) return new Map();
 
-    const results = new Map();
-    const rpc = this.getAlchemyClient(network);
-    const erc20Interface = new ethers.Interface(ERC20_ABI);
+    const balanceHelper = this.getBalanceContract(network);
+    if (!balanceHelper) {
+      throw new Error(`BalanceHelper contract not configured for network: ${network}`);
+    }
 
+    const rpc = this.getAlchemyClient(network);
+    const results = new Map();
+    const iface = new ethers.Interface(balanceHelper.abi);
     const checksumHolders = holders.map(addr => ethers.getAddress(addr));
     const checksumTokens = tokens.map(addr => ethers.getAddress(addr));
 
+    // New API: getTokenBalance(address[] addrs, address[] tokens)
+    // Returns: uint256[] balances (length = addrs.length * tokens.length)
+    const calldata = iface.encodeFunctionData('getTokenBalance', [checksumHolders, checksumTokens]);
+
+    const result = await rpc.call({
+      to: ethers.getAddress(balanceHelper.address),
+      data: calldata
+    });
+
+    const decoded = iface.decodeFunctionResult('getTokenBalance', result);
+    const balances = decoded[0]; // uint256[] balances (flat array)
+
+    // Parse flat array: balances[i * tokenLen + j] = balance of addrs[i] for tokens[j]
+    const tokenLen = tokens.length;
     for (let i = 0; i < holders.length; i++) {
       const holder = holders[i];
-      const checksumHolder = checksumHolders[i];
       const holderMap = new Map();
 
-      for (let j = 0; j < tokens.length; j++) {
-        const token = tokens[j];
-        const checksumToken = checksumTokens[j];
-
-        try {
-          const calldata = erc20Interface.encodeFunctionData('balanceOf', [checksumHolder]);
-
-          const result = await rpc.call({
-            to: checksumToken,
-            data: calldata
-          });
-
-          const decoded = erc20Interface.decodeFunctionResult('balanceOf', result);
-          holderMap.set(token, decoded[0].toString());
-        } catch (error) {
-          holderMap.set(token, '0');
-        }
+      for (let j = 0; j < tokenLen; j++) {
+        const balance = balances[i * tokenLen + j];
+        holderMap.set(tokens[j], {
+          balance: balance.toString()
+          // decimals removed - fetched from metadata cache in FundUpdater
+        });
       }
 
       results.set(holder, holderMap);
@@ -1163,44 +1189,25 @@ class ContractCall {
           }
         });
         return Promise.all(promises);
-      });
+      }, 200); // No contract validator - moderate chunk size for getCode calls
     }
 
+    // getCodeHashes: ~100k gas per address (code hash calculation)
+    // 900M / 100k = ~9,000 addresses theoretical max
+    // Use conservative 5,000 initial, max 8,500 for 900M gas target
     return this.chunkOperation(addresses, async (chunk) => {
-      // Helper function to process with retry on gas error
-      const processWithRetry = async (addrs) => {
-        try {
-          const iface = new ethers.Interface(validator.abi);
-          const checksumChunk = addrs.map(addr => ethers.getAddress(addr));
-          const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
+      const iface = new ethers.Interface(validator.abi);
+      const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
+      const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
 
-          const result = await rpc.call({
-            to: ethers.getAddress(validator.address),
-            data: calldata
-          });
+      const result = await rpc.call({
+        to: ethers.getAddress(validator.address),
+        data: calldata
+      });
 
-          const decoded = iface.decodeFunctionResult('getCodeHashes', result);
-          return decoded[0];
-        } catch (error) {
-          const errorMsg = error.message || error.toString();
-          const isGasError = errorMsg.includes('gas');
-
-          // If gas error and batch size > 1, try with half size
-          if (isGasError && addrs.length > 1) {
-            console.log(`[getCodeHashes] Gas error with ${addrs.length} addresses, retrying with half size`);
-            const midpoint = Math.floor(addrs.length / 2);
-            const firstHalf = await processWithRetry(addrs.slice(0, midpoint));
-            const secondHalf = await processWithRetry(addrs.slice(midpoint));
-            return [...firstHalf, ...secondHalf];
-          }
-
-          // No fallback - throw the error
-          throw error;
-        }
-      };
-
-      return processWithRetry(chunk);
-    });
+      const decoded = iface.decodeFunctionResult('getCodeHashes', result);
+      return decoded[0];
+    }, 5000, 8500); // initialChunkSize, maxChunkSize
   }
 }
 
@@ -1525,12 +1532,8 @@ async function getContractDeploymentTimeBatch(scanner, addresses) {
     // Process transaction details one by one (can't batch eth_getTransactionByHash)
     for (const [address, data] of contractsWithTxHash) {
       try {
-        const txData = await scanner.etherscanCall({
-          module: 'proxy',
-          action: 'eth_getTransactionByHash',
-          txhash: data.txHash
-        });
-        
+        const txData = await scanner.alchemyClient.getTransactionByHash(data.txHash);
+
         if (txData && txData.blockNumber) {
           results.set(address, { ...data, blockNumber: txData.blockNumber });
         }
@@ -1550,13 +1553,8 @@ async function getContractDeploymentTimeBatch(scanner, addresses) {
     const blockTimestamps = new Map();
     for (const blockNumber of uniqueBlockNumbers) {
       try {
-        const blockData = await scanner.etherscanCall({
-          module: 'proxy',
-          action: 'eth_getBlockByNumber',
-          tag: blockNumber,
-          boolean: false
-        });
-        
+        const blockData = await scanner.alchemyClient.getBlockByNumber(blockNumber, false);
+
         if (blockData && blockData.timestamp) {
           blockTimestamps.set(blockNumber, parseInt(blockData.timestamp, 16));
         }
@@ -1615,21 +1613,12 @@ async function getContractDeploymentTime(scanner, address) {
       
       if (creation.txHash) {
         // Get transaction details to get timestamp
-        const txData = await scanner.etherscanCall({
-          module: 'proxy',
-          action: 'eth_getTransactionByHash',
-          txhash: creation.txHash
-        });
-        
+        const txData = await scanner.alchemyClient.getTransactionByHash(creation.txHash);
+
         if (txData && txData.blockNumber) {
           // Get block details to get timestamp
-          const blockData = await scanner.etherscanCall({
-            module: 'proxy',
-            action: 'eth_getBlockByNumber',
-            tag: txData.blockNumber,
-            boolean: false
-          });
-          
+          const blockData = await scanner.alchemyClient.getBlockByNumber(txData.blockNumber, false);
+
           if (blockData && blockData.timestamp) {
             result.timestamp = parseInt(blockData.timestamp, 16);
             return result;

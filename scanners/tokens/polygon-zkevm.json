@@ -3,240 +3,280 @@
         "rank": 1,
         "name": "USD Coin",
         "symbol": "USDC",
-        "address": "0xa8ce8aee21bc2a48a5ef670afcc9274c7bbbc035"
+        "address": "0xa8ce8aee21bc2a48a5ef670afcc9274c7bbbc035",
+        "decimals": 6
     },
     {
         "rank": 2,
         "name": "Staked Frax Ether",
         "symbol": "sfrxETH",
-        "address": "0x7c2af1fb79d0b1c67d4eb802d44c673d0a1d2c04"
+        "address": "0x7c2af1fb79d0b1c67d4eb802d44c673d0a1d2c04",
+        "decimals": 18
     },
     {
         "rank": 3,
         "name": "USD Coin",
         "symbol": "USDC.E",
-        "address": "0x37eaa0ef3549a5bb7d431be78a3d99bd360d19e5"
+        "address": "0x37eaa0ef3549a5bb7d431be78a3d99bd360d19e5",
+        "decimals": 6
     },
     {
         "rank": 4,
         "name": "Wrapped BTC",
         "symbol": "WBTC",
-        "address": "0xea034fb02eb1808c2cc3adbc15f447b93cbe08e1"
+        "address": "0xea034fb02eb1808c2cc3adbc15f447b93cbe08e1",
+        "decimals": 8
     },
     {
         "rank": 5,
         "name": "Frax Ether",
         "symbol": "frxETH",
-        "address": "0xcf7ecee185f19e2e970a301ee37f93536ed66179"
+        "address": "0xcf7ecee185f19e2e970a301ee37f93536ed66179",
+        "decimals": 18
     },
     {
         "rank": 6,
         "name": "Wrapped Ether",
         "symbol": "WETH",
-        "address": "0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9"
+        "address": "0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "Dai Stablecoin",
         "symbol": "DAI",
-        "address": "0xc5015b9d9161dca7e18e32f6f25c4ad850731fd4"
+        "address": "0xc5015b9d9161dca7e18e32f6f25c4ad850731fd4",
+        "decimals": 18
     },
     {
         "rank": 8,
         "name": "Frax Price Index",
         "symbol": "FPI",
-        "address": "0x7e5845b1bfc9e6620893e48346bdb8541995a8d9"
+        "address": "0x7e5845b1bfc9e6620893e48346bdb8541995a8d9",
+        "decimals": 18
     },
     {
         "rank": 9,
         "name": "Polygon Ecosystem Token",
         "symbol": "POL",
-        "address": "0x22b21beddef74fe62f031d2c5c8f7a9f8a4b304d"
+        "address": "0x22b21beddef74fe62f031d2c5c8f7a9f8a4b304d",
+        "decimals": 18
     },
     {
         "rank": 10,
         "name": "Frax Price Index Share",
         "symbol": "FPIS",
-        "address": "0xde7df9036801676af0cb73661d93a098c0085fba"
+        "address": "0xde7df9036801676af0cb73661d93a098c0085fba",
+        "decimals": 18
     },
     {
         "rank": 11,
         "name": "Rocket Pool ETH",
         "symbol": "rETH",
-        "address": "0xb23c20efce6e24acca0cef9b7b7aa196b84ec942"
+        "address": "0xb23c20efce6e24acca0cef9b7b7aa196b84ec942",
+        "decimals": 18
     },
     {
         "rank": 12,
         "name": "Frax Share",
         "symbol": "FXS",
-        "address": "0x6b856a14cea1d7dcfaf80fa6936c0b75972ccace"
+        "address": "0x6b856a14cea1d7dcfaf80fa6936c0b75972ccace",
+        "decimals": 18
     },
     {
         "rank": 13,
         "name": "PancakeSwap Token",
         "symbol": "Cake",
-        "address": "0x0d1e753a25ebda689453309112904807625befbe"
+        "address": "0x0d1e753a25ebda689453309112904807625befbe",
+        "decimals": 18
     },
     {
         "rank": 14,
         "name": "Staked MATIC",
         "symbol": "stMATIC",
-        "address": "0x83b874c1e09d316059d929da402dcb1a98e92082"
+        "address": "0x83b874c1e09d316059d929da402dcb1a98e92082",
+        "decimals": 18
     },
     {
         "rank": 15,
         "name": "Aura",
         "symbol": "AURA",
-        "address": "0x1509706a6c66ca549ff0cb464de88231ddbe213b"
+        "address": "0x1509706a6c66ca549ff0cb464de88231ddbe213b",
+        "decimals": 18
     },
     {
         "rank": 16,
         "name": "Aave Token",
         "symbol": "AAVE",
-        "address": "0x68791cfe079814c46e0e25c19bcc5bfc71a744f7"
+        "address": "0x68791cfe079814c46e0e25c19bcc5bfc71a744f7",
+        "decimals": 18
     },
     {
         "rank": 17,
         "name": "Giveth",
         "symbol": "GIV",
-        "address": "0xddafb91475bbf6210a151fa911ac8fda7de46ec2"
+        "address": "0xddafb91475bbf6210a151fa911ac8fda7de46ec2",
+        "decimals": 18
     },
     {
         "rank": 18,
         "name": "ChainLink Token",
         "symbol": "LINK",
-        "address": "0x4b16e4752711a7abec32799c976f3cefc0111f2b"
+        "address": "0x4b16e4752711a7abec32799c976f3cefc0111f2b",
+        "decimals": 18
     },
     {
         "rank": 19,
         "name": "Frax",
         "symbol": "FRAX",
-        "address": "0xff8544fed5379d9ffa8d47a74ce6b91e632ac44d"
+        "address": "0xff8544fed5379d9ffa8d47a74ce6b91e632ac44d",
+        "decimals": 18
     },
     {
         "rank": 20,
         "name": "agEUR",
         "symbol": "agEUR",
-        "address": "0xa61beb4a3d02decb01039e378237032b351125b4"
+        "address": "0xa61beb4a3d02decb01039e378237032b351125b4",
+        "decimals": 18
     },
     {
         "rank": 21,
         "name": "Curve DAO Token",
         "symbol": "CRV",
-        "address": "0x3d5320821bfca19fb0b5428f2c79d63bd5246f89"
+        "address": "0x3d5320821bfca19fb0b5428f2c79d63bd5246f89",
+        "decimals": 18
     },
     {
         "rank": 22,
         "name": "Ankr Staked ETH",
         "symbol": "ankrETH",
-        "address": "0x12d8ce035c5de3ce39b1fdd4c1d5a745eaba3b8c"
+        "address": "0x12d8ce035c5de3ce39b1fdd4c1d5a745eaba3b8c",
+        "decimals": 18
     },
     {
         "rank": 23,
         "name": "Balancer",
         "symbol": "BAL",
-        "address": "0x120ef59b80774f02211563834d8e3b72cb1649d6"
+        "address": "0x120ef59b80774f02211563834d8e3b72cb1649d6",
+        "decimals": 18
     },
     {
         "rank": 24,
         "name": "Uniswap",
         "symbol": "UNI",
-        "address": "0x2548c94a3092494db3af864cc2cf781a72f55678"
+        "address": "0x2548c94a3092494db3af864cc2cf781a72f55678",
+        "decimals": 18
     },
     {
         "rank": 25,
         "name": "Gravita Debt Token",
         "symbol": "GRAI",
-        "address": "0xca68ad4ee5c96871ec6c6dac2f714a8437a3fe66"
+        "address": "0xca68ad4ee5c96871ec6c6dac2f714a8437a3fe66",
+        "decimals": 18
     },
     {
         "rank": 26,
         "name": "Davos.xyz USD",
         "symbol": "DUSD",
-        "address": "0x819d1daa794c1c46b841981b61cc978d95a17b8e"
+        "address": "0x819d1daa794c1c46b841981b61cc978d95a17b8e",
+        "decimals": 18
     },
     {
         "rank": 27,
         "name": "Dai Stablecoin",
         "symbol": "DAI",
-        "address": "0x744c5860ba161b5316f7e80d9ec415e2727e5bd5"
+        "address": "0x744c5860ba161b5316f7e80d9ec415e2727e5bd5",
+        "decimals": 18
     },
     {
         "rank": 28,
         "name": "Lido DAO Token",
         "symbol": "LDO",
-        "address": "0x7e2feea957b7d1606335e339754f4e52b452b792"
+        "address": "0x7e2feea957b7d1606335e339754f4e52b452b792",
+        "decimals": 18
     },
     {
         "rank": 29,
         "name": "Liquid Staking Matic",
         "symbol": "MaticX",
-        "address": "0xf9ed88937b2d82707d0eabd8c3d9aa4870b714d3"
+        "address": "0xf9ed88937b2d82707d0eabd8c3d9aa4870b714d3",
+        "decimals": 18
     },
     {
         "rank": 30,
         "name": "Mai Stablecoin",
         "symbol": "MAI",
-        "address": "0x615b25500403eb688be49221b303084d9cf0e5b4"
+        "address": "0x615b25500403eb688be49221b303084d9cf0e5b4",
+        "decimals": 18
     },
     {
         "rank": 31,
         "name": "Frax USD",
         "symbol": "frxUSD",
-        "address": "0x80eede496655fb9047dd39d9f418d5483ed600df"
+        "address": "0x80eede496655fb9047dd39d9f418d5483ed600df",
+        "decimals": 18
     },
     {
         "rank": 32,
         "name": "ZENF Token",
         "symbol": "ZENF",
-        "address": "0x8aaebb46e1742f4623e6e1621f909f01846ca5e2"
+        "address": "0x8aaebb46e1742f4623e6e1621f909f01846ca5e2",
+        "decimals": 18
     },
     {
         "rank": 33,
         "name": "Wrapped liquid staked Ether 2.0",
         "symbol": "wstETH",
-        "address": "0xbf6de60ccd9d22a5820a658fbe9fc87975ea204f"
+        "address": "0xbf6de60ccd9d22a5820a658fbe9fc87975ea204f",
+        "decimals": 18
     },
     {
         "rank": 34,
         "name": "Wrapped eETH",
         "symbol": "weETH",
-        "address": "0xcd68dff4415358c35a28f96fd5bf7083b22de1d6"
+        "address": "0xcd68dff4415358c35a28f96fd5bf7083b22de1d6",
+        "decimals": 18
     },
     {
         "rank": 35,
         "name": "Staked Frax Ether",
         "symbol": "sfrxETH",
-        "address": "0x3ec3849c33291a9ef4c5db86de593eb4a37fde45"
+        "address": "0x3ec3849c33291a9ef4c5db86de593eb4a37fde45",
+        "decimals": 18
     },
     {
         "rank": 36,
         "name": "Rocket Pool Protocol",
         "symbol": "RPL",
-        "address": "0x70d35152fbf63fb312709b11a9bac87519de0019"
+        "address": "0x70d35152fbf63fb312709b11a9bac87519de0019",
+        "decimals": 18
     },
     {
         "rank": 37,
         "name": "Staked Frax USD",
         "symbol": "sfrxUSD",
-        "address": "0x5bff88ca1442c2496f7e475e9e7786383bc070c0"
+        "address": "0x5bff88ca1442c2496f7e475e9e7786383bc070c0",
+        "decimals": 18
     },
     {
         "rank": 38,
         "name": "Frax Ether",
         "symbol": "frxETH",
-        "address": "0x43edd7f3831b08fe70b7555ddd373c8bf65a9050"
+        "address": "0x43edd7f3831b08fe70b7555ddd373c8bf65a9050",
+        "decimals": 18
     },
     {
         "rank": 39,
         "name": "Wrapped Frax",
         "symbol": "WFRAX",
-        "address": "0x64445f0aecc51e94ad52d8ac56b7190e764e561a"
+        "address": "0x64445f0aecc51e94ad52d8ac56b7190e764e561a",
+        "decimals": 18
     },
     {
         "rank": 40,
         "name": "Frax Price Index",
         "symbol": "FPI",
-        "address": "0x90581eca9469d8d7f5d3b60f4715027adfcf7927"
+        "address": "0x90581eca9469d8d7f5d3b60f4715027adfcf7927",
+        "decimals": 18
     }
 ]

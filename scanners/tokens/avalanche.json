@@ -3,300 +3,350 @@
         "rank": 1,
         "name": "TetherToken",
         "symbol": "USDt",
-        "address": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"
+        "address": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
+        "decimals": 6
     },
     {
         "rank": 2,
         "name": "USD Coin",
         "symbol": "USDC",
-        "address": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+        "address": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+        "decimals": 6
     },
     {
         "rank": 3,
         "name": "Bitcoin",
         "symbol": "BTC.b",
-        "address": "0x152b9d0fdc40c096757f570a51e494bd4b943e50"
+        "address": "0x152b9d0fdc40c096757f570a51e494bd4b943e50",
+        "decimals": 8
     },
     {
         "rank": 4,
         "name": "Wrapped AVAX",
         "symbol": "WAVAX",
-        "address": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
+        "address": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+        "decimals": 18
     },
     {
         "rank": 5,
         "name": "Cointel",
         "symbol": "COLS",
-        "address": "0x97f2624d5f99a953ae5574ea57d3268785941de4"
+        "address": "0x97f2624d5f99a953ae5574ea57d3268785941de4",
+        "decimals": 18
     },
     {
         "rank": 6,
         "name": "Wrapped Ether",
         "symbol": "WETH.e",
-        "address": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
+        "address": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "Aave Avalanche WETH",
         "symbol": "aAvaWETH",
-        "address": "0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8"
+        "address": "0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8",
+        "decimals": 18
     },
     {
         "rank": 8,
         "name": "MoveQuest",
         "symbol": "MQT",
-        "address": "0xef0cdae2ffeeefa539a244a16b3f46ba75b8c810"
+        "address": "0xef0cdae2ffeeefa539a244a16b3f46ba75b8c810",
+        "decimals": 18
     },
     {
         "rank": 9,
         "name": "ArenaToken",
         "symbol": "ARENA",
-        "address": "0xb8d7710f7d8349a506b75dd184f05777c82dad0c"
+        "address": "0xb8d7710f7d8349a506b75dd184f05777c82dad0c",
+        "decimals": 18
     },
     {
         "rank": 10,
         "name": "Aave Avalanche USDT",
         "symbol": "aAvaUSDT",
-        "address": "0x6ab707aca953edaefbc4fd23ba73294241490620"
+        "address": "0x6ab707aca953edaefbc4fd23ba73294241490620",
+        "decimals": 6
     },
     {
         "rank": 11,
         "name": "JoeToken",
         "symbol": "JOE",
-        "address": "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"
+        "address": "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd",
+        "decimals": 18
     },
     {
         "rank": 12,
         "name": "Pangolin",
         "symbol": "PNG",
-        "address": "0x60781c2586d68229fde47564546784ab3faca982"
+        "address": "0x60781c2586d68229fde47564546784ab3faca982",
+        "decimals": 18
     },
     {
         "rank": 13,
         "name": "BENQI",
         "symbol": "QI",
-        "address": "0x8729438eb15e2c8b576fcc6aecda6a148776c0f5"
+        "address": "0x8729438eb15e2c8b576fcc6aecda6a148776c0f5",
+        "decimals": 18
     },
     {
         "rank": 14,
         "name": "NXPC",
         "symbol": "NXPC",
-        "address": "0x5e0e90e268bc247cc850c789a0db0d5c7621fb59"
+        "address": "0x5e0e90e268bc247cc850c789a0db0d5c7621fb59",
+        "decimals": 18
     },
     {
         "rank": 15,
         "name": "Orange",
         "symbol": "ORNG",
-        "address": "0x6c14c1898c843ff66ca51e87244690bbc28df215"
+        "address": "0x6c14c1898c843ff66ca51e87244690bbc28df215",
+        "decimals": 18
     },
     {
         "rank": 16,
         "name": "BLACKHOLE",
         "symbol": "BLACK",
-        "address": "0xcd94a87696fac69edae3a70fe5725307ae1c43f6"
+        "address": "0xcd94a87696fac69edae3a70fe5725307ae1c43f6",
+        "decimals": 18
     },
     {
         "rank": 17,
         "name": "Wrapped BTC",
         "symbol": "WBTC.e",
-        "address": "0x50b7545627a5162f82a992c33b87adc75187b218"
+        "address": "0x50b7545627a5162f82a992c33b87adc75187b218",
+        "decimals": 8
     },
     {
         "rank": 18,
         "name": "GoGoPool Protocol",
         "symbol": "GGP",
-        "address": "0x69260b9483f9871ca57f81a90d91e2f96c2cd11d"
+        "address": "0x69260b9483f9871ca57f81a90d91e2f96c2cd11d",
+        "decimals": 18
     },
     {
         "rank": 19,
         "name": "USD Coin",
         "symbol": "USDC.e",
-        "address": "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
+        "address": "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+        "decimals": 6
     },
     {
         "rank": 20,
         "name": "Unity",
         "symbol": "UTY",
-        "address": "0xdbc5192a6b6ffee7451301bb4ec312f844f02b4a"
+        "address": "0xdbc5192a6b6ffee7451301bb4ec312f844f02b4a",
+        "decimals": 18
     },
     {
         "rank": 21,
         "name": "COQINU",
         "symbol": "COQ",
-        "address": "0x420fca0121dc28039145009570975747295f2329"
+        "address": "0x420fca0121dc28039145009570975747295f2329",
+        "decimals": 18
     },
     {
         "rank": 22,
         "name": "MyStandard",
         "symbol": "MYST",
-        "address": "0x0256b279d973c8d687264ac3eb36be09232d4474"
+        "address": "0x0256b279d973c8d687264ac3eb36be09232d4474",
+        "decimals": 18
     },
     {
         "rank": 23,
         "name": "AUSD",
         "symbol": "AUSD",
-        "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"
+        "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+        "decimals": 6
     },
     {
         "rank": 24,
         "name": "Avalaunch",
         "symbol": "XAVA",
-        "address": "0xd1c3f94de7e5b45fa4edbba472491a9f4b166fc4"
+        "address": "0xd1c3f94de7e5b45fa4edbba472491a9f4b166fc4",
+        "decimals": 18
     },
     {
         "rank": 25,
         "name": "Hypha Staked AVAX",
         "symbol": "stAVAX",
-        "address": "0xa25eaf2906fa1a3a13edac9b9657108af7b703e3"
+        "address": "0xa25eaf2906fa1a3a13edac9b9657108af7b703e3",
+        "decimals": 18
     },
     {
         "rank": 26,
         "name": "deUSD",
         "symbol": "deUSD",
-        "address": "0xb57b25851fe2311cc3fe511c8f10e868932e0680"
+        "address": "0xb57b25851fe2311cc3fe511c8f10e868932e0680",
+        "decimals": 18
     },
     {
         "rank": 27,
         "name": "Tether USD",
         "symbol": "USDT.e",
-        "address": "0xc7198437980c041c805a1edcba50c1ce5db95118"
+        "address": "0xc7198437980c041c805a1edcba50c1ce5db95118",
+        "decimals": 6
     },
     {
         "rank": 28,
         "name": "Gho Token",
         "symbol": "GHO",
-        "address": "0xfc421ad3c883bf9e7c4f42de845c4e4405799e73"
+        "address": "0xfc421ad3c883bf9e7c4f42de845c4e4405799e73",
+        "decimals": 18
     },
     {
         "rank": 29,
         "name": "Wirex Token",
         "symbol": "WXT",
-        "address": "0xfcde4a87b8b6fa58326bb462882f1778158b02f1"
+        "address": "0xfcde4a87b8b6fa58326bb462882f1778158b02f1",
+        "decimals": 18
     },
     {
         "rank": 30,
         "name": "Staked UTY",
         "symbol": "yUTY",
-        "address": "0x580d5e1399157fd0d58218b7a514b60974f2ab01"
+        "address": "0x580d5e1399157fd0d58218b7a514b60974f2ab01",
+        "decimals": 18
     },
     {
         "rank": 31,
         "name": "SPACEM WORLD",
         "symbol": "SPCM",
-        "address": "0x7cc9c624efa62c2decf0a2a028f7885ecea95a17"
+        "address": "0x7cc9c624efa62c2decf0a2a028f7885ecea95a17",
+        "decimals": 18
     },
     {
         "rank": 32,
         "name": "Vertical AI",
         "symbol": "VERTAI",
-        "address": "0x6edac263561da41ade155a992759260fafb87b43"
+        "address": "0x6edac263561da41ade155a992759260fafb87b43",
+        "decimals": 18
     },
     {
         "rank": 33,
         "name": "MOANI",
         "symbol": "MOANI",
-        "address": "0xeec951bfdeb358371a19512c6c33cdd840d47db0"
+        "address": "0xeec951bfdeb358371a19512c6c33cdd840d47db0",
+        "decimals": 18
     },
     {
         "rank": 34,
         "name": "Colony Token",
         "symbol": "CLY",
-        "address": "0xec3492a2508ddf4fdc0cd76f31f340b30d1793e6"
+        "address": "0xec3492a2508ddf4fdc0cd76f31f340b30d1793e6",
+        "decimals": 18
     },
     {
         "rank": 35,
         "name": "Chainlink Token",
         "symbol": "LINK.e",
-        "address": "0x5947bb275c521040051d82396192181b413227a3"
+        "address": "0x5947bb275c521040051d82396192181b413227a3",
+        "decimals": 18
     },
     {
         "rank": 36,
         "name": "Staked USDe",
         "symbol": "sUSDe",
-        "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
+        "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
+        "decimals": 18
     },
     {
         "rank": 37,
         "name": "SuperVerse",
         "symbol": "SUPER",
-        "address": "0x09fa58228bb791ea355c90da1e4783452b9bd8c3"
+        "address": "0x09fa58228bb791ea355c90da1e4783452b9bd8c3",
+        "decimals": 18
     },
     {
         "rank": 38,
         "name": "GMX",
         "symbol": "GMX",
-        "address": "0x62edc0692bd897d2295872a9ffcac5425011c661"
+        "address": "0x62edc0692bd897d2295872a9ffcac5425011c661",
+        "decimals": 18
     },
     {
         "rank": 39,
         "name": "Dai Stablecoin",
         "symbol": "DAI.e",
-        "address": "0xd586e7f844cea2f87f50152665bcbc2c279d8d70"
+        "address": "0xd586e7f844cea2f87f50152665bcbc2c279d8d70",
+        "decimals": 18
     },
     {
         "rank": 40,
         "name": "HUNDRED",
         "symbol": "HUNDRED",
-        "address": "0x4586af10ecceed4e383e3f2ec93b6c61e26500b5"
+        "address": "0x4586af10ecceed4e383e3f2ec93b6c61e26500b5",
+        "decimals": 18
     },
     {
         "rank": 41,
         "name": "Suzaku Token",
         "symbol": "SUZ",
-        "address": "0x451532f1c9eb7e4dc2d493db52b682c0acf6f5ef"
+        "address": "0x451532f1c9eb7e4dc2d493db52b682c0acf6f5ef",
+        "decimals": 18
     },
     {
         "rank": 42,
         "name": "Fautor",
         "symbol": "FTR",
-        "address": "0x61f23250451305f6c4426e81c50ae535edf94a02"
+        "address": "0x61f23250451305f6c4426e81c50ae535edf94a02",
+        "decimals": 18
     },
     {
         "rank": 43,
         "name": "Yield BTC.B",
         "symbol": "YBTC.B",
-        "address": "0x2cd3cdb3bd68eea0d3be81da707bc0c8743d7335"
+        "address": "0x2cd3cdb3bd68eea0d3be81da707bc0c8743d7335",
+        "decimals": 8
     },
     {
         "rank": 44,
         "name": "Euro Coin",
         "symbol": "EURC",
-        "address": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
+        "address": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd",
+        "decimals": 6
     },
     {
         "rank": 45,
         "name": "Aave Avalanche WBTC",
         "symbol": "aAvaWBTC",
-        "address": "0x078f358208685046a11c85e8ad32895ded33a249"
+        "address": "0x078f358208685046a11c85e8ad32895ded33a249",
+        "decimals": 8
     },
     {
         "rank": 46,
         "name": "GUNZ",
         "symbol": "GUN",
-        "address": "0x26debd39d5ed069770406fca10a0e4f8d2c743eb"
+        "address": "0x26debd39d5ed069770406fca10a0e4f8d2c743eb",
+        "decimals": 18
     },
     {
         "rank": 47,
         "name": "Jade Protocol",
         "symbol": "JADE",
-        "address": "0x80b010450fdaf6a3f8df033ee296e92751d603b3"
+        "address": "0x80b010450fdaf6a3f8df033ee296e92751d603b3",
+        "decimals": 18
     },
     {
         "rank": 48,
         "name": "Nuklai Token",
         "symbol": "NAI",
-        "address": "0x5ac34c53a04b9aaa0bf047e7291fb4e8a48f2a18"
+        "address": "0x5ac34c53a04b9aaa0bf047e7291fb4e8a48f2a18",
+        "decimals": 18
     },
     {
         "rank": 49,
         "name": "STEP.APP",
         "symbol": "FITFI",
-        "address": "0x714f020c54cc9d104b6f4f6998c63ce2a31d1888"
+        "address": "0x714f020c54cc9d104b6f4f6998c63ce2a31d1888",
+        "decimals": 18
     },
     {
         "rank": 50,
         "name": "Seedworld",
         "symbol": "SWORLD",
-        "address": "0x968be3f7bfef0f8edc3c1ad90232ebb0da0867aa"
+        "address": "0x968be3f7bfef0f8edc3c1ad90232ebb0da0867aa",
+        "decimals": 18
     }
 ]

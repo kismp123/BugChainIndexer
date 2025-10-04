@@ -3,7 +3,6 @@ pragma solidity ^0.8.19;
 
 interface IERC20 {
     function balanceOf(address) external view returns (uint256);
-    function decimals() external view returns (uint8);
 }
 
 contract BalanceHelper {
@@ -17,21 +16,21 @@ contract BalanceHelper {
     }
 
     function getTokenBalance(
-        address addr,
+        address[] memory addrs,
         address[] memory tokens
     )
         external
         view
-        returns (uint256[] memory balances, uint256[] memory decimals)
+        returns (uint256[] memory balances)
     {
-        uint256 len = tokens.length;
-        balances = new uint256[](len);
-        decimals = new uint256[](len);
+        uint256 addrLen = addrs.length;
+        uint256 tokenLen = tokens.length;
+        balances = new uint256[](addrLen * tokenLen);
 
-        for (uint256 i = 0; i < len; i++) {
-            address t = tokens[i];
-            balances[i] = _getBalance(t, addr);
-            decimals[i] = _getDecimalsOrDefault(t, 18); // Default to 18 on failure
+        for (uint256 i = 0; i < addrLen; i++) {
+            for (uint256 j = 0; j < tokenLen; j++) {
+                balances[i * tokenLen + j] = _getBalance(tokens[j], addrs[i]);
+            }
         }
     }
 
@@ -48,20 +47,4 @@ contract BalanceHelper {
         }
     }
 
-    function _getDecimalsOrDefault(address token, uint8 fallbackDecimals)
-        internal
-        view
-        returns (uint256 dec)
-    {
-        (bool ok, bytes memory data) =
-            token.staticcall(abi.encodeWithSelector(IERC20.decimals.selector));
-        if (ok && data.length >= 32) {
-            dec = uint256(uint8(bytes1(data[31]))); // Handle cases where uint8 is returned
-            // The above line safely extracts only uint8.
-            // Most cases are sufficient with abi.decode(data, (uint8)):
-            // dec = abi.decode(data, (uint8));
-        } else {
-            dec = fallbackDecimals;
-        }
-    }
 }

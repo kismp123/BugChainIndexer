@@ -3,600 +3,700 @@
         "rank": 1,
         "name": "Binance-Peg Ethereum Token",
         "symbol": "ETH",
-        "address": "0x2170ed0880ac9a755fd29b2688956bd959f933f8"
+        "address": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+        "decimals": 18
     },
     {
         "rank": 2,
         "name": "Binance-Peg BSC-USD",
         "symbol": "BSC-USD",
-        "address": "0x55d398326f99059ff775485246999027b3197955"
+        "address": "0x55d398326f99059ff775485246999027b3197955",
+        "decimals": 18
     },
     {
         "rank": 3,
         "name": "Binance-Peg XRP Token",
         "symbol": "XRP",
-        "address": "0x1d2f0da169ceb9fc7b3144628db156f3f6c60dbe"
+        "address": "0x1d2f0da169ceb9fc7b3144628db156f3f6c60dbe",
+        "decimals": 18
     },
     {
         "rank": 4,
         "name": "Thunder Wrapped BNB",
         "symbol": "BNB",
-        "address": "0x3e14602186dd9de538f729547b3918d24c823546"
+        "address": "0x3e14602186dd9de538f729547b3918d24c823546",
+        "decimals": 18
     },
     {
         "rank": 5,
         "name": "Wrapped BNB",
         "symbol": "WBNB",
-        "address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+        "address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+        "decimals": 18
     },
     {
         "rank": 6,
         "name": "Binance-Peg USD Coin",
         "symbol": "USDC",
-        "address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+        "address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "USDC",
         "symbol": "anyUSDC",
-        "address": "0x8965349fb649a33a30cbfda057d8ec2c48abe2a2"
+        "address": "0x8965349fb649a33a30cbfda057d8ec2c48abe2a2",
+        "decimals": 18
     },
     {
         "rank": 8,
         "name": "Binance-Peg Dogecoin Token",
         "symbol": "DOGE",
-        "address": "0xba2ae424d960c26247dd6c32edc70b295c744c43"
+        "address": "0xba2ae424d960c26247dd6c32edc70b295c744c43",
+        "decimals": 8
     },
     {
         "rank": 9,
         "name": "TRON",
         "symbol": "TRX",
-        "address": "0xce7de646e7208a4ef112cb6ed5038fa6cc6b12e3"
+        "address": "0xce7de646e7208a4ef112cb6ed5038fa6cc6b12e3",
+        "decimals": 6
     },
     {
         "rank": 10,
         "name": "Binance-Peg Cardano Token",
         "symbol": "ADA",
-        "address": "0x3ee2200efb3400fabb9aacf31297cbdd1d435d47"
+        "address": "0x3ee2200efb3400fabb9aacf31297cbdd1d435d47",
+        "decimals": 18
     },
     {
         "rank": 11,
         "name": "USDe",
         "symbol": "USDe",
-        "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+        "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+        "decimals": 18
     },
     {
         "rank": 12,
         "name": "Binance-Peg ChainLink Token",
         "symbol": "LINK",
-        "address": "0xf8a0bf9cf54bb92f17374d9e9a321e6a111a51bd"
+        "address": "0xf8a0bf9cf54bb92f17374d9e9a321e6a111a51bd",
+        "decimals": 18
     },
     {
         "rank": 13,
         "name": "Wrapped BTC",
         "symbol": "WBTC",
-        "address": "0x0555e30da8f98308edb960aa94c0db47230d2b9c"
+        "address": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+        "decimals": 8
     },
     {
         "rank": 14,
         "name": "Binance-Peg Avalanche Token",
         "symbol": "AVAX",
-        "address": "0x1ce0c2827e2ef14d5c4f29a091d735a204794041"
+        "address": "0x1ce0c2827e2ef14d5c4f29a091d735a204794041",
+        "decimals": 18
     },
     {
         "rank": 15,
         "name": "Stellar",
         "symbol": "XLM",
-        "address": "0x43c934a845205f0b514417d757d7235b8f53f1b9"
+        "address": "0x43c934a845205f0b514417d757d7235b8f53f1b9",
+        "decimals": 18
     },
     {
         "rank": 16,
         "name": "Binance-Peg Bitcoin Cash Token",
         "symbol": "BCH",
-        "address": "0x8ff795a6f4d97e7887c79bea79aba5cc76444adf"
+        "address": "0x8ff795a6f4d97e7887c79bea79aba5cc76444adf",
+        "decimals": 18
     },
     {
         "rank": 17,
         "name": "Binance-Peg Litecoin Token",
         "symbol": "LTC",
-        "address": "0x4338665cbb7b2485a8855a139b75d5e34ab0db94"
+        "address": "0x4338665cbb7b2485a8855a139b75d5e34ab0db94",
+        "decimals": 18
     },
     {
         "rank": 18,
         "name": "Binance-Peg BTCB Token",
         "symbol": "BTCB",
-        "address": "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c"
+        "address": "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+        "decimals": 18
     },
     {
         "rank": 19,
         "name": "Wrapped TON Coin",
         "symbol": "TONCOIN",
-        "address": "0x76a797a59ba2c17726896976b7b3747bfd1d220f"
+        "address": "0x76a797a59ba2c17726896976b7b3747bfd1d220f",
+        "decimals": 9
     },
     {
         "rank": 20,
         "name": "Binance-Peg SHIBA INU Token",
         "symbol": "SHIB",
-        "address": "0x2859e4544c4bb03966803b044a93563bd2d0dd4d"
+        "address": "0x2859e4544c4bb03966803b044a93563bd2d0dd4d",
+        "decimals": 18
     },
     {
         "rank": 21,
         "name": "Binance-Peg Polkadot Token",
         "symbol": "DOT",
-        "address": "0x7083609fce4d1d8dc0c979aab8c869ea2c873402"
+        "address": "0x7083609fce4d1d8dc0c979aab8c869ea2c873402",
+        "decimals": 18
     },
     {
         "rank": 22,
         "name": "Polkadot Token",
         "symbol": "Relay Chain",
-        "address": "0x8d010bf9c26881788b4e6bf5fd1bdc358c8f90b8"
+        "address": "0x8d010bf9c26881788b4e6bf5fd1bdc358c8f90b8",
+        "decimals": 18
     },
     {
         "rank": 23,
         "name": "Staked USDe",
         "symbol": "sUSDe",
-        "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
+        "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
+        "decimals": 18
     },
     {
         "rank": 24,
         "name": "World Liberty Financial",
         "symbol": "WLFI",
-        "address": "0x47474747477b199288bf72a1d702f7fe0fb1deea"
+        "address": "0x47474747477b199288bf72a1d702f7fe0fb1deea",
+        "decimals": 18
     },
     {
         "rank": 25,
         "name": "Binance-Peg Dai Token",
         "symbol": "DAI",
-        "address": "0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3"
+        "address": "0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3",
+        "decimals": 18
     },
     {
         "rank": 26,
         "name": "Binance-Peg Uniswap",
         "symbol": "UNI",
-        "address": "0xbf5140a22578168fd562dccf235e5d43a02ce9b1"
+        "address": "0xbf5140a22578168fd562dccf235e5d43a02ce9b1",
+        "decimals": 18
     },
     {
         "rank": 27,
         "name": "Binance-Peg Aave Token",
         "symbol": "AAVE",
-        "address": "0xfb6115445bff7b52feb98650c87f44907e58f802"
+        "address": "0xfb6115445bff7b52feb98650c87f44907e58f802",
+        "decimals": 18
     },
     {
         "rank": 28,
         "name": "ENA",
         "symbol": "ENA",
-        "address": "0x58538e6a46e07434d7e7375bc268d3cb839c0133"
+        "address": "0x58538e6a46e07434d7e7375bc268d3cb839c0133",
+        "decimals": 18
     },
     {
         "rank": 29,
         "name": "Pepe",
         "symbol": "PEPE",
-        "address": "0x25d887ce7a35172c62febfd67a1856f20faebb00"
+        "address": "0x25d887ce7a35172c62febfd67a1856f20faebb00",
+        "decimals": 18
     },
     {
         "rank": 30,
         "name": "MemeCore",
         "symbol": "M",
-        "address": "0x22b1458e780f8fa71e2f84502cee8b5a3cc731fa"
+        "address": "0x22b1458e780f8fa71e2f84502cee8b5a3cc731fa",
+        "decimals": 18
     },
     {
         "rank": 31,
         "name": "Binance-Peg NEAR Protocol",
         "symbol": "NEAR",
-        "address": "0x1fa4a73a3f0133f0025378af00236f3abdee5d63"
+        "address": "0x1fa4a73a3f0133f0025378af00236f3abdee5d63",
+        "decimals": 18
     },
     {
         "rank": 32,
         "name": "Aster",
         "symbol": "ASTER",
-        "address": "0x000ae314e2a2172a039b26378814c252734f556a"
+        "address": "0x000ae314e2a2172a039b26378814c252734f556a",
+        "decimals": 18
     },
     {
         "rank": 33,
         "name": "Fetch",
         "symbol": "FET",
-        "address": "0x031b41e504677879370e9dbcf937283a8691fa7f"
+        "address": "0x031b41e504677879370e9dbcf937283a8691fa7f",
+        "decimals": 18
     },
     {
         "rank": 34,
         "name": "Binance-Peg Ethereum Classic",
         "symbol": "ETC",
-        "address": "0x3d6545b08693dae087e957cb1180ee38b9e3c25e"
+        "address": "0x3d6545b08693dae087e957cb1180ee38b9e3c25e",
+        "decimals": 18
     },
     {
         "rank": 35,
         "name": "Binance-Peg BitTorrent Token",
         "symbol": "BTT",
-        "address": "0x8595f9da7b868b1822194faed312235e43007b49"
+        "address": "0x8595f9da7b868b1822194faed312235e43007b49",
+        "decimals": 18
     },
     {
         "rank": 36,
         "name": "ARB",
         "symbol": "Arbitrum",
-        "address": "0xa050ffb3eeb8200eeb7f61ce34ff644420fd3522"
+        "address": "0xa050ffb3eeb8200eeb7f61ce34ff644420fd3522",
+        "decimals": 18
     },
     {
         "rank": 37,
         "name": "MYX",
         "symbol": "MYX",
-        "address": "0xd82544bf0dfe8385ef8fa34d67e6e4940cc63e16"
+        "address": "0xd82544bf0dfe8385ef8fa34d67e6e4940cc63e16",
+        "decimals": 18
     },
     {
         "rank": 38,
         "name": "Binance-Peg Cosmos Token",
         "symbol": "ATOM",
-        "address": "0x0eb3a705fc54725037cc9e008bdede697f62f335"
+        "address": "0x0eb3a705fc54725037cc9e008bdede697f62f335",
+        "decimals": 18
     },
     {
         "rank": 39,
         "name": "VeChain",
         "symbol": "VET",
-        "address": "0x6fdcdfef7c496407ccb0cec90f9c5aaa1cc8d888"
+        "address": "0x6fdcdfef7c496407ccb0cec90f9c5aaa1cc8d888",
+        "decimals": 18
     },
     {
         "rank": 40,
         "name": "Lombard Staked Bitcoin",
         "symbol": "LBTC",
-        "address": "0xecac9c5f704e954931349da37f60e39f515c11c1"
+        "address": "0xecac9c5f704e954931349da37f60e39f515c11c1",
+        "decimals": 8
     },
     {
         "rank": 41,
         "name": "Binance-Peg Filecoin",
         "symbol": "FIL",
-        "address": "0x0d8ce2a99bb6e3b7db580ed848240e4a0f9ae153"
+        "address": "0x0d8ce2a99bb6e3b7db580ed848240e4a0f9ae153",
+        "decimals": 18
     },
     {
         "rank": 42,
         "name": "Renzo Restaked ETH",
         "symbol": "ezETH",
-        "address": "0x2416092f143378750bb29b79ed961ab195cceea5"
+        "address": "0x2416092f143378750bb29b79ed961ab195cceea5",
+        "decimals": 18
     },
     {
         "rank": 43,
         "name": "Solv BTC",
         "symbol": "SolvBTC",
-        "address": "0x4aae823a6a0b376de6a78e74ecc5b079d38cbcf7"
+        "address": "0x4aae823a6a0b376de6a78e74ecc5b079d38cbcf7",
+        "decimals": 18
     },
     {
         "rank": 44,
         "name": "Binance-Peg PAX Gold",
         "symbol": "PAXG",
-        "address": "0x7950865a9140cb519342433146ed5b40c6f210f7"
+        "address": "0x7950865a9140cb519342433146ed5b40c6f210f7",
+        "decimals": 18
     },
     {
         "rank": 45,
         "name": "APX Token",
         "symbol": "APX",
-        "address": "0x78f5d389f5cdccfc41594abab4b0ed02f31398b3"
+        "address": "0x78f5d389f5cdccfc41594abab4b0ed02f31398b3",
+        "decimals": 18
     },
     {
         "rank": 46,
         "name": "Binance-Peg Elrond Token",
         "symbol": "EGLD",
-        "address": "0xbf7c81fff98bbe61b40ed186e4afd6ddd01337fe"
+        "address": "0xbf7c81fff98bbe61b40ed186e4afd6ddd01337fe",
+        "decimals": 18
     },
     {
         "rank": 47,
         "name": "Binance-Peg Zcash Token",
         "symbol": "ZEC",
-        "address": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb"
+        "address": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb",
+        "decimals": 18
     },
     {
         "rank": 48,
         "name": "Curve DAO Token",
         "symbol": "CRV",
-        "address": "0x9996d0276612d23b35f90c51ee935520b3d7355b"
+        "address": "0x9996d0276612d23b35f90c51ee935520b3d7355b",
+        "decimals": 18
     },
     {
         "rank": 49,
         "name": "Optimism",
         "symbol": "OP",
-        "address": "0x170c84e3b1d282f9628229836086716141995200"
+        "address": "0x170c84e3b1d282f9628229836086716141995200",
+        "decimals": 18
     },
     {
         "rank": 50,
         "name": "PancakeSwap Token",
         "symbol": "Cake",
-        "address": "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"
+        "address": "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82",
+        "decimals": 18
     },
     {
         "rank": 51,
         "name": "Binance-Peg Paxos Standard",
         "symbol": "PAX",
-        "address": "0xb7f8cd00c5a06c0537e2abff0b58033d02e5e094"
+        "address": "0xb7f8cd00c5a06c0537e2abff0b58033d02e5e094",
+        "decimals": 18
     },
     {
         "rank": 52,
         "name": "Venus BTC",
         "symbol": "vBTC",
-        "address": "0x882c173bc7ff3b7786ca16dfed3dfffb9ee7847b"
+        "address": "0x882c173bc7ff3b7786ca16dfed3dfffb9ee7847b",
+        "decimals": 8
     },
     {
         "rank": 53,
         "name": "0G",
         "symbol": "0G",
-        "address": "0x4b948d64de1f71fcd12fb586f4c776421a35b3ee"
+        "address": "0x4b948d64de1f71fcd12fb586f4c776421a35b3ee",
+        "decimals": 18
     },
     {
         "rank": 54,
         "name": "FLOKI",
         "symbol": "FLOKI",
-        "address": "0xfb5b838b6cfeedc2873ab27866079ac55363d37e"
+        "address": "0xfb5b838b6cfeedc2873ab27866079ac55363d37e",
+        "decimals": 9
     },
     {
         "rank": 55,
         "name": "Dexe",
         "symbol": "DEXE",
-        "address": "0x6e88056e8376ae7709496ba64d37fa2f8015ce3e"
+        "address": "0x6e88056e8376ae7709496ba64d37fa2f8015ce3e",
+        "decimals": 18
     },
     {
         "rank": 56,
         "name": "Pendle",
         "symbol": "PENDLE",
-        "address": "0xb3ed0a426155b79b898849803e3b36552f7ed507"
+        "address": "0xb3ed0a426155b79b898849803e3b36552f7ed507",
+        "decimals": 18
     },
     {
         "rank": 57,
         "name": "BSC Conflux",
         "symbol": "bCFX",
-        "address": "0x045c4324039da91c52c55df5d785385aab073dcf"
+        "address": "0x045c4324039da91c52c55df5d785385aab073dcf",
+        "decimals": 18
     },
     {
         "rank": 58,
         "name": "Binance-Peg Tezos Token",
         "symbol": "XTZ",
-        "address": "0x16939ef78684453bfdfb47825f8a5f714f12623a"
+        "address": "0x16939ef78684453bfdfb47825f8a5f714f12623a",
+        "decimals": 18
     },
     {
         "rank": 59,
         "name": "Binance-Peg Synthetix Network Token",
         "symbol": "SNX",
-        "address": "0x9ac983826058b8a9c7aa1c9171441191232e8404"
+        "address": "0x9ac983826058b8a9c7aa1c9171441191232e8404",
+        "decimals": 18
     },
     {
         "rank": 60,
         "name": "USDX",
         "symbol": "USDX",
-        "address": "0xf3527ef8de265eaa3716fb312c12847bfba66cef"
+        "address": "0xf3527ef8de265eaa3716fb312c12847bfba66cef",
+        "decimals": 18
     },
     {
         "rank": 61,
         "name": "MIOTAC",
         "symbol": "IOTA",
-        "address": "0xd944f1d1e9d5f9bb90b62f9d45e447d989580782"
+        "address": "0xd944f1d1e9d5f9bb90b62f9d45e447d989580782",
+        "decimals": 6
     },
     {
         "rank": 62,
         "name": "BitTorrent",
         "symbol": "BTT",
-        "address": "0x352cb5e19b12fc216548a2677bd0fce83bae434b"
+        "address": "0x352cb5e19b12fc216548a2677bd0fce83bae434b",
+        "decimals": 18
     },
     {
         "rank": 63,
         "name": "Usual USD",
         "symbol": "USD0",
-        "address": "0x758a3e0b1f842c9306b783f8a4078c6c8c03a270"
+        "address": "0x758a3e0b1f842c9306b783f8a4078c6c8c03a270",
+        "decimals": 18
     },
     {
         "rank": 64,
         "name": "Binance-Peg FLOW Token",
         "symbol": "FLOW",
-        "address": "0xc943c5320b9c18c153d1e2d12cc3074bebfb31a2"
+        "address": "0xc943c5320b9c18c153d1e2d12cc3074bebfb31a2",
+        "decimals": 18
     },
     {
         "rank": 65,
         "name": "Decentraland",
         "symbol": "MANA",
-        "address": "0x26433c8127d9b4e9b71eaa15111df99ea2eeb2f8"
+        "address": "0x26433c8127d9b4e9b71eaa15111df99ea2eeb2f8",
+        "decimals": 18
     },
     {
         "rank": 66,
         "name": "Decentralized USD",
         "symbol": "USDD",
-        "address": "0x392004bee213f1ff580c867359c246924f21e6ad"
+        "address": "0x392004bee213f1ff580c867359c246924f21e6ad",
+        "decimals": 18
     },
     {
         "rank": 67,
         "name": "Trust Wallet",
         "symbol": "TWT",
-        "address": "0x4b0f1812e5df2a09796481ff14017e6005508003"
+        "address": "0x4b0f1812e5df2a09796481ff14017e6005508003",
+        "decimals": 18
     },
     {
         "rank": 68,
         "name": "TrueUSD",
         "symbol": "TUSD",
-        "address": "0x40af3827f39d0eacbf4a168f8d4ee67c121d11c9"
+        "address": "0x40af3827f39d0eacbf4a168f8d4ee67c121d11c9",
+        "decimals": 18
     },
     {
         "rank": 69,
         "name": "Frax Ether",
         "symbol": "frxETH",
-        "address": "0x64048a7eecf3a2f1ba9e144aac3d7db6e58f555e"
+        "address": "0x64048a7eecf3a2f1ba9e144aac3d7db6e58f555e",
+        "decimals": 18
     },
     {
         "rank": 70,
         "name": "Frax Ether",
         "symbol": "frxETH",
-        "address": "0x43edd7f3831b08fe70b7555ddd373c8bf65a9050"
+        "address": "0x43edd7f3831b08fe70b7555ddd373c8bf65a9050",
+        "decimals": 18
     },
     {
         "rank": 71,
         "name": "APENFT",
         "symbol": "NFT",
-        "address": "0x20ee7b720f4e4c4ffcb00c4065cdae55271aecca"
+        "address": "0x20ee7b720f4e4c4ffcb00c4065cdae55271aecca",
+        "decimals": 6
     },
     {
         "rank": 72,
         "name": "Binance-Peg APENFT Token",
         "symbol": "NFT",
-        "address": "0x1fc9004ec7e5722891f5f38bae7678efcb11d34d"
+        "address": "0x1fc9004ec7e5722891f5f38bae7678efcb11d34d",
+        "decimals": 6
     },
     {
         "rank": 73,
         "name": "Binance Beacon ETH",
         "symbol": "BETH",
-        "address": "0x250632378e573c6be1ac2f97fcdf00515d0aa91b"
+        "address": "0x250632378e573c6be1ac2f97fcdf00515d0aa91b",
+        "decimals": 18
     },
     {
         "rank": 74,
         "name": "Binance-Peg Compound Coin",
         "symbol": "COMP",
-        "address": "0x52ce071bd9b1c4b00a0b92d298c512478cad67e8"
+        "address": "0x52ce071bd9b1c4b00a0b92d298c512478cad67e8",
+        "decimals": 18
     },
     {
         "rank": 75,
         "name": "Onyxcoin",
         "symbol": "XCN",
-        "address": "0x7324c7c0d95cebc73eea7e85cbaac0dbdf88a05b"
+        "address": "0x7324c7c0d95cebc73eea7e85cbaac0dbdf88a05b",
+        "decimals": 18
     },
     {
         "rank": 76,
         "name": "Binance-Peg Axie Infinity Shard Token",
         "symbol": "AXS",
-        "address": "0x715d400f88c167884bbcc41c5fea407ed4d2f8a0"
+        "address": "0x715d400f88c167884bbcc41c5fea407ed4d2f8a0",
+        "decimals": 18
     },
     {
         "rank": 77,
         "name": "Binance-Peg eCash Token",
         "symbol": "XEC",
-        "address": "0x0ef2e7602add1733bfdb17ac3094d0421b502ca3"
+        "address": "0x0ef2e7602add1733bfdb17ac3094d0421b502ca3",
+        "decimals": 18
     },
     {
         "rank": 78,
         "name": "Astherus BNB",
         "symbol": "asBNB",
-        "address": "0x77734e70b6e88b4d82fe632a168edf6e700912b6"
+        "address": "0x77734e70b6e88b4d82fe632a168edf6e700912b6",
+        "decimals": 18
     },
     {
         "rank": 79,
         "name": "1INCH Token",
         "symbol": "1INCH",
-        "address": "0x111111111117dc0aa78b770fa6a738034120c302"
+        "address": "0x111111111117dc0aa78b770fa6a738034120c302",
+        "decimals": 18
     },
     {
         "rank": 80,
         "name": "AIOZ Network",
         "symbol": "AIOZ",
-        "address": "0x33d08d8c7a168333a85285a68c0042b39fc3741d"
+        "address": "0x33d08d8c7a168333a85285a68c0042b39fc3741d",
+        "decimals": 18
     },
     {
         "rank": 81,
         "name": "Venus USDT",
         "symbol": "vUSDT",
-        "address": "0xfd5840cd36d94d7229439859c0112a4185bc0255"
+        "address": "0xfd5840cd36d94d7229439859c0112a4185bc0255",
+        "decimals": 8
     },
     {
         "rank": 82,
         "name": "JUST",
         "symbol": "JST",
-        "address": "0xea998d307aca04d4f0a3b3036aba84ae2e409c0a"
+        "address": "0xea998d307aca04d4f0a3b3036aba84ae2e409c0a",
+        "decimals": 18
     },
     {
         "rank": 83,
         "name": "Staked Frax Ether",
         "symbol": "sfrxETH",
-        "address": "0x3cd55356433c89e50dc51ab07ee0fa0a95623d53"
+        "address": "0x3cd55356433c89e50dc51ab07ee0fa0a95623d53",
+        "decimals": 18
     },
     {
         "rank": 84,
         "name": "Staked Frax Ether",
         "symbol": "sfrxETH",
-        "address": "0x3ec3849c33291a9ef4c5db86de593eb4a37fde45"
+        "address": "0x3ec3849c33291a9ef4c5db86de593eb4a37fde45",
+        "decimals": 18
     },
     {
         "rank": 85,
         "name": "DORA",
         "symbol": "DORA",
-        "address": "0x23fe903be385832fd7bb82bf1fee93f696278888"
+        "address": "0x23fe903be385832fd7bb82bf1fee93f696278888",
+        "decimals": 18
     },
     {
         "rank": 86,
         "name": "Astherus USDF",
         "symbol": "USDF",
-        "address": "0x5a110fc00474038f6c02e89c707d638602ea44b5"
+        "address": "0x5a110fc00474038f6c02e89c707d638602ea44b5",
+        "decimals": 18
     },
     {
         "rank": 87,
         "name": "Axelar",
         "symbol": "AXL",
-        "address": "0x8b1f4432f943c465a973fedc6d7aa50fc96f1f65"
+        "address": "0x8b1f4432f943c465a973fedc6d7aa50fc96f1f65",
+        "decimals": 6
     },
     {
         "rank": 88,
         "name": "Frax",
         "symbol": "FRAX",
-        "address": "0x29ced01c447166958605519f10dcf8b0255fb379"
+        "address": "0x29ced01c447166958605519f10dcf8b0255fb379",
+        "decimals": 18
     },
     {
         "rank": 89,
         "name": "Frax",
         "symbol": "FRAX",
-        "address": "0x90c97f71e18723b0cf0dfa30ee176ab653e89f40"
+        "address": "0x90c97f71e18723b0cf0dfa30ee176ab653e89f40",
+        "decimals": 18
     },
     {
         "rank": 90,
         "name": "STBL_Token - STBL Governance Token",
         "symbol": "STBL",
-        "address": "0x8dedf84656fa932157e27c060d8613824e7979e3"
+        "address": "0x8dedf84656fa932157e27c060d8613824e7979e3",
+        "decimals": 18
     },
     {
         "rank": 91,
         "name": "Staked USDX",
         "symbol": "sUSDX",
-        "address": "0x7788a3538c5fc7f9c7c8a74eac4c898fc8d87d92"
+        "address": "0x7788a3538c5fc7f9c7c8a74eac4c898fc8d87d92",
+        "decimals": 18
     },
     {
         "rank": 92,
         "name": "Rekt",
         "symbol": "REKT",
-        "address": "0x20482b0b4d9d8f60d3ab432b92f4c4b901a0d10c"
+        "address": "0x20482b0b4d9d8f60d3ab432b92f4c4b901a0d10c",
+        "decimals": 18
     },
     {
         "rank": 93,
         "name": "SafePal Token",
         "symbol": "SFP",
-        "address": "0xd41fdb03ba84762dd66a0af1a6c8540ff1ba5dfb"
+        "address": "0xd41fdb03ba84762dd66a0af1a6c8540ff1ba5dfb",
+        "decimals": 18
     },
     {
         "rank": 94,
         "name": "Kusama",
         "symbol": "KSM",
-        "address": "0x2aa69e8d25c045b659787bc1f03ce47a388db6e8"
+        "address": "0x2aa69e8d25c045b659787bc1f03ce47a388db6e8",
+        "decimals": 18
     },
     {
         "rank": 95,
         "name": "Lombard",
         "symbol": "BARD",
-        "address": "0xd23a186a78c0b3b805505e5f8ea4083295ef9f3a"
+        "address": "0xd23a186a78c0b3b805505e5f8ea4083295ef9f3a",
+        "decimals": 18
     },
     {
         "rank": 96,
         "name": "LayerZero",
         "symbol": "ZRO",
-        "address": "0x6985884c4392d348587b19cb9eaaf157f13271cd"
+        "address": "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+        "decimals": 18
     },
     {
         "rank": 97,
         "name": "Binance-Peg IoTeX Network",
         "symbol": "IOTX",
-        "address": "0x9678e42cebeb63f23197d726b29b1cb20d0064e5"
+        "address": "0x9678e42cebeb63f23197d726b29b1cb20d0064e5",
+        "decimals": 18
     },
     {
         "rank": 98,
         "name": "Frax Share",
         "symbol": "FXS",
-        "address": "0xe48a3d7d0bc88d552f730b62c006bc925eadb9ee"
+        "address": "0xe48a3d7d0bc88d552f730b62c006bc925eadb9ee",
+        "decimals": 18
     },
     {
         "rank": 99,
         "name": "Binance-Peg Basic Attention Token",
         "symbol": "BAT",
-        "address": "0x101d82428437127bf1608f699cd651e6abf9766e"
+        "address": "0x101d82428437127bf1608f699cd651e6abf9766e",
+        "decimals": 18
     },
     {
         "rank": 100,
         "name": "uniBTC",
         "symbol": "uniBTC",
-        "address": "0x6b2a01a5f79deb4c2f3c0eda7b01df456fbd726a"
+        "address": "0x6b2a01a5f79deb4c2f3c0eda7b01df456fbd726a",
+        "decimals": 8
     }
 ]

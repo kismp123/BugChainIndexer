@@ -3,7 +3,6 @@
  * Fund Updater Scanner
  * Updates asset prices and balances using Alchemy API
  */
-const axios = require('axios');
 const Scanner = require('../common/Scanner');
 const fs = require('fs');
 const path = require('path');
@@ -11,11 +10,11 @@ const path = require('path');
 const { batchUpsertAddresses, normalizeAddress } = require('../common');
 const { CONFIG } = require('../config/networks.js');
 const TokenPriceCache = require('../common/TokenPriceCache');
-const TokenMetadataCache = require('../common/TokenMetadataCache');
 
 class FundUpdater extends Scanner {
-  constructor() {
+  constructor(network) {
     super('FundUpdater', {
+      network,
       timeout: 7200,
       batchSizes: {
         addresses: 1000
@@ -23,9 +22,7 @@ class FundUpdater extends Scanner {
     });
 
     this.delayDays = CONFIG.FUNDUPDATEDELAY || 7;
-    this.whitelistedTokens = null;
     this.priceCache = new TokenPriceCache();
-    this.metadataCache = new TokenMetadataCache();
 
     // Dynamic batch sizing for balance calls (for BalanceHelper mode)
     this.currentBatchSize = 200;  // Start with 200
@@ -68,32 +65,39 @@ class FundUpdater extends Scanner {
     return chunks;
   }
 
-  // Load whitelisted tokens from tokens folder
-  loadWhitelistedTokens() {
-    if (this.whitelistedTokens) return this.whitelistedTokens;
-    
-    try {
-      const tokensFile = path.join(__dirname, '..', 'tokens', `${this.network}.json`);
-      if (fs.existsSync(tokensFile)) {
-        const tokens = JSON.parse(fs.readFileSync(tokensFile, 'utf8'));
-        // Create a Set of token addresses for fast lookup (normalized to lowercase)
-        this.whitelistedTokens = new Set(
-          tokens.map(token => token.address.toLowerCase())
-        );
-        this.log(`📋 Loaded ${this.whitelistedTokens.size} whitelisted tokens for ${this.network}`);
-        return this.whitelistedTokens;
-      } else {
-        this.log(`⚠️  No token whitelist found for ${this.network} at ${tokensFile}`);
-        this.whitelistedTokens = new Set();
-        return this.whitelistedTokens;
-      }
-    } catch (error) {
-      this.log(`❌ Error loading token whitelist: ${error.message}`, 'error');
-      this.whitelistedTokens = new Set();
-      return this.whitelistedTokens;
-    }
-  }
+  // Load token addresses and symbol mapping from tokens/{network}.json file
+  // Returns: { tokenAddresses: [], addressToSymbolMap: {}, addressToTokenMap: {} }
+  loadTokenAddressMapping() {
+    const tokensFilePath = path.join(__dirname, '..', 'tokens', `${this.network}.json`);
+    let tokenAddresses = [];
+    let addressToSymbolMap = {};
+    let addressToTokenMap = {};
 
+    try {
+      const tokensData = JSON.parse(fs.readFileSync(tokensFilePath, 'utf8'));
+
+      tokensData.forEach(token => {
+        if (token.symbol && token.address) {
+          const addressLower = token.address.toLowerCase();
+          tokenAddresses.push(addressLower);
+          addressToSymbolMap[addressLower] = token.symbol;
+          addressToTokenMap[addressLower] = {
+            symbol: token.symbol,
+            name: token.name,
+            address: token.address,
+            decimals: token.decimals  // Use decimals from tokens file (no default)
+          };
+        }
+      });
+
+      this.log(`📋 Loaded ${tokenAddresses.length} token addresses from tokens/${this.network}.json`);
+    } catch (error) {
+      this.log(`⚠️  Failed to load tokens from file: ${error.message}`, 'warn');
+      this.log('📋 Falling back to empty token list', 'warn');
+    }
+
+    return { tokenAddresses, addressToSymbolMap, addressToTokenMap };
+  }
 
   async getOutdatedAddresses() {
     const allFlag = process.env.ALL_FLAG;
@@ -117,13 +121,11 @@ class FundUpdater extends Scanner {
     if (!allFlag) {
       query += `
       AND (last_fund_updated IS NULL OR last_fund_updated < $2)
-      AND (last_updated IS NOT NULL AND last_updated >= $3)
-      AND code_hash IS NOT NULL 
-      AND code_hash != $4
+      AND code_hash IS NOT NULL
+      AND code_hash != $3
       AND code_hash != ''`;
-      params.push(cutoffTime);        // $2: cutoff timestamp for last_fund_updated
-      params.push(cutoffTime);        // $3: minimum timestamp for last_updated (7 days ago)
-      params.push(this.ZERO_HASH);    // $4: zero hash to exclude
+      params.push(cutoffTime);        // $2: cutoff timestamp for last_fund_updated (7 days ago)
+      params.push(this.ZERO_HASH);    // $3: zero hash to exclude
     }
     
     query += `
@@ -131,17 +133,17 @@ class FundUpdater extends Scanner {
     
     // Add high fund filter if enabled
     if (highFundFlag) {
-      const fundParamIndex = allFlag ? '$2' : '$5';
-      const limitParamIndex = allFlag ? '$3' : '$6';
-      
+      const fundParamIndex = allFlag ? '$2' : '$4';
+      const limitParamIndex = allFlag ? '$3' : '$5';
+
       query += ` AND fund >= ${fundParamIndex}`;
       params.push(minFund);
       query += ` ORDER BY fund DESC, last_fund_updated ASC NULLS FIRST LIMIT ${limitParamIndex}`;
       params.push(maxBatch);
-      
+
       this.log(`🏛️ High fund mode enabled: targeting addresses with fund >= ${minFund.toLocaleString()}`);
     } else {
-      const limitParamIndex = allFlag ? '$2' : '$5';
+      const limitParamIndex = allFlag ? '$2' : '$4';
       query += ` ORDER BY last_fund_updated ASC NULLS FIRST LIMIT ${limitParamIndex}`;
       params.push(maxBatch);
     }
@@ -161,389 +163,233 @@ class FundUpdater extends Scanner {
     return addresses;
   }
 
-  // Get native token address for each network
-  getNativeTokenAddress() {
-    const nativeTokens = {
-      'ethereum': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-      'polygon': '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', // WMATIC
-      'arbitrum': '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', // WETH on Arbitrum
-      'optimism': '0x4200000000000000000000000000000000000006', // WETH on Optimism
-      'base': '0x4200000000000000000000000000000000000006', // WETH on Base
-      'binance': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // WBNB
-      'avalanche': '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', // WAVAX
-      'cronos': '0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23', // WCRO
-      'fantom': '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83', // WFTM
-      'moonbeam': '0xAcc15dC74880C9944775448304B263D191c6077F', // WGLMR
-      'moonriver': '0x98878B06940aE243284CA214f92Bb71a2b032B8A', // WMOVR
-      'gnosis': '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d', // WXDAI
-      'celo': '0x471EcE3750Da237f93B8E339c536989b8978a438', // CELO
-      'linea': '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f', // WETH on Linea
-      'scroll': '0x5300000000000000000000000000000000000004', // WETH on Scroll
-      'mantle': '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8', // WMNT
-      'opbnb': '0x4200000000000000000000000000000000000006' // WBNB on opBNB
-    };
-    return nativeTokens[this.network];
-  }
 
-  // Get native token symbol for each network
-  getNativeSymbol() {
-    const nativeSymbols = {
-      'ethereum': 'ETH',
-      'polygon': 'MATIC',
-      'arbitrum': 'ETH',
-      'optimism': 'ETH',
-      'base': 'ETH',
-      'binance': 'BNB',
-      'avalanche': 'AVAX',
-      'cronos': 'CRO',
-      'fantom': 'FTM',
-      'moonbeam': 'GLMR',
-      'moonriver': 'MOVR',
-      'gnosis': 'xDAI',
-      'celo': 'CELO',
-      'linea': 'ETH',
-      'scroll': 'ETH',
-      'mantle': 'MNT',
-      'opbnb': 'BNB'
-    };
-    return nativeSymbols[this.network] || 'ETH';
-  }
+  // [REMOVED] Unused functions:
+  // - getTokenAddressesFromDatabase() -> tokens loaded from tokens/{network}.json file
+  // - fetchTokenPrices() -> prices fetched from symbol_prices table
+  // - fetchPortfolioWithAlchemy() -> using BalanceHelper contract for batch processing
 
-  // Get token addresses from database for BalanceHelper mode
-  async getTokenAddressesFromDatabase() {
-    try {
-      const result = await this.queryDB(`
-        SELECT token_address
-        FROM tokens
-        WHERE network = $1 AND is_valid = true
-        ORDER BY token_address
-      `, [this.network]);
-
-      const addresses = result.rows.map(row => row.token_address.toLowerCase());
-      this.log(`📋 Found ${addresses.length} valid tokens for ${this.network}`);
-      return addresses;
-    } catch (error) {
-      this.log(`Error fetching token addresses: ${error.message}`, 'warn');
-      return []; // Return empty array as fallback
-    }
-  }
-
-  // Fetch token prices using Alchemy Prices API
-  async fetchTokenPrices(tokenAddresses) {
-    const apiKey = process.env.ALCHEMY_API_KEY;
-    if (!apiKey || !tokenAddresses || tokenAddresses.length === 0) {
-      return {};
-    }
-
-    // Validate and normalize all token addresses
-    const validAddresses = tokenAddresses
-      .map(addr => normalizeAddress(addr))
-      .filter(addr => addr !== null);
-
-    if (validAddresses.length === 0) {
-      this.log('⚠️  No valid token addresses to fetch prices for');
-      return {};
-    }
+  /**
+   * Fetch and update token prices using Alchemy Prices API (by symbol)
+   * Also fetches decimals from alchemy_getTokenMetadata if not available
+   */
+  async updateTokenPrices() {
+    // Use advisory lock to prevent concurrent symbol_prices updates across networks
+    const lockId = 12345; // Fixed ID for symbol_prices table updates
 
     try {
-      // Use alchemyNetwork from networks.js config
-      const networkConfig = CONFIG[this.network];
-      if (!networkConfig || !networkConfig.alchemyNetwork) {
-        return {};
-      }
-      const network = networkConfig.alchemyNetwork;
+      // Acquire advisory lock
+      this.log('🔒 Acquiring lock for symbol_prices updates...');
+      await this.queryDB('SELECT pg_advisory_lock($1)', [lockId]);
+      this.log('✅ Lock acquired');
 
-      // Use proxy if configured
-      let baseUrl;
-      if (process.env.USE_ALCHEMY_PROXY === 'true') {
-        const proxyUrl = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3002';
-        baseUrl = `${proxyUrl}/v1/${apiKey}/prices/tokens/by-address`;
-      } else {
-        baseUrl = `https://api.g.alchemy.com/prices/v1/${apiKey}/tokens/by-address`;
+      // Load all tokens from tokens/{network}.json
+      const { addressToSymbolMap, addressToTokenMap } = this.loadTokenAddressMapping();
+      const allSymbols = [...new Set(Object.values(addressToSymbolMap))];
+
+      if (allSymbols.length === 0) {
+        this.log('⚠️ No symbols found in tokens file', 'warn');
+        return;
       }
 
-      // Prepare request for batch price fetching
-      const requestBody = {
-        addresses: validAddresses.map(addr => ({
-          network: network,
-          address: addr
-        }))
-      };
+      // Filter symbols that need update (7 days old or never updated)
+      const cutoffTime = this.currentTime - (this.delayDays * 24 * 60 * 60);
+      const checkQuery = `
+        SELECT symbol FROM symbol_prices
+        WHERE LOWER(symbol) = ANY($1::text[])
+        AND (last_updated IS NULL OR last_updated < $2)
+      `;
+      const symbolsLower = allSymbols.map(s => s.toLowerCase());
+      const needUpdateResult = await this.queryDB(checkQuery, [symbolsLower, cutoffTime]);
+      const symbolsNeedingUpdate = new Set(needUpdateResult.rows.map(r => r.symbol.toUpperCase()));
 
-      const response = await axios.post(baseUrl, requestBody, {
-        headers: {
-          'accept': 'application/json',
-          'content-type': 'application/json'
-        }
-      });
+      // Filter to only symbols that need updating
+      const symbolsToUpdate = allSymbols.filter(s => symbolsNeedingUpdate.has(s.toUpperCase()));
 
-      // Convert response to a map for easy lookup
-      const priceMap = {};
-      if (response.data && response.data.data) {
-        response.data.data.forEach(item => {
-          if (item.prices && item.prices.length > 0) {
-            // Use the first price (usually USD) and convert to number
-            priceMap[item.address.toLowerCase()] = parseFloat(item.prices[0].value);
-          }
-        });
+      if (symbolsToUpdate.length === 0) {
+        this.log(`✅ All ${allSymbols.length} symbols are up-to-date (updated within ${this.delayDays} days)`);
+        return;
       }
 
-      return priceMap;
-    } catch (error) {
-      this.log(`⚠️  Error fetching token prices: ${error.message}`);
-      return {};
-    }
-  }
+      this.log(`💰 Fetching prices for ${symbolsToUpdate.length}/${allSymbols.length} symbols from Alchemy Prices API (${allSymbols.length - symbolsToUpdate.length} already up-to-date)...`);
 
-  // Fetch portfolio data from Alchemy Data API (v1)
-  async fetchPortfolioWithAlchemy(address) {
-    const apiKey = process.env.ALCHEMY_API_KEY;
-    if (!apiKey) {
-      this.log('⚠️  Alchemy API key not found');
-      return null;
-    }
+      // Fetch token prices from Alchemy API (max 25 symbols per call to avoid 400 errors)
+      const batchSize = 25;
+      let totalUpdated = 0;
+      let tokensNeedingDecimals = [];
 
-    // Normalize and validate address before API call
-    const normalizedAddress = normalizeAddress(address);
-    if (!normalizedAddress) {
-      this.log(`❌ Invalid address: ${address}`);
-      return null;
-    }
+      for (let i = 0; i < symbolsToUpdate.length; i += batchSize) {
+        const symbolBatch = symbolsToUpdate.slice(i, i + batchSize);
 
-    try {
-      // Use alchemyNetwork from networks.js config
-      const networkConfig = CONFIG[this.network];
-      if (!networkConfig || !networkConfig.alchemyNetwork) {
-        this.log(`⚠️  Network ${this.network} not supported by Alchemy Data API`);
-        return null;
-      }
-      const alchemyChain = networkConfig.alchemyNetwork;
+        try {
+          const pricesResult = await this.alchemyClient.getTokenPricesBySymbol(symbolBatch);
 
-      // Use Alchemy Data API v1 endpoint (API key is in the URL path)
-      let dataApiUrl;
-      if (process.env.USE_ALCHEMY_PROXY === 'true') {
-        const proxyUrl = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3002';
-        dataApiUrl = `${proxyUrl}/data/v1/${apiKey}/assets/tokens/balances/by-address`;
-      } else {
-        dataApiUrl = `https://api.g.alchemy.com/data/v1/${apiKey}/assets/tokens/balances/by-address`;
-      }
-
-      // Get all token balances (native + ERC20) in one call
-      const requestBody = {
-        addresses: [
-          {
-            address: normalizedAddress,
-            networks: [alchemyChain]
-          }
-        ],
-        includeNativeTokens: true,
-        includeErc20Tokens: true
-      };
-
-      this.log(`🔍 Fetching portfolio for ${normalizedAddress} on ${alchemyChain}`);
-      
-      const response = await axios.post(dataApiUrl, requestBody, {
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'application/json'
-          // API key is already in the URL, not needed in headers
-        },
-        timeout: 30000
-      });
-
-      if (!response.data || !response.data.data || !response.data.data.tokens) {
-        throw new Error('Invalid response from Alchemy Data API');
-      }
-
-      // Extract tokens from response
-      const tokens = response.data.data.tokens;
-      if (tokens.length === 0) {
-        this.log(`⚠️  No tokens found for ${address} on ${alchemyChain}`);
-        return {
-          nativeBalance: '0',
-          nativeUsdValue: 0,
-          tokens: [],
-          totalUsdValue: 0,
-          source: 'alchemy'
-        };
-      }
-      
-      // Load whitelisted tokens
-      const whitelist = this.loadWhitelistedTokens();
-      
-      // Process all tokens (native + ERC20)
-      const validTokens = [];
-      
-      for (const token of tokens) {
-        // Skip zero balances
-        const balanceBigInt = BigInt(token.tokenBalance || '0x0');
-        if (balanceBigInt === 0n) {
-          continue;
-        }
-
-        // For ERC20 tokens, apply additional filters
-        if (token.tokenAddress !== null) {
-          const tokenAddr = token.tokenAddress.toLowerCase();
-
-          // Skip if this token is the contract itself (self-token)
-          if (tokenAddr === normalizedAddress) {
-            this.log(`  ⏭️  Skipping self-token: ${tokenAddr}`);
+          if (!pricesResult || !pricesResult.data) {
+            this.log(`⚠️ No price data returned for batch ${Math.floor(i / batchSize) + 1}`, 'warn');
             continue;
           }
 
-          // Check whitelist if configured
-          if (whitelist.size > 0 && !whitelist.has(tokenAddr)) {
-            this.log(`  ⏭️  Skipping non-whitelisted token: ${tokenAddr}`);
-            continue;
+          // Update symbol_prices table with fetched prices
+          const updateQuery = `
+            INSERT INTO symbol_prices (symbol, price_usd, decimals, name, last_updated)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (symbol) DO UPDATE SET
+              price_usd = EXCLUDED.price_usd,
+              decimals = EXCLUDED.decimals,
+              name = EXCLUDED.name,
+              last_updated = EXCLUDED.last_updated
+          `;
+
+          for (const tokenData of pricesResult.data) {
+            const symbol = tokenData.symbol;
+
+            if (!symbol || !tokenData.prices || tokenData.prices.length === 0) {
+              continue;
+            }
+
+            const priceUsd = tokenData.prices[0]?.value || 0;
+            const name = tokenData.name || symbol;
+            const decimals = tokenData.decimals || null;
+
+            // If decimals is not available, mark for fetching via getTokenMetadata
+            if (!decimals) {
+              // Find token address from addressToTokenMap
+              const tokenAddress = Object.keys(addressToSymbolMap).find(addr => addressToSymbolMap[addr] === symbol);
+              if (tokenAddress) {
+                tokensNeedingDecimals.push({ symbol, address: tokenAddress });
+              }
+            }
+
+            await this.queryDB(updateQuery, [
+              symbol,
+              priceUsd,
+              decimals || 18, // Default to 18 if not available
+              name,
+              this.currentTime
+            ]);
+
+            totalUpdated++;
           }
+
+          this.log(`✅ Updated prices for batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(symbolsToUpdate.length / batchSize)} (${totalUpdated} symbols)`);
+        } catch (error) {
+          this.log(`❌ Failed to fetch prices for batch: ${error.message}`, 'warn');
         }
-        
-        validTokens.push(token);
-      }
 
-      // Get all token addresses for metadata and price fetching
-      const tokenAddressesToFetch = validTokens
-        .filter(t => t.tokenAddress !== null)
-        .map(t => t.tokenAddress.toLowerCase());
-
-      // Fetch token metadata with caching (30 day cache)
-      let metadataMap = {};
-      if (tokenAddressesToFetch.length > 0) {
-        this.log(`📋 Fetching metadata for ${tokenAddressesToFetch.length} tokens...`);
-        metadataMap = await this.metadataCache.fetchTokenMetadataWithCache(this.network, tokenAddressesToFetch);
-        
-        // Verify all tokens have metadata
-        const missingMetadata = tokenAddressesToFetch.filter(addr => !metadataMap[addr]);
-        if (missingMetadata.length > 0) {
-          this.log(`⚠️  Missing metadata for ${missingMetadata.length} tokens, fetching again...`);
-          // Force refresh for missing tokens
-          const additionalMetadata = await this.metadataCache.fetchTokenMetadataWithCache(
-            this.network, 
-            missingMetadata, 
-            true // force refresh
-          );
-          metadataMap = { ...metadataMap, ...additionalMetadata };
+        // Rate limiting
+        if (i + batchSize < symbolsToUpdate.length) {
+          await this.sleep(300);
         }
       }
 
-      // For native token price, use wrapped native token address
-      const nativeTokenAddress = this.getNativeTokenAddress();
-      const priceAddresses = [...tokenAddressesToFetch];
-      if (nativeTokenAddress) {
-        priceAddresses.push(nativeTokenAddress);
-      }
+      // Fetch decimals for tokens that didn't have it
+      if (tokensNeedingDecimals.length > 0) {
+        this.log(`🔍 Fetching decimals for ${tokensNeedingDecimals.length} tokens via getTokenMetadata...`);
 
-      // Batch fetch all token prices with caching (7 day cache)
-      let priceMap = {};
-      if (priceAddresses.length > 0) {
-        this.log(`💰 Fetching prices for ${priceAddresses.length} tokens...`);
-        priceMap = await this.priceCache.fetchTokenPricesWithCache(this.network, priceAddresses);
-        
-        // Check for missing prices (not including native token wrapper)
-        const missingPrices = tokenAddressesToFetch.filter(addr => 
-          priceMap[addr] === undefined
-        );
-        
-        if (missingPrices.length > 0) {
-          this.log(`⚠️  Missing prices for ${missingPrices.length} tokens, attempting force refresh...`);
-          // Try to force refresh prices for missing tokens
-          const additionalPrices = await this.priceCache.fetchTokenPricesWithCache(
-            this.network,
-            missingPrices,
-            true // force refresh
-          );
-          priceMap = { ...priceMap, ...additionalPrices };
+        for (const token of tokensNeedingDecimals) {
+          try {
+            const metadata = await this.alchemyClient.getTokenMetadata(token.address);
+
+            if (metadata && metadata.decimals !== null && metadata.decimals !== undefined) {
+              await this.queryDB(
+                'UPDATE symbol_prices SET decimals = $1 WHERE symbol = $2',
+                [metadata.decimals, token.symbol]
+              );
+              this.log(`  ✅ Updated decimals for ${token.symbol}: ${metadata.decimals}`);
+            }
+          } catch (error) {
+            this.log(`  ⚠️ Failed to fetch metadata for ${token.symbol}: ${error.message}`, 'warn');
+          }
+
+          // Rate limiting
+          await this.sleep(100);
         }
       }
 
-      // Process all tokens (native + ERC20)
-      const processedTokens = [];
-      let totalUsdValue = 0;
-      let nativeBalance = '0x0';
-      let nativeUsdValue = 0;
-
-      for (const tokenData of validTokens) {
-        if (tokenData.tokenAddress === null) {
-          // Native token
-          nativeBalance = tokenData.tokenBalance;
-          const balanceBigInt = BigInt(nativeBalance);
-          const balanceFormatted = Number(balanceBigInt) / 1e18;
-          
-          // Get native price from wrapped token
-          const nativePriceRaw = nativeTokenAddress ? (priceMap[nativeTokenAddress.toLowerCase()] || 0) : 0;
-          const nativePrice = typeof nativePriceRaw === 'number' ? nativePriceRaw : parseFloat(nativePriceRaw);
-          nativeUsdValue = balanceFormatted * nativePrice;
-          totalUsdValue += nativeUsdValue;
-          
-          const nativeSymbol = this.getNativeSymbol();
-          this.log(`  ${nativeSymbol}: ${balanceFormatted.toFixed(4)} ($${nativeUsdValue.toFixed(2)})`);
-          continue;
-        }
-        
-        // ERC20 token
-        const tokenAddr = tokenData.tokenAddress.toLowerCase();
-        
-        // Get metadata from cache (must exist)
-        const metadata = metadataMap[tokenAddr];
-        if (!metadata || metadata.decimals === undefined) {
-          this.log(`  ⚠️  No metadata for token ${tokenAddr}, skipping...`);
-          continue;
-        }
-        
-        const symbol = metadata.symbol || tokenAddr.slice(0, 6).toUpperCase();
-        const name = metadata.name || metadata.symbol || 'Unknown Token';
-        const decimals = metadata.decimals;
-        
-        // Calculate formatted balance
-        const balanceBigInt = BigInt(tokenData.tokenBalance);
-        const balanceFormatted = Number(balanceBigInt) / Math.pow(10, decimals);
-        
-        // Get price from cache/API
-        const price = priceMap[tokenAddr];
-        if (price === undefined) {
-          this.log(`  ⚠️  No price data for ${symbol} (${tokenAddr}), setting to 0`);
-          // If we couldn't get price data, set it to 0 but still include the token
-          priceMap[tokenAddr] = 0;
-        }
-        
-        const finalPrice = typeof priceMap[tokenAddr] === 'number' ? priceMap[tokenAddr] : parseFloat(priceMap[tokenAddr]);
-        const usdValue = balanceFormatted * finalPrice;
-
-        // Include all tokens with balance (even if price is 0)
-        processedTokens.push({
-          token_address: tokenAddr,
-          symbol: symbol,
-          name: name,
-          decimals: decimals,
-          balance: tokenData.tokenBalance,
-          balance_formatted: balanceFormatted.toString(),
-          usd_value: usdValue,
-          usd_price: finalPrice
-        });
-
-        totalUsdValue += usdValue;
-        
-        // Log significant holdings
-        if (usdValue > 100 || (price === 0 && balanceFormatted > 0.01)) {
-          this.log(`  ${symbol}: ${balanceFormatted.toFixed(4)} ($${usdValue.toFixed(2)})`);
-        }
-      }
-
-      this.log(`📊 Alchemy Summary: Native: $${nativeUsdValue.toFixed(2)}, Tokens: ${processedTokens.length}, Total: $${totalUsdValue.toFixed(2)}`);
-
-      return {
-        nativeBalance: nativeBalance,
-        nativeUsdValue,
-        tokens: processedTokens,
-        totalUsdValue,
-        source: 'alchemy'
-      };
+      this.log(`✅ Updated ${totalUpdated}/${symbolsToUpdate.length} token prices from Alchemy Prices API`);
     } catch (error) {
-      this.log(`⚠️  Alchemy Data API error for ${address}: ${error.message}`);
-      if (error.response?.data) {
-        this.log(`  Response: ${JSON.stringify(error.response.data)}`);
+      this.log(`❌ Failed to update token prices: ${error.message}`, 'error');
+    } finally {
+      // Always release the lock
+      try {
+        await this.queryDB('SELECT pg_advisory_unlock($1)', [lockId]);
+        this.log('🔓 Lock released');
+      } catch (unlockError) {
+        this.log(`⚠️ Failed to release lock: ${unlockError.message}`, 'warn');
       }
-      return null;
+    }
+  }
+
+  /**
+   * Insert missing symbols from tokens folder into symbol_prices table
+   * Uses placeholder price of 0 for tokens without price data
+   */
+  async insertMissingSymbols() {
+    // Use advisory lock to prevent concurrent symbol_prices inserts across networks
+    const lockId = 12346; // Different ID from updateTokenPrices for finer-grained locking
+
+    try {
+      // Acquire advisory lock
+      this.log('🔒 Acquiring lock for symbol_prices inserts...');
+      await this.queryDB('SELECT pg_advisory_lock($1)', [lockId]);
+      this.log('✅ Lock acquired');
+
+      // Load all tokens from tokens/{network}.json
+      const { tokenAddresses, addressToSymbolMap } = this.loadTokenAddressMapping();
+      const allSymbols = [...new Set(Object.values(addressToSymbolMap))];
+
+      if (allSymbols.length === 0) {
+        this.log('⚠️ No symbols found in tokens file', 'warn');
+        return;
+      }
+
+      // Check which symbols are missing from symbol_prices
+      const checkQuery = `
+        SELECT LOWER(symbol) as symbol
+        FROM symbol_prices
+        WHERE LOWER(symbol) = ANY($1::text[])
+      `;
+      const symbolsLower = allSymbols.map(s => s.toLowerCase());
+      const existingResult = await this.queryDB(checkQuery, [symbolsLower]);
+      const existingSymbols = new Set(existingResult.rows.map(r => r.symbol));
+
+      const missingSymbols = allSymbols.filter(s => !existingSymbols.has(s.toLowerCase()));
+
+      if (missingSymbols.length === 0) {
+        this.log('✅ All symbols already in symbol_prices');
+        return;
+      }
+
+      this.log(`📝 Inserting ${missingSymbols.length} missing symbols into symbol_prices`);
+
+      // Insert missing symbols with placeholder price 0
+      const insertQuery = `
+        INSERT INTO symbol_prices (symbol, price_usd, decimals, name, last_updated)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (symbol) DO NOTHING
+      `;
+
+      for (const symbol of missingSymbols) {
+        await this.queryDB(insertQuery, [
+          symbol,
+          0, // Placeholder price - will be updated by updateTokenPrices()
+          18, // Default decimals
+          symbol, // Use symbol as name for now
+          null // NULL until actual price is fetched
+        ]);
+      }
+
+      this.log(`✅ Inserted ${missingSymbols.length} symbols (will fetch prices next)`);
+    } catch (error) {
+      this.log(`❌ Failed to insert missing symbols: ${error.message}`, 'error');
+    } finally {
+      // Always release the lock
+      try {
+        await this.queryDB('SELECT pg_advisory_unlock($1)', [lockId]);
+        this.log('🔓 Lock released');
+      } catch (unlockError) {
+        this.log(`⚠️ Failed to release lock: ${unlockError.message}`, 'warn');
+      }
     }
   }
 
@@ -551,21 +397,35 @@ class FundUpdater extends Scanner {
   async updateAddressFunds(addresses) {
     this.log('🔗 Using BalanceHelper contract for batch balance fetching');
 
-    // Get token addresses from database
-    const tokenAddresses = await this.getTokenAddressesFromDatabase();
-
-    // Fetch all token prices including wrapped native token
-    const nativeTokenAddress = this.getNativeTokenAddress();
-    const priceAddresses = [...tokenAddresses];
-    if (nativeTokenAddress) {
-      priceAddresses.push(nativeTokenAddress);
+    // Check if using Alchemy proxy (affects rate limiting)
+    const useAlchemyProxy = process.env.USE_ALCHEMY_PROXY === 'true';
+    if (useAlchemyProxy) {
+      this.log('ℹ️  Using Alchemy proxy - rate limit delays disabled');
     }
 
-    let priceMap = {};
-    if (priceAddresses.length > 0) {
-      this.log(`💰 Fetching prices for ${priceAddresses.length} tokens...`);
-      priceMap = await this.priceCache.fetchTokenPricesWithCache(this.network, priceAddresses);
+    // Insert missing symbols before fetching prices
+    await this.insertMissingSymbols();
+
+    // Update token prices from Alchemy Prices API
+    await this.updateTokenPrices();
+
+    // Load token data from tokens/{network}.json file (includes decimals for each token)
+    const { tokenAddresses, addressToSymbolMap, addressToTokenMap } = this.loadTokenAddressMapping();
+
+    // Get unique symbols from loaded tokens
+    const symbols = [...new Set(Object.values(addressToSymbolMap))];
+
+    // Add native token symbol for the network
+    const nativeSymbol = CONFIG[this.network]?.nativeCurrency;
+    if (nativeSymbol && !symbols.includes(nativeSymbol)) {
+      symbols.push(nativeSymbol);
     }
+
+    this.log(`📋 Found ${symbols.length} symbols from tokens file (including native token)`);
+
+    // Fetch symbol prices from symbol_prices table (price only, no decimals)
+    const { symbols: validSymbols, symbolDataMap } = await this.priceCache.fetchTokenPrices(symbols);
+    this.log(`💰 Loaded ${validSymbols.length}/${symbols.length} token prices`);
 
     const processor = async (addressBatch) => {
       let nativeBalances = [];
@@ -598,11 +458,17 @@ class FundUpdater extends Scanner {
                 this.log(`❌ Individual balance call failed for ${address}: ${individualError.message}`, 'warn');
                 nativeBalances.push('0'); // Use 0 as fallback
               }
-              await this.sleep(100); // Rate limiting for individual calls
+              // Rate limiting for individual calls (skip if using proxy)
+              if (!useAlchemyProxy) {
+                await this.sleep(100);
+              }
             }
           }
 
-          await this.sleep(200); // Rate limiting between chunks
+          // Rate limiting between chunks (skip if using proxy)
+          if (!useAlchemyProxy) {
+            await this.sleep(200);
+          }
         }
       } catch (error) {
         this.log(`❌ Critical error in native balance processing: ${error.message}`, 'error');
@@ -618,20 +484,45 @@ class FundUpdater extends Scanner {
         erc20Balances = new Map(); // Empty map as fallback
       }
 
-      // Process each address
+      // Process each address using symbol-based data
       const updates = addressBatch.map((address, index) => {
         const nativeBalance = nativeBalances[index]?.toString() || '0';
-        const nativePrice = nativeTokenAddress ? (priceMap[nativeTokenAddress.toLowerCase()] || 0) : 0;
+
+        // Get native token price from symbol data
+        const nativeSymbol = CONFIG[this.network]?.nativeCurrency || 'ETH';
+        const nativeSymbolData = symbolDataMap.get(nativeSymbol.toLowerCase());
+        const nativePrice = nativeSymbolData ? nativeSymbolData.price : 0;
         const nativeValue = (parseFloat(nativeBalance) / 1e18) * nativePrice;
 
         let totalValue = nativeValue;
 
-        // Calculate token values
+        // Calculate token values using symbol-based data
         const addressTokens = erc20Balances.get(address) || new Map();
         tokenAddresses.forEach(tokenAddr => {
-          const balance = addressTokens.get(tokenAddr) || '0';
-          const price = priceMap[tokenAddr.toLowerCase()] || 0;
-          const value = (parseFloat(balance) / 1e18) * price;
+          const tokenData = addressTokens.get(tokenAddr) || { balance: '0' };
+          const balance = parseFloat(tokenData.balance);
+
+          // Get token metadata (includes decimals from tokens file)
+          const tokenMetadata = addressToTokenMap[tokenAddr.toLowerCase()];
+          if (!tokenMetadata || !tokenMetadata.decimals) {
+            return; // Skip if no token metadata or decimals
+          }
+
+          // Get symbol for this address
+          const symbol = tokenMetadata.symbol;
+          if (!symbol) {
+            return; // Skip if no symbol
+          }
+
+          // Get symbol data (price only, not decimals)
+          const symbolData = symbolDataMap.get(symbol.toLowerCase());
+          if (!symbolData) {
+            return; // Skip if no symbol data (price)
+          }
+
+          const decimals = tokenMetadata.decimals;  // Use decimals from tokens file
+          const price = symbolData.price;           // Use price from symbol_prices table
+          const value = (balance / Math.pow(10, decimals)) * price;
 
           totalValue += value;
         });
@@ -655,7 +546,7 @@ class FundUpdater extends Scanner {
     return this.processBatch(addresses, processor, {
       batchSize: this.batchSizes.addresses,
       concurrency: 3,
-      delayMs: 500
+      delayMs: useAlchemyProxy ? 50 : 500  // Reduced delay when using proxy
     });
   }
 
@@ -685,8 +576,11 @@ class FundUpdater extends Scanner {
 if (require.main === module) {
   // Ensure process exits after completion
   process.env.AUTO_EXIT = 'true';
-  
-  const scanner = new FundUpdater();
+
+  // Get network from command line args or environment
+  const network = process.argv[2] || process.env.NETWORK || 'ethereum';
+
+  const scanner = new FundUpdater(network);
   scanner.execute()
     .then(() => {
       console.log('✅ FundUpdater completed successfully');

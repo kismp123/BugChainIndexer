@@ -3,90 +3,105 @@
         "rank": 1,
         "name": "USD Coin",
         "symbol": "USDC",
-        "address": "0x750ba8b76187092b0d1e87e28daaf484d1b5273b"
+        "address": "0x750ba8b76187092b0d1e87e28daaf484d1b5273b",
+        "decimals": 6
     },
     {
         "rank": 2,
         "name": "Wrapped BTC",
         "symbol": "WBTC",
-        "address": "0x1d05e4e72cd994cdf976181cfb0707345763564d"
+        "address": "0x1d05e4e72cd994cdf976181cfb0707345763564d",
+        "decimals": 8
     },
     {
         "rank": 3,
         "name": "WETH",
         "symbol": "anyWETH",
-        "address": "0x765277eebeca2e31912c9946eae1021199b39c61"
+        "address": "0x765277eebeca2e31912c9946eae1021199b39c61",
+        "decimals": 18
     },
     {
         "rank": 4,
         "name": "Dai Stablecoin",
         "symbol": "DAI",
-        "address": "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
+        "address": "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+        "decimals": 18
     },
     {
         "rank": 5,
         "name": "Arbitrum",
         "symbol": "ARB",
-        "address": "0xf823c3cd3cebe0a1fa952ba88dc9eef8e0bf46ad"
+        "address": "0xf823c3cd3cebe0a1fa952ba88dc9eef8e0bf46ad",
+        "decimals": 18
     },
     {
         "rank": 6,
         "name": "Moons",
         "symbol": "MOON",
-        "address": "0x0057ac2d777797d31cd3f8f13bf5e927571d6ad0"
+        "address": "0x0057ac2d777797d31cd3f8f13bf5e927571d6ad0",
+        "decimals": 18
     },
     {
         "rank": 7,
         "name": "Arbius",
         "symbol": "AIUS",
-        "address": "0x8afe4055ebc86bd2afb3940c0095c9aca511d852"
+        "address": "0x8afe4055ebc86bd2afb3940c0095c9aca511d852",
+        "decimals": 18
     },
     {
         "rank": 8,
         "name": "Polkamon",
         "symbol": "PMON",
-        "address": "0x64ce88ae0b90db03710d265d9786765d2f8efa8b"
+        "address": "0x64ce88ae0b90db03710d265d9786765d2f8efa8b",
+        "decimals": 18
     },
     {
         "rank": 9,
         "name": "Godcoin",
         "symbol": "GOD",
-        "address": "0xb5130f4767ab0acc579f25a76e8f9e977cb3f948"
+        "address": "0xb5130f4767ab0acc579f25a76e8f9e977cb3f948",
+        "decimals": 18
     },
     {
         "rank": 10,
         "name": "GG",
         "symbol": "GG",
-        "address": "0x000000000026839b3f4181f2cf69336af6153b99"
+        "address": "0x000000000026839b3f4181f2cf69336af6153b99",
+        "decimals": 18
     },
     {
         "rank": 11,
         "name": "MoonsDust",
         "symbol": "MOOND",
-        "address": "0x4b2576bc44310d6dfb4cfcf2630f25190fc60803"
+        "address": "0x4b2576bc44310d6dfb4cfcf2630f25190fc60803",
+        "decimals": 18
     },
     {
         "rank": 12,
         "name": "NFTEarthOFT",
         "symbol": "NFTE",
-        "address": "0x90aec282ed4cdcaab0934519de08b56f1f2ab4d7"
+        "address": "0x90aec282ed4cdcaab0934519de08b56f1f2ab4d7",
+        "decimals": 18
     },
     {
         "rank": 13,
         "name": "DPS Rum",
         "symbol": "RUM",
-        "address": "0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8"
+        "address": "0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8",
+        "decimals": 18
     },
     {
         "rank": 14,
         "name": "TreasureMaps",
         "symbol": "TMAP",
-        "address": "0x80a16016cc4a2e6a2caca8a4a498b1699ff0f844"
+        "address": "0x80a16016cc4a2e6a2caca8a4a498b1699ff0f844",
+        "decimals": 18
     },
     {
         "rank": 15,
         "name": "DPSDoubloon",
         "symbol": "DOUBLOON",
-        "address": "0xefaeee334f0fd1712f9a8cc375f427d9cdd40d73"
+        "address": "0xefaeee334f0fd1712f9a8cc375f427d9cdd40d73",
+        "decimals": 18
     }
 ]

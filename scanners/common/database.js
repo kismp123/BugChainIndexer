@@ -47,17 +47,15 @@ async function ensureSchema(client) {
       PRIMARY KEY (network, token_address)
     )`,
 
-    // Token price cache table (7 day cache for token prices)
-    `CREATE TABLE IF NOT EXISTS token_price_cache (
-      network TEXT NOT NULL,
-      token_address TEXT NOT NULL,
-      symbol TEXT,
-      name TEXT,
-      price_usd DECIMAL(20, 8),
-      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (network, token_address)
+    // Symbol prices table for token price data
+    `CREATE TABLE IF NOT EXISTS symbol_prices (
+      symbol VARCHAR(20) PRIMARY KEY,
+      price_usd NUMERIC(20, 8) NOT NULL,
+      decimals INTEGER DEFAULT 18,
+      name VARCHAR(100),
+      last_updated BIGINT
     )`,
-    
+
     // Essential indexes for performance - optimized for common queries
     `CREATE INDEX IF NOT EXISTS idx_addresses_network ON addresses(network)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_tags_gin ON addresses USING GIN(tags)`,
@@ -67,7 +65,7 @@ async function ensureSchema(client) {
     `CREATE INDEX IF NOT EXISTS idx_tokens_network ON tokens(network)`,
     `CREATE INDEX IF NOT EXISTS idx_tokens_price_updated ON tokens(network, price_updated)`,
     `CREATE INDEX IF NOT EXISTS idx_token_metadata_cache_updated ON token_metadata_cache(network, last_updated)`,
-    `CREATE INDEX IF NOT EXISTS idx_token_price_cache_updated ON token_price_cache(network, last_updated)`
+    `CREATE INDEX IF NOT EXISTS idx_symbol_prices_symbol ON symbol_prices(LOWER(symbol))`
   ];
 
   for (const schema of schemas) {

@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Import network configuration
-const NETWORKS = require('../../scanners/config/networks.js');
+const { NETWORKS } = require('../../scanners/config/networks.js');
 
 class DirectDeployer {
   constructor() {
@@ -29,19 +29,34 @@ class DirectDeployer {
 
   async analyzeDeploymentNeeds() {
     console.log("🔍 Analyzing deployment needs for all networks...");
-    
+
     const deploymentNeeds = [];
     let totalNetworks = 0;
     let alreadyDeployed = 0;
     let needsDeployment = 0;
 
+    // Filter networks if TEST_NETWORK is set
+    const testNetworks = process.env.TEST_NETWORK
+      ? process.env.TEST_NETWORK.split(',').map(n => n.trim())
+      : null;
+
+    if (testNetworks) {
+      console.log(`🎯 Filtering networks: ${testNetworks.join(', ')}`);
+    }
+
     for (const [networkName, config] of Object.entries(NETWORKS)) {
       // Skip config properties
-      if (['database', 'etherscanApiKeys', 'TIMEDELAY', 'FUNDUPDATEDELAY', 
+      if (['database', 'etherscanApiKeys', 'TIMEDELAY', 'FUNDUPDATEDELAY',
            'TIMEOUT_SECONDS', 'TIMEOUT_KILL_AFTER', 'runFixDeployed', 'runVerifyContracts'].includes(networkName)) {
         continue;
       }
 
+      // Filter by TEST_NETWORK if specified
+      if (testNetworks && !testNetworks.includes(networkName)) {
+        continue;
+      }
+
+      console.log(`📌 Checking ${networkName}:`, config.chainId);
       totalNetworks++;
 
       const networkNeeds = {
@@ -257,13 +272,21 @@ class DirectDeployer {
       if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
         // EIP-1559: Set more realistically considering current baseFee + priority
         const baseFee = feeData.maxFeePerGas.sub(feeData.maxPriorityFeePerGas);
-        
+
         // Set priority fee to 50% of current level (more economical)
-        const adjustedPriorityFee = feeData.maxPriorityFeePerGas.div(2);
-        
+        let adjustedPriorityFee = feeData.maxPriorityFeePerGas.div(2);
+
+        // Polygon requires minimum 25 gwei priority fee
+        if (config.chainId === 137) {
+          const minPriorityFee = ethers.utils.parseUnits('25', 'gwei');
+          if (adjustedPriorityFee.lt(minPriorityFee)) {
+            adjustedPriorityFee = minPriorityFee;
+          }
+        }
+
         // MaxFee is baseFee + adjustedPriorityFee + 20% buffer
         const adjustedMaxFee = baseFee.add(adjustedPriorityFee).mul(120).div(100);
-        
+
         tx.maxFeePerGas = adjustedMaxFee;
         tx.maxPriorityFeePerGas = adjustedPriorityFee;
         
@@ -571,14 +594,16 @@ class DirectDeployer {
       // 2. Add property if not in ADDITIONAL_NETWORKS
       if (!updated) {
         const propName = possibleProps[0]; // use default value
+
+        // Look for nativeCurrency line and add BalanceHelper after it
         const networkEndPattern = new RegExp(
-          `(${networkName}:\\s*{[^}]*)(\\s*nativeCurrency:\\s*'[^']*'\\s*)(\\s*})`,
-          'gs'
+          `(${networkName}:\\s*\\{[\\s\\S]*?nativeCurrency:\\s*'[^']*')(\\s*)(\\})`,
+          'g'
         );
-        
+
         if (configContent.match(networkEndPattern)) {
-          configContent = configContent.replace(networkEndPattern, 
-            `$1$2,\n    ${propName}: '${contractAddress}'$3`
+          configContent = configContent.replace(networkEndPattern,
+            `$1,\n    ${propName}: '${contractAddress}'$2$3`
           );
           updated = true;
           console.log(`  ✅ Added ${networkName}.${propName} = ${contractAddress} to ADDITIONAL_NETWORKS`);

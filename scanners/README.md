@@ -9,22 +9,27 @@ The core analysis engine of BugChainIndexer. Streamlined to 3 core scanners and 
 ```
 scanners/
 ├── core/               # Core scanners (3 components)
-│   ├── UnifiedScanner.js    # Main analysis pipeline
-│   ├── FundUpdater.js       # Asset balance tracking  
+│   ├── UnifiedScanner.js    # Main pipeline with ERC20 balance checking
+│   ├── FundUpdater.js       # Portfolio tracker with advisory locks
 │   └── DataRevalidator.js   # Data validation & retagging
 ├── common/             # Shared library (6 files)
-│   ├── core.js         # Core blockchain functions
-│   ├── database.js     # PostgreSQL operations
-│   ├── Scanner.js      # Base scanner class
-│   ├── addressUtils.js # Address normalization utilities
-│   ├── alchemyRpc.js   # Alchemy RPC client
-│   └── index.js        # Export hub
+│   ├── core.js              # Core blockchain functions
+│   ├── database.js          # PostgreSQL operations
+│   ├── Scanner.js           # Base scanner class
+│   ├── addressUtils.js      # Address normalization utilities
+│   ├── alchemyRpc.js        # Alchemy RPC with Prices API support
+│   └── TokenPriceCache.js   # Token price fetching (price only)
+├── tokens/             # Token configurations (18 networks, 1,254 tokens)
+│   ├── ethereum.json        # 99 tokens with decimals
+│   ├── binance.json         # 100 tokens with decimals
+│   └── ...                  # 16 more networks
 ├── config/
 │   ├── networks.js     # 18 network configurations
 │   └── genesis-timestamps.js # Genesis block timestamps
-├── tests/              # Test scripts (14 files)
+├── tests/              # Test scripts (13 files)
 │   ├── test-all-rpcs.js
 │   ├── test-rpc-failover.js
+│   ├── test-fundupdater-alchemy.js
 │   └── ...
 ├── utils/              # Database utilities (4 files)
 │   ├── db-optimize.js
@@ -33,10 +38,11 @@ scanners/
 │   └── db-normalize-addresses.js
 ├── scripts/            # Production scripts (1 file)
 │   └── production-db-optimizer.sh
-├── cron/               # Automation scripts (10 files)
+├── cron/               # Automation scripts (11 files)
 │   ├── setup-cron.sh
 │   ├── cron-unified.sh
 │   ├── cron-funds.sh
+│   ├── cron-all.sh
 │   └── ...
 └── run.sh              # Main executor
 ```
@@ -123,19 +129,21 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 
 **Performance**: ~50,000 addresses/hour per network
 
-### FundUpdater  
+### FundUpdater
 **Portfolio balance tracking and valuation**
-- Fetches native + ERC-20 token balances
+- Fetches native + ERC-20 token balances via BalanceHelper contracts
 - Calculates total USD portfolio value
 - Network-specific balance tracking
-- Batch processing with rate limiting
-- Direct on-chain balance queries
+- Batch processing with dynamic size adjustment
+- Direct on-chain balance queries with fallback support
 
 **Key features**:
-- ✅ Multi-network support across 18 chains
-- ✅ Optimized batch processing
-- ✅ USD value calculation
-- ✅ Efficient caching system
+- ✅ Multi-network support across 14 chains
+- ✅ BalanceHelper contract integration for efficient batch queries
+- ✅ Dynamic batch sizing (50-1000 addresses per batch, optimized for 550M gas limit)
+- ✅ USD value calculation with price caching
+- ✅ Multi-level fallback: full chunk → half chunk → individual calls
+- ✅ Token price & metadata caching (7-day & 30-day)
 
 ### DataRevalidator
 **Data consistency validation**
@@ -146,37 +154,47 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 
 ## 🌐 Supported Networks
 
-### Active Networks (12)
+### Active Networks (14)
 *These networks are enabled in run.sh and actively scanned*
 
-| Network | Chain ID | Alchemy Support | Scanner Support |
-|---------|----------|----------------|-----------------|
-| Ethereum | 1 | ✅ Yes | ✅ Full |
-| Binance Smart Chain | 56 | ✅ Yes | ✅ Full |
-| Polygon | 137 | ✅ Yes | ✅ Full |
-| Arbitrum | 42161 | ✅ Yes | ✅ Full |
-| Optimism | 10 | ✅ Yes | ✅ Full |
-| Base | 8453 | ✅ Yes | ✅ Full |
-| Avalanche | 43114 | ✅ Yes | ✅ Full |
-| Gnosis | 100 | ✅ Yes | ✅ Full |
-| Linea | 59144 | ✅ Yes | ✅ Full |
-| Scroll | 534352 | ✅ Yes | ✅ Full |
-| Mantle | 5000 | ✅ Yes | ✅ Full |
-| opBNB | 204 | ✅ Yes | ✅ Full |
+| Network | Chain ID | Alchemy Support | BalanceHelper | Scanner Support |
+|---------|----------|----------------|---------------|-----------------|
+| Ethereum | 1 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Binance Smart Chain | 56 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Polygon | 137 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Arbitrum | 42161 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Optimism | 10 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Base | 8453 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Avalanche | 43114 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Gnosis | 100 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Linea | 59144 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Scroll | 534352 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Mantle | 5000 | ✅ Yes | ✅ Deployed | ✅ Full |
+| opBNB | 204 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Unichain | 1301 | ✅ Yes | ✅ Deployed | ✅ Full |
+| Berachain | 80084 | ✅ Yes | ✅ Deployed | ✅ Full |
 
-### Disabled Networks (6)
-*Configured in networks.js but excluded from active scanning*
+#### BalanceHelper Contract Addresses
+Efficient batch balance queries for native + ERC-20 tokens:
 
-| Network | Chain ID | Alchemy Support | Reason |
-|---------|----------|----------------|--------|
-| Polygon zkEVM | 1101 | ✅ Yes | Operational |
-| Arbitrum Nova | 42170 | ✅ Yes | Operational |
-| Celo | 42220 | ✅ Yes | Operational |
-| Cronos | 25 | ❌ No | No Alchemy support |
-| Moonbeam | 1284 | ✅ Yes | Operational |
-| Moonriver | 1285 | ❌ No | No Alchemy support |
+| Network | Contract Address |
+|---------|-----------------|
+| Ethereum | `0xF6eDe5F60e6fB769F7571Ad635bF1Db0735a7386` |
+| Binance | `0xf481b013532d38227F57f46217B3696F2Ae592c8` |
+| Polygon | `0xC55d7D06b3651816ea51700CB91235cd60Dd4d7D` |
+| Arbitrum | `0xdD5cFc64f74B2b5A4e80031DDf84597be449E3E3` |
+| Optimism | `0x3d2104Da2B23562c47DCAE9EefE5063b6aB5c637` |
+| Base | `0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d` |
+| Avalanche | `0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d` |
+| Gnosis | `0x510E86Be47994b0Fbc9aEF854B83d2f8906F7AD7` |
+| Linea | `0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A` |
+| Scroll | `0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A` |
+| Mantle | `0xeAbB01920C41e1C010ba74628996EEA65Df03550` |
+| opBNB | `0xeAbB01920C41e1C010ba74628996EEA65Df03550` |
+| Unichain | `0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384` |
+| Berachain | `0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384` |
 
-**Note**: All networks are fully supported by the unified scanner architecture.
+**Note**: All 14 networks have full Alchemy API support and are production-ready.
 
 ## 🤖 Automation (Cron)
 
@@ -245,8 +263,7 @@ node tests/test-revalidator-recent.js    # Recent contracts test
 node tests/test-revalidator-reprocess.js # Re-processing test
 
 # Fund and Balance Tests
-node tests/test-fundupdater-moralis.js   # Moralis integration test
-node tests/test-moralis-single-api.js    # Single API endpoint test
+node tests/test-fundupdater-alchemy.js   # Alchemy integration test
 node tests/test-last-updated-filter.js   # Last updated filter test
 
 # Address Tests
@@ -268,14 +285,14 @@ HIGH_FUND_FLAG=true ./run.sh funds-high
 
 ### Core Files (Minimal)
 - **3 Scanners**: UnifiedScanner, FundUpdater, DataRevalidator
-- **4 Common modules**: core, database, Scanner, index
+- **6 Common modules**: core, database, Scanner, alchemyRpc, addressUtils, TokenPriceCache
 - **2 Config files**: networks, genesis-timestamps
 
 ### Support Files
-- **14 Test scripts**: Comprehensive testing coverage
+- **13 Test scripts**: Comprehensive testing coverage
 - **4 DB utilities**: Optimization and maintenance
 - **1 Production script**: DB optimizer
-- **10 Cron scripts**: Automation
+- **11 Cron scripts**: Automation
 
 ### Recent Cleanup (2025)
 - ❌ Proxy server folders removed from /server directory
@@ -301,16 +318,21 @@ HIGH_FUND_FLAG=true ./run.sh funds-high
 ## 📈 Recent Changes (2025)
 
 ### Architecture Improvements
-- **RPC Management**: Separate clients for getLogs (free RPCs) and contract calls (Alchemy)
-- **Proxy Optional**: Direct API calls by default, proxy servers now optional
-- **Code Cleanup**: Removed unnecessary proxy infrastructure
-- **Test Suite**: Maintained 14 essential test scripts
+- **BalanceHelper Multi-Address API**: Modified to accept multiple addresses in single call
+- **Gas Limit Optimization**: Optimized for Alchemy's 550M gas limit (500-1000 address chunks)
+- **Decimals from Cache**: Removed decimals from contract, fetched from metadata cache
+- **Unified Alchemy RPC**: All RPC calls now use Alchemy for maximum reliability and consistency
+- **Direct Deployment**: All 14 networks deployed with direct RPC deployment script
+- **Network Expansion**: Added Unichain and Berachain support
 
 ### Performance Optimizations
-- getLogs uses free public RPCs to save Alchemy compute units
-- Contract calls use reliable Alchemy API for consistency
-- Smart RPC failover with timeout detection
-- Batch processing with dynamic chunk sizing
+- BalanceHelper contracts enable batch queries for up to 1000 addresses per call
+- Dynamic batch sizing (50-1000) with automatic adjustment based on performance
+- Multi-level fallback strategy: full chunk → half chunks → empty maps
+- Token price & metadata fetching via Alchemy Data API with 7-day caching
+- All RPC calls (getLogs, eth_call, transactions, blocks) use unified Alchemy RPC for consistency
+- Deployment time fetching optimized with Alchemy's eth_getTransactionByHash and eth_getBlockByNumber
+- Alchemy handles load balancing and failover internally
 
 ---
 

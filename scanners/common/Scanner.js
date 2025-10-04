@@ -32,11 +32,29 @@ class Scanner {
       );
     }
 
+    // Get Alchemy tier from environment or will be auto-detected
+    const envTier = process.env.ALCHEMY_TIER;
+    if (envTier && ['free', 'growth', 'enterprise'].includes(envTier.toLowerCase())) {
+      this.alchemyTier = envTier.toLowerCase();
+      this.tierAutoDetect = false;
+      this.log(`Using manual Alchemy tier: ${this.alchemyTier}`);
+    } else {
+      // Will auto-detect tier during initialization
+      this.alchemyTier = null;
+      this.tierAutoDetect = true;
+      if (envTier) {
+        this.log(`Invalid ALCHEMY_TIER '${envTier}', will auto-detect`, 'warn');
+      }
+    }
+
+    // Max logs block range will be set after tier detection in initialize()
+    this.maxLogsBlockRange = null;
+
     this.currentTime = now();
     this.db = null;
-    this.rpc = null; // Will hold both logsClient and alchemyClient
-    this.logsClient = null; // For getLogs only
-    this.alchemyClient = null; // For all other RPC calls
+    this.rpc = null; // For backward compatibility
+    this.logsClient = null; // Will point to alchemyClient
+    this.alchemyClient = null; // Primary RPC client for all calls
     this.ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
     // Performance settings
@@ -68,13 +86,29 @@ class Scanner {
     }
     
     this.log('🌐 Initializing RPC clients...');
-    // Initialize separate RPC clients
+    // Initialize Alchemy RPC client for all RPC calls
     const clients = createRpcClient(this.network);
-    this.logsClient = clients.logsClient;
     this.alchemyClient = clients.alchemyClient;
+    this.logsClient = clients.alchemyClient; // Use Alchemy for getLogs too
     this.rpc = clients; // Keep for backward compatibility
-    this.log('✅ RPC clients ready (logsClient for getLogs, alchemyClient for eth_call)');
-    
+    this.log('✅ RPC clients ready (Alchemy RPC for all calls including getLogs)');
+
+    // Auto-detect Alchemy tier if not manually set
+    if (this.tierAutoDetect) {
+      this.log('🔍 Auto-detecting Alchemy tier...');
+      this.alchemyTier = await this.alchemyClient.detectTier();
+    }
+
+    // Set max logs block range based on detected/configured tier
+    if (this.config.maxLogsBlockRange && this.alchemyTier) {
+      this.maxLogsBlockRange = this.config.maxLogsBlockRange[this.alchemyTier];
+      this.log(`Max getLogs block range: ${this.maxLogsBlockRange} blocks (${this.alchemyTier} tier)`);
+    } else {
+      // Fallback to conservative default
+      this.maxLogsBlockRange = 10;
+      this.log(`Using default max getLogs block range: ${this.maxLogsBlockRange} blocks`, 'warn');
+    }
+
     this.log('✅ Initialization completed successfully');
   }
 
@@ -144,20 +178,8 @@ class Scanner {
   }
 
   async getBlockNumber() {
-    try {
-      // Use stable Etherscan API endpoint for block number
-      const result = await this.etherscanCall({
-        module: 'block',
-        action: 'getblocknobytime',
-        timestamp: Math.floor(Date.now() / 1000),
-        closest: 'before'
-      });
-      return parseInt(result);
-    } catch (error) {
-      this.log(`Failed to get current block via API, using RPC: ${error.message}`, 'warn');
-      // Fallback to Alchemy RPC
-      return this.alchemyClient.getBlockNumber();
-    }
+    // Use Alchemy RPC directly for most reliable and fastest results
+    return this.alchemyClient.getBlockNumber();
   }
 
   async getBlockByNumber(blockNumber) {
@@ -166,14 +188,13 @@ class Scanner {
   }
 
   async getLogs(filter) {
-    // Use logsClient for getLogs (uses regular RPC)
     const fromBlock = filter.fromBlock || 'latest';
     const toBlock = filter.toBlock || 'latest';
     const description = `getLogs(${fromBlock}-${toBlock})`;
-    
-    // Use dedicated logs client (HttpRpcClient)
-    // console.log(`[${this.network}] getLogs via regular RPC: ${description}`);
-    return this.logsClient.getLogs(filter);
+
+    // Use Alchemy RPC for getLogs (more reliable and consistent)
+    // console.log(`[${this.network}] getLogs via Alchemy RPC: ${description}`);
+    return this.alchemyClient.getLogs(filter);
   }
 
   // Etherscan operations  

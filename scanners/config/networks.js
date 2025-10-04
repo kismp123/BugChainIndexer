@@ -19,6 +19,42 @@ const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || 'demo';
 const USE_ALCHEMY_PROXY = process.env.USE_ALCHEMY_PROXY === 'true';
 const ALCHEMY_PROXY_URL = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3001';
 
+// Logs optimization configurations based on network activity tier
+const LOGS_OPTIMIZATION = {
+  // High-activity networks: Ethereum, BSC, Polygon, Base
+  'high-activity': {
+    initialBatchSize: 100,
+    minBatchSize: 10,
+    maxBatchSize: 500,
+    targetDuration: 3000,      // 3 seconds
+    targetLogsPerRequest: 20000,
+    fastMultiplier: 1.5,
+    slowMultiplier: 0.7
+  },
+
+  // Medium-activity networks: Optimism, Avalanche
+  'medium-activity': {
+    initialBatchSize: 500,
+    minBatchSize: 50,
+    maxBatchSize: 2000,
+    targetDuration: 5000,      // 5 seconds
+    targetLogsPerRequest: 35000,
+    fastMultiplier: 2.0,
+    slowMultiplier: 0.8
+  },
+
+  // Low-activity networks: Arbitrum, Scroll, Linea, etc.
+  'low-activity': {
+    initialBatchSize: 2000,
+    minBatchSize: 500,
+    maxBatchSize: 10000,
+    targetDuration: 8000,      // 8 seconds
+    targetLogsPerRequest: 50000,
+    fastMultiplier: 3.0,
+    slowMultiplier: 0.9
+  }
+};
+
 // Helper function to generate Alchemy URL or proxy URL
 const getAlchemyUrl = (network) => {
   // If Alchemy proxy is enabled, return proxy URL
@@ -34,7 +70,7 @@ const getAlchemyUrl = (network) => {
     'optimism': 'opt-mainnet',
     'base': 'base-mainnet',
     'binance': 'bnb-mainnet',  // BNB Smart Chain
-    'avalanche': 'avalanche-mainnet',  // Avalanche C-Chain
+    'avalanche': 'avax-mainnet',  // Avalanche C-Chain
     'polygon-zkevm': 'polygonzkevm-mainnet',  // Polygon zkEVM
     'linea': 'linea-mainnet',  // Linea
     'scroll': 'scroll-mainnet',  // Scroll
@@ -85,12 +121,33 @@ const NETWORKS = {
       'https://uk.rpc.blxrbdn.com',
       'https://singapore.rpc.blxrbdn.com',
       'https://eth.api.onfinality.io/public',
-      'https://core.gashawk.io/rpc'
+      'https://core.gashawk.io/rpc',
+      // Additional RPC endpoints from chainlist.org
+      // Note: Some endpoints removed due to persistent errors:
+      // - rpc.builder0x69.io (DNS not found)
+      // - api.stateless.solutions (SSL certificate issue)
+      'https://eth.merkle.io',
+      'https://rpc.lokibuilder.xyz/wallet',
+      'https://rpc.polysplit.cloud/v1/chain/1',
+      'https://rpc.nodifi.ai/api/rpc/free',
+      'https://rpc.public.curie.radiumblock.co/http/ethereum',
+      'https://eth.blockrazor.xyz',
+      'https://ethereum.therpc.io',
+      'https://ethereum-json-rpc.stakely.io',
+      'https://rpc.eth.gateway.fm'
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xfE53a230a2AEd6E52f2dEf488DA408d47a80A8bF',
-    BalanceHelper: '0x5CD47B1F62e3BD40C669024CA52B40946C8b641b',
-    nativeCurrency: 'ETH'
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0xF6eDe5F60e6fB769F7571Ad635bF1Db0735a7386',
+    // Alchemy getLogs block range limits
+    maxLogsBlockRange: {
+      free: 10,          // Free tier
+      growth: 999999,    // Pay As You Go (unlimited)
+      enterprise: 999999 // Enterprise (unlimited)
+    },
+    // Logs optimization configuration
+    logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
 
   binance: {
@@ -123,8 +180,14 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x91Ce20223F35b82E34aC4913615845C7AaA0e2B7',
-    BalanceHelper: '0x5B9a623Fc8eDFE96B9504B6B801EF439c8acc333',
-    nativeCurrency: 'BNB'
+    nativeCurrency: 'BNB',
+    BalanceHelper: '0xf481b013532d38227F57f46217B3696F2Ae592c8',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // BSC: 10000 blocks
+      enterprise: 10000  // BSC: 10000 blocks
+    },
+    logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
 
   polygon: {
@@ -156,8 +219,14 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xC7bAd40fE8c4B8aA380cBfAE63B9b39a9684F8B4',
-    BalanceHelper: '0x1af03A9a9c7F1D3Ed1E7900d9f76F09EE01B0344',
-    nativeCurrency: 'MATIC'
+    nativeCurrency: 'MATIC',
+    BalanceHelper: '0xC55d7D06b3651816ea51700CB91235cd60Dd4d7D',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 2000,      // Polygon: 2000 blocks
+      enterprise: 999999 // Polygon Enterprise: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
 
   arbitrum: {
@@ -189,8 +258,14 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x20f776Bd5FA50822fb872573C80453dA18A8CA34',
-    BalanceHelper: '0x04eD457F1A445f2a90132028C2A0Cfa09e823bEc',
-    nativeCurrency: 'ETH'
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0xdD5cFc64f74B2b5A4e80031DDf84597be449E3E3',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 999999,    // Arbitrum (Layer 2): unlimited
+      enterprise: 999999 // Arbitrum (Layer 2): unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
 
   optimism: {
@@ -223,8 +298,14 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
-    BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
-    nativeCurrency: 'ETH'
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0x3d2104Da2B23562c47DCAE9EefE5063b6aB5c637',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 999999,    // Optimism (Layer 2): unlimited
+      enterprise: 999999 // Optimism (Layer 2): unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['medium-activity']
   },
 
   base: {
@@ -256,14 +337,20 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
-    BalanceHelper: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
-    nativeCurrency: 'ETH'
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 999999,    // Base (Layer 2): unlimited
+      enterprise: 999999 // Base (Layer 2): unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
 
   avalanche: {
     chainId: 43114,
     name: 'Avalanche C-Chain',
-    alchemyNetwork: 'avalanche-mainnet',
+    alchemyNetwork: 'avax-mainnet',
 
     rpcUrls: envArray('AVALANCHE_RPC_URL', [
       // Public RPCs first (Alchemy AVAX not enabled on free tier)
@@ -287,8 +374,14 @@ const NETWORKS = {
     ].filter(Boolean)),
     apiKeys: DEFAULT_ETHERSCAN_KEYS,
     contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
-    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
-    nativeCurrency: 'AVAX'
+    nativeCurrency: 'AVAX',
+    BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['medium-activity']
   }
 };
 
@@ -310,9 +403,16 @@ const ADDITIONAL_NETWORKS = {
       'https://gnosis.therpc.io'
     ].filter(Boolean)),
     contractValidator: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
-    nativeCurrency: 'xDAI'
+    nativeCurrency: 'xDAI',
+    BalanceHelper: '0x510E86Be47994b0Fbc9aEF854B83d2f8906F7AD7',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
-  
+
   linea: {
     chainId: 59144,
     name: 'Linea',
@@ -327,9 +427,16 @@ const ADDITIONAL_NETWORKS = {
       'https://linea.publicnode.com'
     ].filter(Boolean)),
     contractValidator: '0xeabb01920c41e1c010ba74628996eea65df03550',
-    nativeCurrency: 'ETH'
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
-  
+
   scroll: {
     chainId: 534352,
     name: 'Scroll',
@@ -345,7 +452,14 @@ const ADDITIONAL_NETWORKS = {
       'https://scroll-mainnet.unifra.io'
     ].filter(Boolean)),
     contractValidator: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
-    nativeCurrency: 'ETH'
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
 
   mantle: {
@@ -362,9 +476,16 @@ const ADDITIONAL_NETWORKS = {
       'https://endpoints.omniatech.io/v1/mantle/mainnet/public'
     ].filter(Boolean)),
     contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
-    nativeCurrency: 'MNT'
+    nativeCurrency: 'MNT',
+    BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
-  
+
   opbnb: {
     chainId: 204,
     name: 'opBNB',
@@ -379,78 +500,65 @@ const ADDITIONAL_NETWORKS = {
       'https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3'
     ].filter(Boolean)),
     contractValidator: '0xa3ba28ccdda4ba986f20e395d41f5bb37f8f900d',
-    nativeCurrency: 'BNB'
+    nativeCurrency: 'BNB',
+    BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+  },
+
+  unichain: {
+    chainId: 1301,
+    name: 'Unichain',
+    alchemyNetwork: 'unichain-mainnet',
+
+    rpcUrls: envArray('UNICHAIN_RPC_URL', [
+      'https://mainnet.unichain.org',
+      'https://unichain-rpc.publicnode.com',
+      'https://unichain.drpc.org',
+      'https://1rpc.io/unichain',
+      'https://rpc.unichain.org',
+      'https://unichain.gateway.tenderly.co'
+    ].filter(Boolean)),
+    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
+    nativeCurrency: 'ETH',
+    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+  },
+
+  berachain: {
+    chainId: 80084,
+    name: 'Berachain',
+    alchemyNetwork: 'berachain-mainnet',
+
+    rpcUrls: envArray('BERACHAIN_RPC_URL', [
+      'https://rpc.berachain.com',
+      'https://berachain.drpc.org',
+      'https://1rpc.io/berachain',
+      'https://bartio.rpc.berachain.com',
+      'https://berachain-rpc.publicnode.com',
+      'https://bera.rpc.thirdweb.com'
+    ].filter(Boolean)),
+    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
+    nativeCurrency: 'BERA',
+    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
+    maxLogsBlockRange: {
+      free: 10,
+      growth: 10000,     // All Other Chains: 10000
+      enterprise: 999999 // All Other Chains: unlimited
+    },
+    logsOptimization: LOGS_OPTIMIZATION['low-activity']
   }
 };
 
-// Disabled networks (no contractValidator deployed)
-// These networks are disabled until contractValidator contracts are deployed
-const DISABLED_NETWORKS = {
-  'polygon-zkevm': {
-    chainId: 1101,
-    name: 'Polygon zkEVM',
-    alchemyNetwork: 'polygonzkevm-mainnet',
-    reason: 'No contractValidator deployed',
-    rpcUrls: envArray('POLYGON_ZKEVM_RPC_URL', [
-      getAlchemyUrl('polygon-zkevm'),
-      'https://1rpc.io/polygon/zkevm',
-      'https://polygon-zkevm.drpc.org',
-      'https://node.histori.xyz/polygon-zkevm-mainnet/8ry9f6t9dct1se2hlagxnd9n2a',
-      'https://endpoints.omniatech.io/v1/polygon-zkevm/mainnet/public',
-      'https://polygon-zkevm-public.nodies.app',
-      'https://polygon-zkevm-mainnet.public.blastapi.io'
-    ].filter(Boolean)),
-    nativeCurrency: 'ETH'
-  },
-
-  'arbitrum-nova': {
-    chainId: 42170,
-    name: 'Arbitrum Nova',
-    alchemyNetwork: 'arbnova-mainnet',
-    reason: 'No contractValidator deployed',
-    rpcUrls: envArray('ARBITRUM_NOVA_RPC_URL', [
-      getAlchemyUrl('arbitrum-nova'),
-      'https://arbitrum-nova-rpc.publicnode.com',
-      'https://arbitrum-nova.drpc.org',
-      'https://arbitrum-nova.public.blastapi.io',
-      'https://nova.arbitrum.io/rpc'
-    ].filter(Boolean)),
-    nativeCurrency: 'ETH'
-  },
-
-  celo: {
-    chainId: 42220,
-    name: 'Celo',
-    alchemyNetwork: 'celo-mainnet',
-    reason: 'No contractValidator deployed',
-    rpcUrls: envArray('CELO_RPC_URL', [
-      getAlchemyUrl('celo'),
-      'https://forno.celo.org',
-      'https://celo.drpc.org',
-      'https://celo-json-rpc.stakely.io',
-      'https://celo.api.onfinality.io/public'
-    ].filter(Boolean)),
-    nativeCurrency: 'CELO'
-  },
-
-  moonbeam: {
-    chainId: 1284,
-    name: 'Moonbeam',
-    alchemyNetwork: 'moonbeam-mainnet',
-    reason: 'No contractValidator deployed',
-    rpcUrls: envArray('MOONBEAM_RPC_URL', [
-      getAlchemyUrl('moonbeam'),
-      'https://rpc.api.moonbeam.network',
-      'https://moonbeam.api.onfinality.io/public',
-      'https://moonbeam.unitedbloc.com',
-      'https://1rpc.io/glmr',
-      'https://moonbeam-rpc.dwellir.com',
-      'https://moonbeam.drpc.org',
-      'https://moonbeam.therpc.io'
-    ].filter(Boolean)),
-    nativeCurrency: 'GLMR'
-  }
-};
 
 // Apply configuration to additional networks
 Object.entries(ADDITIONAL_NETWORKS).forEach(([key, config]) => {
