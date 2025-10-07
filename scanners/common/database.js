@@ -49,7 +49,7 @@ async function ensureSchema(client) {
 
     // Symbol prices table for token price data
     `CREATE TABLE IF NOT EXISTS symbol_prices (
-      symbol VARCHAR(20) PRIMARY KEY,
+      symbol VARCHAR(50) PRIMARY KEY,
       price_usd NUMERIC(20, 8) NOT NULL,
       decimals INTEGER DEFAULT 18,
       name VARCHAR(100),
@@ -171,7 +171,11 @@ async function batchUpsertAddresses(client, addresses, options = {}) {
         deployed = COALESCE(EXCLUDED.deployed, addresses.deployed),
         last_updated = COALESCE(EXCLUDED.last_updated, addresses.last_updated),
         first_seen = COALESCE(EXCLUDED.first_seen, addresses.first_seen),
-        tags = COALESCE(EXCLUDED.tags, addresses.tags),
+        tags = CASE
+          WHEN EXCLUDED.tags IS NOT NULL AND array_length(EXCLUDED.tags, 1) > 0
+          THEN EXCLUDED.tags
+          ELSE addresses.tags
+        END,
         fund = COALESCE(EXCLUDED.fund, addresses.fund),
         last_fund_updated = COALESCE(EXCLUDED.last_fund_updated, addresses.last_fund_updated),
         name_checked = COALESCE(EXCLUDED.name_checked, addresses.name_checked),
@@ -242,7 +246,11 @@ async function optimizedBatchUpsert(client, addresses, options = {}) {
           deployed = COALESCE(EXCLUDED.deployed, addresses.deployed),
           last_updated = COALESCE(EXCLUDED.last_updated, addresses.last_updated),
           first_seen = COALESCE(EXCLUDED.first_seen, addresses.first_seen),
-          tags = COALESCE(EXCLUDED.tags, addresses.tags),
+          tags = CASE
+            WHEN EXCLUDED.tags IS NOT NULL AND array_length(EXCLUDED.tags, 1) > 0
+            THEN EXCLUDED.tags
+            ELSE COALESCE(addresses.tags, EXCLUDED.tags)
+          END,
           fund = COALESCE(EXCLUDED.fund, addresses.fund),
           last_fund_updated = COALESCE(EXCLUDED.last_fund_updated, addresses.last_fund_updated),
           name_checked = COALESCE(EXCLUDED.name_checked, addresses.name_checked),

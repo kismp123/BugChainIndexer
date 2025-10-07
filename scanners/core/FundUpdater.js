@@ -76,21 +76,26 @@ class FundUpdater extends Scanner {
     try {
       const tokensData = JSON.parse(fs.readFileSync(tokensFilePath, 'utf8'));
 
-      tokensData.forEach(token => {
-        if (token.symbol && token.address) {
-          const addressLower = token.address.toLowerCase();
-          tokenAddresses.push(addressLower);
-          addressToSymbolMap[addressLower] = token.symbol;
-          addressToTokenMap[addressLower] = {
-            symbol: token.symbol,
-            name: token.name,
-            address: token.address,
-            decimals: token.decimals  // Use decimals from tokens file (no default)
-          };
-        }
+      // 🔧 TEMPORARY: Limit to top 50 tokens by rank for testing
+      const TEST_TOKEN_LIMIT = 50;
+      const sortedTokens = tokensData
+        .filter(token => token.symbol && token.address)
+        .sort((a, b) => (a.rank || Infinity) - (b.rank || Infinity))
+        .slice(0, TEST_TOKEN_LIMIT);
+
+      sortedTokens.forEach(token => {
+        const addressLower = token.address.toLowerCase();
+        tokenAddresses.push(addressLower);
+        addressToSymbolMap[addressLower] = token.symbol;
+        addressToTokenMap[addressLower] = {
+          symbol: token.symbol,
+          name: token.name,
+          address: token.address,
+          decimals: token.decimals  // Use decimals from tokens file (no default)
+        };
       });
 
-      this.log(`📋 Loaded ${tokenAddresses.length} token addresses from tokens/${this.network}.json`);
+      this.log(`📋 Loaded ${tokenAddresses.length} token addresses from tokens/${this.network}.json (limited to top ${TEST_TOKEN_LIMIT} for testing)`);
     } catch (error) {
       this.log(`⚠️  Failed to load tokens from file: ${error.message}`, 'warn');
       this.log('📋 Falling back to empty token list', 'warn');
@@ -428,6 +433,7 @@ class FundUpdater extends Scanner {
     this.log(`💰 Loaded ${validSymbols.length}/${symbols.length} token prices`);
 
     const processor = async (addressBatch) => {
+
       let nativeBalances = [];
       let erc20Balances = new Map();
 
@@ -476,12 +482,33 @@ class FundUpdater extends Scanner {
         nativeBalances = new Array(addressBatch.length).fill('0');
       }
 
-      // ERC20 balances with similar error handling
+      // Validate native balances length
+      if (nativeBalances.length !== addressBatch.length) {
+        const errorMsg = `Native balances length mismatch: expected ${addressBatch.length}, got ${nativeBalances.length}`;
+        this.log(`❌ ${errorMsg}`, 'error');
+        throw new Error(errorMsg);
+      }
+
+      // ERC20 balances - chunkOperation handles chunking and retries automatically
+      let erc20Failed = false;
       try {
         erc20Balances = await this.getERC20Balances(addressBatch, tokenAddresses);
+
+        // Validate result size - allow partial results
+        if (erc20Balances.size !== addressBatch.length) {
+          const missingCount = addressBatch.length - erc20Balances.size;
+          this.log(`⚠️  ERC20 balances partial result: ${erc20Balances.size}/${addressBatch.length} addresses (${missingCount} missing)`, 'warn');
+
+          // Only fail if we got less than 50% of expected results
+          if (erc20Balances.size < addressBatch.length * 0.5) {
+            throw new Error(`Too many missing balances: only ${erc20Balances.size}/${addressBatch.length} retrieved`);
+          }
+        }
       } catch (error) {
         this.log(`❌ ERC20 balance processing failed: ${error.message}`, 'warn');
-        erc20Balances = new Map(); // Empty map as fallback
+        this.log(`⚠️  Continuing with native balance only for this batch`, 'warn');
+        erc20Balances = new Map(); // Empty map as fallback - will calculate fund with native balance only
+        erc20Failed = true;
       }
 
       // Process each address using symbol-based data
@@ -495,12 +522,13 @@ class FundUpdater extends Scanner {
         const nativeValue = (parseFloat(nativeBalance) / 1e18) * nativePrice;
 
         let totalValue = nativeValue;
+        const debugValues = { native: nativeValue, tokens: {} }; // Debug tracking
 
         // Calculate token values using symbol-based data
         const addressTokens = erc20Balances.get(address) || new Map();
+
         tokenAddresses.forEach(tokenAddr => {
           const tokenData = addressTokens.get(tokenAddr) || { balance: '0' };
-          const balance = parseFloat(tokenData.balance);
 
           // Get token metadata (includes decimals from tokens file)
           const tokenMetadata = addressToTokenMap[tokenAddr.toLowerCase()];
@@ -522,15 +550,63 @@ class FundUpdater extends Scanner {
 
           const decimals = tokenMetadata.decimals;  // Use decimals from tokens file
           const price = symbolData.price;           // Use price from symbol_prices table
-          const value = (balance / Math.pow(10, decimals)) * price;
 
-          totalValue += value;
+          // Use BigInt to avoid precision loss for large wei values
+          // Divide first as BigInt, then convert to Number for decimal precision
+          try {
+            const balanceBigInt = BigInt(tokenData.balance);
+            const divisor = BigInt(10) ** BigInt(decimals);
+
+            // Perform integer division with BigInt to avoid overflow
+            const integerPart = balanceBigInt / divisor;
+            const remainder = balanceBigInt % divisor;
+
+            // Convert to decimal: integerPart + (remainder / divisor)
+            const balanceInUnits = Number(integerPart) + (Number(remainder) / Number(divisor));
+            const value = balanceInUnits * price;
+
+            // DEBUG: Track token values and warn on abnormal values
+            // Use token address as key to avoid symbol collision (e.g., IBC appears 3 times)
+            const debugKey = `${symbol}-${tokenAddr.substring(0, 10)}`;  // symbol + short addr for uniqueness
+            debugValues.tokens[debugKey] = {
+              rawBalance: tokenData.balance,
+              balanceInUnits,
+              price,
+              value,
+              tokenAddr
+            };
+
+            // Warn if balance string is abnormally long (>30 digits)
+            if (tokenData.balance.length > 30) {
+              this.log(`🔍 [FUND-DEBUG][${address}] Abnormal ${symbol} balance detected:`, 'warn');
+              this.log(`   Raw: ${tokenData.balance} (${tokenData.balance.length} digits)`, 'warn');
+              this.log(`   Units: ${balanceInUnits}`, 'warn');
+              this.log(`   Price: $${price}`, 'warn');
+              this.log(`   Value: $${value}`, 'warn');
+            }
+
+            totalValue += value;
+          } catch (err) {
+            // If BigInt conversion fails, skip this token
+            this.log(`⚠️  Failed to parse balance for token ${symbol} at ${address}: ${err.message}`, 'warn');
+          }
         });
+
+        // DEBUG: Log if total fund is abnormally large
+        const finalFund = Math.floor(totalValue);
+        if (finalFund > 10000000) { // > 10M USD
+          this.log(`🔍 [FUND-DEBUG][${address}] Large fund value detected: $${finalFund.toLocaleString()}`, 'warn');
+          this.log(`   Native: $${debugValues.native.toFixed(2)}`, 'warn');
+          this.log(`   Token values:`, 'warn');
+          Object.entries(debugValues.tokens).forEach(([symbol, data]) => {
+            this.log(`     ${symbol}: ${data.balanceInUnits} × $${data.price} = $${data.value.toFixed(2)}`, 'warn');
+          });
+        }
 
         return {
           address: normalizeAddress(address),
           network: this.network,
-          fund: Math.floor(totalValue),
+          fund: finalFund,
           lastFundUpdated: this.currentTime
         };
       });

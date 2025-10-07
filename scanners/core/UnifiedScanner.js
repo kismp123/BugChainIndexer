@@ -301,17 +301,27 @@ class UnifiedScanner extends Scanner {
           this.log(`⚠️ Unknown address type for ${address} - skipping (uncertain data)`, 'warn');
           continue;
         }
-      } else if (codeHash && codeHash !== this.ZERO_HASH) {
-        // Has code hash in DB but no current code - self-destroyed contract
-        selfDestructed.push({
-          address,
-          codeHash,
-          type: 'self_destroyed',
-          contractName: 'Self-Destroyed Contract',
-          tags: ['Contract', 'SelfDestroyed']
-        });
+      } else if (!isContract) {
+        // No code on chain currently - check if it was a contract before (self-destructed)
+        const cached = deploymentCache.get(address.toLowerCase());
+
+        if (cached && cached.codeHash && cached.codeHash !== this.ZERO_HASH) {
+          // DB has code_hash but chain has no code → Self-Destroyed Contract
+          this.log(`💥 Self-destructed contract detected: ${address}`);
+          selfDestructed.push({
+            address,
+            codeHash: cached.codeHash,  // Use DB's code hash
+            type: 'self_destroyed',
+            contractName: 'Self-Destroyed Contract',
+            tags: ['Contract', 'SelfDestroyed']
+          });
+        } else {
+          // No code_hash in DB either → True EOA
+          eoas.push({ address, codeHash: null, isContract: false });
+        }
       } else {
-        // True EOA
+        // Edge case: shouldn't reach here
+        this.log(`⚠️ Unexpected state for ${address}: isContract=${isContract}, codeHash=${codeHash}`, 'warn');
         eoas.push({ address, codeHash: null, isContract: false });
       }
     }

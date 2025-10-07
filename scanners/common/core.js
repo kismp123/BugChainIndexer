@@ -9,6 +9,7 @@ const { Pool } = require('pg');
 const { NETWORKS, CONFIG } = require('../config/networks.js');
 const { cleanAddressParams } = require('./addressUtils');
 const { AlchemyRPCClient } = require('./alchemyRpc');
+const { ChunkSizeOptimizer } = require('./chunkOptimizer');
 // ====== CONSTANTS (MERGED FROM HELPERS.JS) ======
 const BATCH_SIZES = {
   LOGS_MIN: 1,
@@ -333,7 +334,7 @@ async function etherscanRequestInternal(network, params, maxRetries = 3) {
         delete requestBody.apikey;
         
         const response = await axios.post(`${proxyUrl}/api/etherscan/${network}`, requestBody, {
-          timeout: 30000,
+          timeout: 120000,
           headers: {
             'Content-Type': 'application/json'
           }
@@ -682,7 +683,7 @@ class HttpRpcClient {
           
           // Wrap with race to enforce timeout
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error(`RPC timeout after 30s: ${rpcUrl}`)), 30000);
+            setTimeout(() => reject(new Error(`RPC timeout after 120s: ${rpcUrl}`)), 120000);
           });
           
           const response = await Promise.race([axiosPromise, timeoutPromise]);
@@ -892,6 +893,7 @@ class ContractCall {
     this.validatorCache = new Map();
     this.balanceCache = new Map();
     this.rpcClients = new Map();
+    this.chunkOptimizers = new Map(); // Learning-based chunk size optimizers per network
   }
 
   getRpcClient(network) {
@@ -949,27 +951,50 @@ class ContractCall {
     return this.balanceCache.get(network);
   }
 
+  getChunkOptimizer(network, operationType = 'erc20') {
+    const key = `${network}-${operationType}`;
+    if (!this.chunkOptimizers.has(key)) {
+      this.chunkOptimizers.set(key, new ChunkSizeOptimizer(network, operationType));
+    }
+    return this.chunkOptimizers.get(key);
+  }
+
   async chunkOperation(addresses, operation, initialChunkSize = 100, maxChunkSize = null) {
     const results = [];
     const minChunkSize = 50;  // Increased from 20 for better performance
     const effectiveMaxChunkSize = maxChunkSize || Math.max(initialChunkSize * 2, 200);
     let currentChunkSize = initialChunkSize;
     
-    for (let i = 0; i < addresses.length; i += currentChunkSize) {
-      const chunk = addresses.slice(i, i + currentChunkSize);
+    let i = 0;
+    while (i < addresses.length) {
+      const chunkSize = currentChunkSize;  // Save current chunk size before it changes
+      const chunk = addresses.slice(i, i + chunkSize);
       const startTime = Date.now();
-      
+
       try {
         const chunkResult = await operation(chunk);
         const duration = Date.now() - startTime;
-        
+
         results.push(...chunkResult);
-        
+
         currentChunkSize = this.adjustChunkSize(currentChunkSize, duration, minChunkSize, effectiveMaxChunkSize);
-        
+
       } catch (error) {
-        const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * 0.5));
-        
+        // Check if socket hang up or timeout error - reduce chunk size more aggressively
+        const isSocketError = error.message?.includes('socket hang up') ||
+                             error.message?.includes('ECONNRESET') ||
+                             error.message?.includes('timeout');
+
+        const reductionFactor = isSocketError ? 0.3 : 0.5; // More aggressive reduction for socket errors
+        const newChunkSize = Math.max(minChunkSize, Math.floor(currentChunkSize * reductionFactor));
+
+        // Add delay before retry to avoid overwhelming the server
+        if (isSocketError) {
+          const retryDelay = 1000 + Math.random() * 1000; // 1-2 second random delay
+          console.log(`[ChunkRetry] Socket error detected, waiting ${Math.round(retryDelay)}ms before retry`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+
         if (newChunkSize < chunk.length) {
           for (let j = 0; j < chunk.length; j += newChunkSize) {
             const smallerChunk = chunk.slice(j, j + newChunkSize);
@@ -977,6 +1002,11 @@ class ContractCall {
               const smallerResult = await operation(smallerChunk);
               results.push(...smallerResult);
             } catch (smallerError) {
+              // Add delay before individual retries
+              if (isSocketError) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+
               for (const addr of smallerChunk) {
                 try {
                   const result = await operation([addr]);
@@ -999,6 +1029,8 @@ class ContractCall {
           }
         }
       }
+
+      i += chunkSize;  // Increment by the chunk size we actually used
     }
     
     return results;
@@ -1006,32 +1038,41 @@ class ContractCall {
   
   adjustChunkSize(currentChunkSize, duration, minChunkSize, maxChunkSize) {
     const targetDuration = 5000;
-    const fastResponse = 1000;   // Faster response threshold
-    const goodResponse = 3000;   // Good response threshold
-    const slowResponse = 8000;   // Slow response threshold
+    const veryFastResponse = 800;   // Ultra fast response threshold (increased from 1000)
+    const fastResponse = 2000;      // Fast response threshold (decreased from 3000)
+    const goodResponse = 4000;      // Good response threshold
+    const slowResponse = 8000;      // Slow response threshold
     const verySlowResponse = 15000; // Very slow response threshold
-    
-    // Very fast response: 3x increase
-    if (duration < fastResponse) {
-      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 3.0));
+
+    // Very fast response (<800ms): 5x increase (more aggressive)
+    if (duration < veryFastResponse) {
+      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 5.0));
       if (newSize > currentChunkSize) {
         console.log(`[ChunkAdjust] Very fast response (${duration}ms): ${currentChunkSize} → ${newSize}`);
         return newSize;
       }
     }
-    // Fast response: 2x increase
-    else if (duration < goodResponse) {
-      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 2.0));
+    // Fast response (<2s): 3x increase (more aggressive)
+    else if (duration < fastResponse) {
+      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 3.0));
       if (newSize > currentChunkSize) {
         console.log(`[ChunkAdjust] Fast response (${duration}ms): ${currentChunkSize} → ${newSize}`);
         return newSize;
       }
     }
-    // Good response: 1.5x increase
+    // Good response (<4s): 2x increase
+    else if (duration < goodResponse) {
+      const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 2.0));
+      if (newSize > currentChunkSize) {
+        console.log(`[ChunkAdjust] Good response (${duration}ms): ${currentChunkSize} → ${newSize}`);
+        return newSize;
+      }
+    }
+    // Target response (<5s): 1.5x increase
     else if (duration < targetDuration) {
       const newSize = Math.min(maxChunkSize, Math.floor(currentChunkSize * 1.5));
       if (newSize > currentChunkSize) {
-        console.log(`[ChunkAdjust] Good response (${duration}ms): ${currentChunkSize} → ${newSize}`);
+        console.log(`[ChunkAdjust] Target response (${duration}ms): ${currentChunkSize} → ${newSize}`);
         return newSize;
       }
     }
@@ -1082,20 +1123,51 @@ class ContractCall {
 
     // isContract: ~30k gas per address
     // 900M / 30k = ~30,000 addresses theoretical max
-    // Use conservative 12,000 initial, max 25,000 for 900M gas target
-    return this.chunkOperation(addresses, async (chunk) => {
-      const iface = new ethers.Interface(validator.abi);
-      const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-      const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
+    // Get learning-based optimizer for this network
+    const optimizer = this.getChunkOptimizer(network, 'contract-check');
+    const limits = optimizer.getLimits();
 
-      const result = await rpc.call({
-        to: ethers.getAddress(validator.address),
-        data: calldata
-      });
+    console.log(`[${network}][ContractCheck] Using learned limits:`, {
+      initial: limits.initial,
+      max: limits.max,
+      confidence: limits.confidence ? `${(limits.confidence * 100).toFixed(0)}%` : 'N/A'
+    });
 
-      const decoded = iface.decodeFunctionResult('isContract', result);
-      return decoded[0];
-    }, 12000, 25000); // initialChunkSize, maxChunkSize
+    const results = await this.chunkOperation(addresses, async (chunk) => {
+      const startTime = Date.now();
+      const chunkSize = chunk.length;
+
+      try {
+        const iface = new ethers.Interface(validator.abi);
+        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
+        const calldata = iface.encodeFunctionData('isContract', [checksumChunk]);
+
+        const result = await rpc.call({
+          to: ethers.getAddress(validator.address),
+          data: calldata
+        });
+
+        const decoded = iface.decodeFunctionResult('isContract', result);
+        const duration = Date.now() - startTime;
+        optimizer.recordChunkExecution(chunkSize, duration, true, false);
+        return decoded[0];
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const isSocketError = error.message?.includes('socket hang up');
+        optimizer.recordChunkExecution(chunkSize, duration, false, isSocketError);
+        throw error;
+      }
+    }, limits.initial, limits.max);
+
+    // Save session stats asynchronously
+    const sessionStats = optimizer.getSessionStats();
+    console.log(`[${network}][ContractCheck] Session stats:`, sessionStats);
+
+    optimizer.saveSession().catch(err => {
+      console.error(`[${network}][ContractCheck] Failed to save optimizer session:`, err.message);
+    });
+
+    return results;
   }
 
   async fetchNativeBalances(network, addresses) {
@@ -1109,21 +1181,59 @@ class ContractCall {
     const rpc = this.getAlchemyClient(network);
 
     // getNativeBalance: ~50k gas per address
-    // 900M / 50k = ~18,000 addresses theoretical max
-    // Use conservative 10,000 initial, max 17,000 for 900M gas target
-    return this.chunkOperation(addresses, async (chunk) => {
-      const iface = new ethers.Interface(balanceHelper.abi);
-      const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-      const calldata = iface.encodeFunctionData('getNativeBalance', [checksumChunk]);
+    // 550M / 50k = ~11,000 addresses theoretical max
+    // Get learning-based optimizer for this network
+    const optimizer = this.getChunkOptimizer(network, 'native-balance');
+    const limits = optimizer.getLimits();
 
-      const result = await rpc.call({
-        to: ethers.getAddress(balanceHelper.address),
-        data: calldata
-      });
+    console.log(`[${network}][NativeBalance] Using learned limits:`, {
+      initial: limits.initial,
+      max: limits.max,
+      confidence: limits.confidence ? `${(limits.confidence * 100).toFixed(0)}%` : 'N/A'
+    });
 
-      const decoded = iface.decodeFunctionResult('getNativeBalance', result);
-      return decoded[0];
-    }, 10000, 17000); // initialChunkSize, maxChunkSize
+    const results = await this.chunkOperation(addresses, async (chunk) => {
+      const startTime = Date.now();
+      const chunkSize = chunk.length;
+
+      try {
+        const iface = new ethers.Interface(balanceHelper.abi);
+        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
+        const calldata = iface.encodeFunctionData('getNativeBalance', [checksumChunk]);
+
+        const result = await rpc.call({
+          to: ethers.getAddress(balanceHelper.address),
+          data: calldata
+        });
+
+        const decoded = iface.decodeFunctionResult('getNativeBalance', result);
+        const balances = decoded[0];
+
+        // Validate result length matches input
+        if (balances.length !== chunk.length) {
+          throw new Error(`Balance result mismatch: requested ${chunk.length} addresses, got ${balances.length} results`);
+        }
+
+        const duration = Date.now() - startTime;
+        optimizer.recordChunkExecution(chunkSize, duration, true, false);
+        return balances;
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const isSocketError = error.message?.includes('socket hang up');
+        optimizer.recordChunkExecution(chunkSize, duration, false, isSocketError);
+        throw error;
+      }
+    }, limits.initial, limits.max);
+
+    // Save session stats asynchronously
+    const sessionStats = optimizer.getSessionStats();
+    console.log(`[${network}][NativeBalance] Session stats:`, sessionStats);
+
+    optimizer.saveSession().catch(err => {
+      console.error(`[${network}][NativeBalance] Failed to save optimizer session:`, err.message);
+    });
+
+    return results;
   }
 
   async fetchErc20Balances(network, holders, tokens) {
@@ -1135,39 +1245,155 @@ class ContractCall {
     }
 
     const rpc = this.getAlchemyClient(network);
-    const results = new Map();
     const iface = new ethers.Interface(balanceHelper.abi);
-    const checksumHolders = holders.map(addr => ethers.getAddress(addr));
     const checksumTokens = tokens.map(addr => ethers.getAddress(addr));
+    const results = new Map();
 
-    // New API: getTokenBalance(address[] addrs, address[] tokens)
-    // Returns: uint256[] balances (length = addrs.length * tokens.length)
-    const calldata = iface.encodeFunctionData('getTokenBalance', [checksumHolders, checksumTokens]);
+    // Get learning-based optimizer for this network
+    const optimizer = this.getChunkOptimizer(network, 'erc20');
+    const limits = optimizer.getLimits();
 
-    const result = await rpc.call({
-      to: ethers.getAddress(balanceHelper.address),
-      data: calldata
+    console.log(`[${network}][ERC20] Using learned limits:`, {
+      initial: limits.initial,
+      max: limits.max,
+      confidence: limits.confidence ? `${(limits.confidence * 100).toFixed(0)}%` : 'N/A'
     });
 
-    const decoded = iface.decodeFunctionResult('getTokenBalance', result);
-    const balances = decoded[0]; // uint256[] balances (flat array)
+    // getTokenBalance: ~300 gas per holder per token
+    // Dynamic chunk sizing based on historical performance
+    const holderChunks = await this.chunkOperation(holders, async (holderChunk) => {
+      const startTime = Date.now();
+      const chunkSize = holderChunk.length;
+      let success = false;
+      let isSocketError = false;
 
-    // Parse flat array: balances[i * tokenLen + j] = balance of addrs[i] for tokens[j]
-    const tokenLen = tokens.length;
-    for (let i = 0; i < holders.length; i++) {
-      const holder = holders[i];
-      const holderMap = new Map();
+      try {
+        const checksumHolders = holderChunk.map(addr => ethers.getAddress(addr));
+        const expectedLength = holderChunk.length * tokens.length;
 
-      for (let j = 0; j < tokenLen; j++) {
-        const balance = balances[i * tokenLen + j];
-        holderMap.set(tokens[j], {
-          balance: balance.toString()
-          // decimals removed - fetched from metadata cache in FundUpdater
-        });
+        let balances;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        // Retry loop for partial results
+        while (retryCount <= maxRetries) {
+          const calldata = iface.encodeFunctionData('getTokenBalance', [checksumHolders, checksumTokens]);
+          const result = await rpc.call({
+            to: ethers.getAddress(balanceHelper.address),
+            data: calldata
+          });
+
+          const decoded = iface.decodeFunctionResult('getTokenBalance', result);
+          balances = decoded[0];
+
+          // Check if we got complete results
+          if (balances.length === expectedLength) {
+            break; // Success, exit retry loop
+          }
+
+          // Partial result detected
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            console.warn(`[${network}][ERC20-RETRY] Partial result detected (attempt ${retryCount}/${maxRetries}): expected ${expectedLength}, got ${balances.length}. Retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 500 * retryCount)); // Exponential backoff
+          }
+        }
+
+        // Validate result length after retries
+
+        // DEBUG: Log balance values for analysis
+        console.log(`[${network}][ERC20-DEBUG] Chunk Response:`);
+        console.log(`  - Holders: ${holderChunk.length}, Tokens: ${tokens.length}`);
+        console.log(`  - Expected balances: ${expectedLength}, Actual: ${balances.length}`);
+        console.log(`  - First 5 holders: ${holderChunk.slice(0, 5).join(', ')}`);
+        console.log(`  - First 5 tokens: ${tokens.slice(0, 5).join(', ')}`);
+
+        // Log first 10 balance values with their indices
+        console.log(`  - First 10 balance values:`);
+        for (let i = 0; i < Math.min(10, balances.length); i++) {
+          const balStr = balances[i].toString();
+          console.log(`    [${i}]: ${balStr} (${balStr.length} digits)`);
+        }
+
+        // Check for abnormally large balances
+        const abnormalBalances = balances.filter(b => b.toString().length > 30);
+        if (abnormalBalances.length > 0) {
+          console.warn(`[${network}][ERC20-DEBUG] ⚠️  Found ${abnormalBalances.length} abnormally large balances (>30 digits)`);
+          abnormalBalances.slice(0, 5).forEach((b, idx) => {
+            console.warn(`    Abnormal[${idx}]: ${b.toString()}`);
+          });
+        }
+
+        if (balances.length !== expectedLength) {
+          console.error(`[${network}] ERC20 Balance Mismatch Debug:`);
+          console.error(`  - Holders count: ${holderChunk.length}`);
+          console.error(`  - Tokens count: ${tokens.length}`);
+          console.error(`  - Expected length: ${expectedLength}`);
+          console.error(`  - Actual length: ${balances.length}`);
+          console.error(`  - Difference: ${balances.length - expectedLength}`);
+          console.error(`  - First 3 holders: ${holderChunk.slice(0, 3).join(', ')}`);
+          console.error(`  - First 3 tokens: ${tokens.slice(0, 3).join(', ')}`);
+          console.error(`  - BalanceHelper: ${balanceHelper.address}`);
+
+          throw new Error(`ERC20 balance result mismatch: expected ${expectedLength} (${holderChunk.length} holders × ${tokens.length} tokens), got ${balances.length} results`);
+        }
+
+        // Parse flat array to Map entries
+        const chunkResults = [];
+        const tokenLen = tokens.length;
+
+        for (let i = 0; i < holderChunk.length; i++) {
+          const holder = holderChunk[i];
+          const holderMap = new Map();
+          for (let j = 0; j < tokenLen; j++) {
+            const balance = balances[i * tokenLen + j];
+            holderMap.set(tokens[j], {
+              balance: balance.toString()
+              // decimals removed - fetched from metadata cache in FundUpdater
+            });
+          }
+          chunkResults.push([holder, holderMap]);
+        }
+
+        success = true;
+        const duration = Date.now() - startTime;
+        optimizer.recordChunkExecution(chunkSize, duration, true, false);
+
+        return chunkResults;
+
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        isSocketError = error.message?.includes('socket hang up') ||
+                       error.message?.includes('ECONNRESET') ||
+                       error.message?.includes('timeout');
+
+        optimizer.recordChunkExecution(chunkSize, duration, false, isSocketError);
+        throw error;
       }
+    }, limits.initial, limits.max);
 
-      results.set(holder, holderMap);
+    // Merge all entries into results Map
+    // Note: holderChunks is a flat array of [holder, holderMap] tuples
+    // Filter out any invalid entries (false values from chunkOperation error handling)
+    const validEntries = holderChunks.filter(entry => Array.isArray(entry) && entry.length === 2);
+
+    for (const [holder, balances] of validEntries) {
+      results.set(holder, balances);
     }
+
+    // Log warning if some holders were skipped due to errors
+    if (validEntries.length < holders.length) {
+      console.warn(`[${network}] ERC20 balances: ${holders.length - validEntries.length} holders skipped due to errors`);
+    }
+
+    // Save session data for future learning
+    const sessionStats = optimizer.getSessionStats();
+    console.log(`[${network}][ERC20] Session stats:`, sessionStats);
+
+    // Save asynchronously (don't wait for it)
+    optimizer.saveSession().catch(err => {
+      console.error(`[${network}][ERC20] Failed to save optimizer session:`, err.message);
+    });
 
     return results;
   }
@@ -1194,20 +1420,51 @@ class ContractCall {
 
     // getCodeHashes: ~100k gas per address (code hash calculation)
     // 900M / 100k = ~9,000 addresses theoretical max
-    // Use conservative 5,000 initial, max 8,500 for 900M gas target
-    return this.chunkOperation(addresses, async (chunk) => {
-      const iface = new ethers.Interface(validator.abi);
-      const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
-      const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
+    // Get learning-based optimizer for this network
+    const optimizer = this.getChunkOptimizer(network, 'codehash');
+    const limits = optimizer.getLimits();
 
-      const result = await rpc.call({
-        to: ethers.getAddress(validator.address),
-        data: calldata
-      });
+    console.log(`[${network}][CodeHash] Using learned limits:`, {
+      initial: limits.initial,
+      max: limits.max,
+      confidence: limits.confidence ? `${(limits.confidence * 100).toFixed(0)}%` : 'N/A'
+    });
 
-      const decoded = iface.decodeFunctionResult('getCodeHashes', result);
-      return decoded[0];
-    }, 5000, 8500); // initialChunkSize, maxChunkSize
+    const results = await this.chunkOperation(addresses, async (chunk) => {
+      const startTime = Date.now();
+      const chunkSize = chunk.length;
+
+      try {
+        const iface = new ethers.Interface(validator.abi);
+        const checksumChunk = chunk.map(addr => ethers.getAddress(addr));
+        const calldata = iface.encodeFunctionData('getCodeHashes', [checksumChunk]);
+
+        const result = await rpc.call({
+          to: ethers.getAddress(validator.address),
+          data: calldata
+        });
+
+        const decoded = iface.decodeFunctionResult('getCodeHashes', result);
+        const duration = Date.now() - startTime;
+        optimizer.recordChunkExecution(chunkSize, duration, true, false);
+        return decoded[0];
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const isSocketError = error.message?.includes('socket hang up');
+        optimizer.recordChunkExecution(chunkSize, duration, false, isSocketError);
+        throw error;
+      }
+    }, limits.initial, limits.max);
+
+    // Save session stats asynchronously
+    const sessionStats = optimizer.getSessionStats();
+    console.log(`[${network}][CodeHash] Session stats:`, sessionStats);
+
+    optimizer.saveSession().catch(err => {
+      console.error(`[${network}][CodeHash] Failed to save optimizer session:`, err.message);
+    });
+
+    return results;
   }
 }
 

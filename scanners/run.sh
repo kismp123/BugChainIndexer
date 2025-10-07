@@ -210,11 +210,18 @@ main() {
             
         "funds-all"|"FundUpdater-all")
             log "🏛️ Starting FundUpdater scanner with ALL_FLAG enabled${network:+ for $network}${network:+...}"
+
+            # Set large batch size to update all addresses (default: 500000)
+            local batch_size="${FUND_UPDATE_MAX_BATCH:-500000}"
+
             if [[ -n "$network" ]]; then
-                lock_and_run "funds-all-$network" "env ALL_FLAG=true NETWORK=\"$network\" node \"$SCANNERS_DIR/FundUpdater.js\""
+                log "📦 Batch size: $batch_size (will update all addresses)"
+                lock_and_run "funds-all-$network" "env ALL_FLAG=true FUND_UPDATE_MAX_BATCH=\"$batch_size\" NETWORK=\"$network\" node \"$SCANNERS_DIR/FundUpdater.js\""
             else
                 # Set environment variable and run parallel function
                 export ALL_FLAG=true
+                export FUND_UPDATE_MAX_BATCH="$batch_size"
+                log "📦 Batch size: $batch_size per network (will update all addresses)"
                 lock_and_run "funds-all-parallel" "run_parallel FundUpdater"
             fi
             ;;
@@ -267,9 +274,9 @@ main() {
                 target_network="$days"
                 days="30"
             fi
-            
+
             log "📅 Starting DataRevalidator for recent contracts (last ${days} days)${target_network:+ on $target_network}..."
-            
+
             if [[ -n "$target_network" ]]; then
                 # Run for specific network
                 lock_and_run "revalidate-recent-$target_network" \
@@ -281,7 +288,38 @@ main() {
                 lock_and_run "revalidate-recent-parallel" "run_parallel DataRevalidator"
             fi
             ;;
-            
+
+        "revalidate-selfdestruct"|"revalidate-self-destructed"|"DataRevalidator-selfdestruct")
+            log "💥 Starting DataRevalidator for Self-Destroyed contracts${network:+ on $network}..."
+
+            if [[ -n "$network" ]]; then
+                # Run for specific network
+                lock_and_run "revalidate-selfdestruct-$network" \
+                    "env REVALIDATE_SELF_DESTRUCTED=true NETWORK=\"$network\" node \"$SCANNERS_DIR/DataRevalidator.js\""
+            else
+                # Run for all networks in parallel
+                export REVALIDATE_SELF_DESTRUCTED=true
+                lock_and_run "revalidate-selfdestruct-parallel" "run_parallel DataRevalidator"
+            fi
+            ;;
+
+        "update-names"|"update-contract-names")
+            log "🏷️ Starting contract name update from Etherscan Nametag API${network:+ for $network}..."
+
+            if [[ -n "$network" ]]; then
+                lock_and_run "update-names-$network" \
+                    "env NETWORK=\"$network\" node \"$SCRIPT_DIR/scripts/update-contract-names.js\""
+            else
+                # Run for all networks sequentially
+                for net in "${NETWORKS[@]}"; do
+                    log "🏷️ Updating contract names for $net..."
+                    lock_and_run "update-names-$net" \
+                        "env NETWORK=\"$net\" node \"$SCRIPT_DIR/scripts/update-contract-names.js\"" || \
+                        log "❌ Failed to update names for $net"
+                done
+            fi
+            ;;
+
         "all"|"suite")
             log "🚀 Starting complete scanner suite (unified + funds + revalidate)..."
             
@@ -437,11 +475,13 @@ Usage: $0 [SCANNER] [MODE] [NETWORK]
 
 Available Scanners:
   funds         Update asset balances using Moralis API (parallel execution)
-  funds-all     Update asset balances for ALL contracts (ALL_FLAG enabled)
+  funds-all     Update asset balances for ALL contracts (ALL_FLAG enabled, batch size: 500,000)
   funds-high    Update asset balances for high-value addresses (fund >= 100,000, includes ALL_FLAG)
   unified       Complete blockchain analysis pipeline: addresses + EOA + verification (parallel)
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
   revalidate-recent  Revalidate contracts discovered in last N days (default: 30)
+  revalidate-selfdestruct  Revalidate Self-Destroyed contracts (check if redeployed)
+  update-names  Update contract names from Etherscan Nametag API (fund >= 1M)
   all           Run complete scanner suite (unified + funds + revalidate)
 
 Modes:
@@ -463,6 +503,7 @@ Examples:
   $0 revalidate               # Run data revalidation for all networks
   $0 revalidate-recent        # Revalidate contracts discovered in last 30 days
   $0 revalidate-recent 7      # Revalidate contracts discovered in last 7 days
+  $0 revalidate-selfdestruct  # Revalidate Self-Destroyed contracts for all networks
   $0 all                      # Full unified scanner suite
 
   # Run on specific network (RECOMMENDED METHOD)
@@ -472,12 +513,15 @@ Examples:
   NETWORK=ethereum $0 unified      # Run unified analysis for ethereum only
   NETWORK=ethereum $0 revalidate   # Run revalidation for ethereum only
   NETWORK=ethereum $0 revalidate-recent    # Revalidate recent contracts on ethereum (last 30 days)
+  NETWORK=ethereum $0 revalidate-selfdestruct  # Revalidate Self-Destroyed contracts on ethereum
+  NETWORK=ethereum $0 update-names # Update contract names for ethereum only
   NETWORK=polygon $0 unified       # Run unified analysis for polygon only
 
   # Alternative method (use correct parameter order)
   $0 funds auto ethereum      # Update funds for ethereum only
   $0 unified auto ethereum    # Run unified analysis for ethereum only
   $0 revalidate auto ethereum # Run revalidation for ethereum only
+  $0 update-names auto ethereum # Update contract names for ethereum only
   
 Monitoring & Maintenance:
   $0 logs error               # Show recent errors
@@ -501,6 +545,7 @@ Environment Variables:
   FUND_UPDATE_MAX_BATCH=50000 Maximum batch size for fund updates
   RECENT_CONTRACTS=true      Enable recent contracts mode for DataRevalidator
   RECENT_DAYS=30            Days to look back for recent contracts (default: 30)
+  REVALIDATE_SELF_DESTRUCTED=true  Enable Self-Destroyed contract revalidation mode
 
 Available Core Scanners:
   - UnifiedScanner.js        Complete blockchain analysis pipeline

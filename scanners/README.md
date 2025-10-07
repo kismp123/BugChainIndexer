@@ -60,6 +60,12 @@ scanners/
 # Validate existing data
 ./run.sh revalidate
 
+# Revalidate recent contracts (last 30 days)
+./run.sh revalidate-recent
+
+# Revalidate Self-Destroyed contracts
+./run.sh revalidate-selfdestruct
+
 # Run all scanners
 ./run.sh all
 ```

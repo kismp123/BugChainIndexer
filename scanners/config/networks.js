@@ -143,8 +143,7 @@ const NETWORKS = {
     // Alchemy getLogs block range limits
     maxLogsBlockRange: {
       free: 10,          // Free tier
-      growth: 999999,    // Pay As You Go (unlimited)
-      enterprise: 999999 // Enterprise (unlimited)
+      premium: 999999    // Premium tier (unlimited)
     },
     // Logs optimization configuration
     logsOptimization: LOGS_OPTIMIZATION['high-activity']
@@ -184,8 +183,7 @@ const NETWORKS = {
     BalanceHelper: '0xf481b013532d38227F57f46217B3696F2Ae592c8',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // BSC: 10000 blocks
-      enterprise: 10000  // BSC: 10000 blocks
+      premium: 10000     // BSC: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
@@ -223,8 +221,7 @@ const NETWORKS = {
     BalanceHelper: '0xC55d7D06b3651816ea51700CB91235cd60Dd4d7D',
     maxLogsBlockRange: {
       free: 10,
-      growth: 2000,      // Polygon: 2000 blocks
-      enterprise: 999999 // Polygon Enterprise: unlimited
+      premium: 2000      // Polygon: 2000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
@@ -262,8 +259,7 @@ const NETWORKS = {
     BalanceHelper: '0xdD5cFc64f74B2b5A4e80031DDf84597be449E3E3',
     maxLogsBlockRange: {
       free: 10,
-      growth: 999999,    // Arbitrum (Layer 2): unlimited
-      enterprise: 999999 // Arbitrum (Layer 2): unlimited
+      premium: 999999    // Arbitrum (Layer 2): unlimited
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -302,8 +298,7 @@ const NETWORKS = {
     BalanceHelper: '0x3d2104Da2B23562c47DCAE9EefE5063b6aB5c637',
     maxLogsBlockRange: {
       free: 10,
-      growth: 999999,    // Optimism (Layer 2): unlimited
-      enterprise: 999999 // Optimism (Layer 2): unlimited
+      premium: 999999    // Optimism (Layer 2): unlimited
     },
     logsOptimization: LOGS_OPTIMIZATION['medium-activity']
   },
@@ -341,8 +336,7 @@ const NETWORKS = {
     BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
     maxLogsBlockRange: {
       free: 10,
-      growth: 999999,    // Base (Layer 2): unlimited
-      enterprise: 999999 // Base (Layer 2): unlimited
+      premium: 999999    // Base (Layer 2): unlimited
     },
     logsOptimization: LOGS_OPTIMIZATION['high-activity']
   },
@@ -378,8 +372,7 @@ const NETWORKS = {
     BalanceHelper: '0xa3ba28ccDDa4Ba986F20E395D41F5bb37F8f900d',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['medium-activity']
   }
@@ -407,8 +400,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0x510E86Be47994b0Fbc9aEF854B83d2f8906F7AD7',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -431,8 +423,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -456,8 +447,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -480,8 +470,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -504,8 +493,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -528,8 +516,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   },
@@ -552,8 +539,7 @@ const ADDITIONAL_NETWORKS = {
     BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
     maxLogsBlockRange: {
       free: 10,
-      growth: 10000,     // All Other Chains: 10000
-      enterprise: 999999 // All Other Chains: unlimited
+      premium: 10000     // All Other Chains: 10000 blocks
     },
     logsOptimization: LOGS_OPTIMIZATION['low-activity']
   }

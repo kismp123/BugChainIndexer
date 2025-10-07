@@ -5,6 +5,8 @@
  */
 
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 const { NETWORKS } = require('../config/networks');
 
 class AlchemyRPCClient {
@@ -16,12 +18,32 @@ class AlchemyRPCClient {
     // Check if proxy should be used
     const useProxy = process.env.USE_ALCHEMY_PROXY === 'true';
 
+    // Create HTTP/HTTPS agents with connection pooling
+    // Reduced maxSockets to prevent overwhelming the API
+    this.httpAgent = new http.Agent({
+      keepAlive: false,
+      keepAliveMsecs: 60000,      // Keep connections alive for 60s (increased)
+      maxSockets: 20,              // Reduced from 50 to prevent API overload
+      maxFreeSockets: 5,           // Reduced from 10
+      timeout: 180000,             // Socket timeout 180s (increased from 120s)
+      scheduling: 'fifo'           // Last In First Out for better connection reuse
+    });
+
+    this.httpsAgent = new https.Agent({
+      keepAlive: false,
+      keepAliveMsecs: 60000,
+      maxSockets: 20,
+      maxFreeSockets: 5,
+      timeout: 180000,
+      scheduling: 'fifo'
+    });
+
     if (useProxy) {
       // Use Alchemy proxy server
       this.proxyUrl = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3002';
       this.alchemyUrl = `${this.proxyUrl}/rpc/${this.network}`;
       this.useProxy = true;
-      console.log(`[${network}] AlchemyRPC: Using proxy at ${this.proxyUrl}`);
+      console.log(`[${network}] AlchemyRPC: Using proxy at ${this.proxyUrl} with connection pooling`);
     } else {
       // Use direct Alchemy API
       const apiKey = process.env.ALCHEMY_API_KEY;
@@ -36,7 +58,7 @@ class AlchemyRPCClient {
       // Construct direct Alchemy URL
       this.alchemyUrl = `https://${alchemyNetwork}.g.alchemy.com/v2/${apiKey}`;
       this.useProxy = false;
-      console.log(`[${network}] AlchemyRPC: Using direct Alchemy API for ${alchemyNetwork}`);
+      console.log(`[${network}] AlchemyRPC: Using direct Alchemy API for ${alchemyNetwork} with connection pooling`);
     }
   }
 
@@ -53,38 +75,51 @@ class AlchemyRPCClient {
     const tierDetectionUrl = process.env.ALCHEMY_TIER_DETECTION_URL || 'http://localhost:3002';
 
     try {
-      // Extract API key from URL if using direct API (not proxy)
-      let apiKey = null;
-      if (!this.useProxy && this.alchemyUrl) {
-        const match = this.alchemyUrl.match(/\/v2\/([^/]+)$/);
-        if (match) {
-          apiKey = match[1];
+      // If using proxy mode, use the new available-tier endpoint
+      if (this.useProxy) {
+        const response = await axios.get(`${tierDetectionUrl}/api-keys/available-tier`, {
+          timeout: 5000,
+          validateStatus: (status) => status < 500,
+          httpAgent: this.httpAgent,
+          httpsAgent: this.httpsAgent
+        });
+
+        if (response.data && response.data.tier) {
+          this.detectedTier = response.data.tier;
+          console.log(`[${this.network}] Detected Alchemy tier via proxy: ${this.detectedTier}`);
+          return this.detectedTier;
         }
-      }
+      } else {
+        // Direct API mode - try old endpoint
+        let apiKey = null;
+        if (this.alchemyUrl) {
+          const match = this.alchemyUrl.match(/\/v2\/([^/]+)$/);
+          if (match) {
+            apiKey = match[1];
+          }
+        }
 
-      if (!this.useProxy && !apiKey) {
-        throw new Error('No API key available for tier detection in direct mode');
-      }
+        if (!apiKey) {
+          throw new Error('No API key available for tier detection in direct mode');
+        }
 
-      // Try server-based tier detection
-      // If using proxy mode, send network as query param
-      // If using direct mode, send apiKey and network as query params
-      const params = new URLSearchParams();
-      params.append('network', this.network);
-      if (!this.useProxy && apiKey) {
+        const params = new URLSearchParams();
+        params.append('network', this.network);
         params.append('apiKey', apiKey);
-      }
 
-      const response = await axios.get(`${tierDetectionUrl}/api-keys/has-paid-tier?${params.toString()}`, {
-        timeout: 10000,
-        validateStatus: (status) => status < 500
-      });
+        const response = await axios.get(`${tierDetectionUrl}/api-keys/has-paid-tier?${params.toString()}`, {
+          timeout: 5000,
+          validateStatus: (status) => status < 500,
+          httpAgent: this.httpAgent,
+          httpsAgent: this.httpsAgent
+        });
 
-      if (response.data && response.data.success && typeof response.data.hasPaidTier === 'boolean') {
-        const hasPaidTier = response.data.hasPaidTier;
-        this.detectedTier = hasPaidTier ? 'growth' : 'free';
-        console.log(`[${this.network}] Detected Alchemy tier via API: ${this.detectedTier} (hasPaidTier: ${hasPaidTier})`);
-        return this.detectedTier;
+        if (response.data && response.data.success && typeof response.data.hasPaidTier === 'boolean') {
+          const hasPaidTier = response.data.hasPaidTier;
+          this.detectedTier = hasPaidTier ? 'growth' : 'free';
+          console.log(`[${this.network}] Detected Alchemy tier via API: ${this.detectedTier} (hasPaidTier: ${hasPaidTier})`);
+          return this.detectedTier;
+        }
       }
     } catch (error) {
       console.warn(`[${this.network}] API tier detection failed, falling back to local detection:`, error.message);
@@ -139,14 +174,16 @@ class AlchemyRPCClient {
       params,
       id: this.requestId
     };
-    
+
     try {
       const response = await axios.post(this.alchemyUrl, payload, {
-        timeout: 30000,
+        timeout: 180000, // Increased from 120s to 180s (3 minutes)
         headers: { 'Content-Type': 'application/json' },
         validateStatus: (status) => status < 500,
         maxContentLength: 50 * 1024 * 1024,
-        maxBodyLength: 50 * 1024 * 1024
+        maxBodyLength: 50 * 1024 * 1024,
+        httpAgent: this.httpAgent,
+        httpsAgent: this.httpsAgent
       });
       
       if (response.data.error) {

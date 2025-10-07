@@ -71,3 +71,5 @@ build/
 
 # Lock files
 *.lock
+# Learning data
+scanners/data/

@@ -16,7 +16,7 @@ class DataRevalidator extends Scanner {
   constructor() {
     // Check for recent contracts mode first
     const recentMode = process.env.RECENT_CONTRACTS === 'true';
-    
+
     super('DataRevalidator', {
       timeout: 7200,
       batchSizes: {
@@ -25,13 +25,16 @@ class DataRevalidator extends Scanner {
         verification: 1000  // Increased verification batch size as well
       }
     });
-    
+
     // Initialize UnifiedScanner instance to use its performEOAFiltering method
     this.unifiedScanner = new UnifiedScanner();
-    
+
     // Store recent mode settings
     this.recentMode = recentMode;
     this.recentDays = parseInt(process.env.RECENT_DAYS || '30', 10);
+
+    // Self-Destroyed Contract revalidation mode
+    this.revalidateSelfDestructed = process.env.REVALIDATE_SELF_DESTRUCTED === 'true';
     
     this.stats = {
       totalProcessed: 0,
@@ -42,7 +45,8 @@ class DataRevalidator extends Scanner {
       correctedRecords: 0,
       skippedRecords: 0,
       errors: 0,
-      invalidTags: 0
+      invalidTags: 0,
+      selfDestructedRevalidated: 0
     };
 
     this.validationResults = {
@@ -53,27 +57,81 @@ class DataRevalidator extends Scanner {
   }
 
   /**
+   * Override getCodeHashes to always use direct RPC calls (not ContractValidator)
+   * This ensures we get the CURRENT on-chain code hash, not cached/stale data
+   */
+  async getCodeHashes(addresses) {
+    if (!addresses?.length) return [];
+
+    const ethers = require('ethers');
+    const ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+    this.log(`🔍 Getting code hashes for ${addresses.length} addresses via direct RPC`);
+
+    // Use direct RPC calls to get current code
+    const promises = addresses.map(async (addr) => {
+      try {
+        const code = await this.alchemyClient.getCode(addr);
+        return code && code !== '0x' ? ethers.keccak256(code) : ZERO_HASH;
+      } catch (e) {
+        this.log(`⚠️ Failed to get code for ${addr}: ${e.message}`, 'warn');
+        return ZERO_HASH;
+      }
+    });
+
+    return Promise.all(promises);
+  }
+
+  /**
    * Get addresses to revalidate from database
    * Focus on non-EOA addresses that don't have Contract tag yet
    */
   async getAddressesToRevalidate(limit = 100000) {
     // Override limit for recent mode to prevent memory issues
-    const maxLimit = this.recentMode ? 
-      parseInt(process.env.REVALIDATOR_MAX_BATCH || '50000', 10) : 
+    const maxLimit = this.recentMode ?
+      parseInt(process.env.REVALIDATOR_MAX_BATCH || '50000', 10) :
       limit;
     let query;
     let params;
-    
-    if (this.recentMode) {
+
+    if (this.revalidateSelfDestructed) {
+      // Self-Destroyed Contract revalidation mode - find contracts with 'SelfDestroyed' tag
+      query = `
+        SELECT
+          address,
+          network,
+          deployed,
+          code_hash,
+          contract_name,
+          tags,
+          fund,
+          last_updated,
+          name_checked,
+          name_checked_at
+        FROM addresses
+        WHERE network = $1
+        AND 'SelfDestroyed' = ANY(tags)                                   -- Self-Destroyed contracts
+        ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
+        LIMIT $2
+      `;
+
+      params = [
+        this.network,     // $1: network
+        maxLimit         // $2: limit (use maxLimit)
+      ];
+
+      this.log(`🔍 Self-Destroyed Contract revalidation mode: Finding contracts with 'SelfDestroyed' tag`);
+      this.log(`📊 Max batch size: ${maxLimit} addresses`);
+    } else if (this.recentMode) {
       // Recent mode - find ALL addresses discovered in the last N days
       // No other conditions - process everything recent
       const cutoffTime = this.currentTime - (this.recentDays * 24 * 60 * 60);
-      
+
       query = `
-        SELECT 
-          address, 
-          network, 
-          deployed, 
+        SELECT
+          address,
+          network,
+          deployed,
           code_hash,
           contract_name,
           tags,
@@ -88,23 +146,23 @@ class DataRevalidator extends Scanner {
         ORDER BY first_seen DESC, fund DESC NULLS LAST
         LIMIT $3
       `;
-      
+
       params = [
         this.network,     // $1: network
         cutoffTime,       // $2: cutoff time for recent discovery
         maxLimit         // $3: limit (use maxLimit instead of limit)
       ];
-      
+
       this.log(`🔍 Recent mode: Finding ALL addresses discovered in last ${this.recentDays} days (including EOAs and validated contracts)`);
       this.log(`📅 Cutoff time: ${new Date(cutoffTime * 1000).toISOString()}`);
       this.log(`📊 Max batch size: ${maxLimit} addresses`);
     } else {
       // Standard mode - focus on addresses without proper tags
       query = `
-        SELECT 
-          address, 
-          network, 
-          deployed, 
+        SELECT
+          address,
+          network,
+          deployed,
           code_hash,
           contract_name,
           tags,
@@ -119,7 +177,7 @@ class DataRevalidator extends Scanner {
         ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
         LIMIT $2
       `;
-      
+
       params = [
         this.network,     // $1: network
         maxLimit         // $2: limit (use maxLimit)
@@ -225,24 +283,42 @@ class DataRevalidator extends Scanner {
             // Apply EXACT UnifiedScanner contract data structure
             corrections.codeHash = contract.codeHash;
             corrections.deployed = contract.deployTime;
-            
+
             // Check if we need to fetch contract metadata (name_checked = false or contract_name is null)
-            const needsMetadata = !record.name_checked || !record.contract_name;
-            
+            // In REVALIDATE_SELF_DESTRUCTED mode, always fetch metadata for previously self-destructed contracts
+            const wasSelfDestroyed = this.revalidateSelfDestructed && record.tags?.includes('SelfDestroyed');
+            const needsMetadata = wasSelfDestroyed || !record.name_checked || !record.contract_name;
+
             if (needsMetadata) {
-              this.log(`🔍 Fetching metadata for contract ${address}`);
+              if (wasSelfDestroyed) {
+                this.log(`✨ Contract ${address} was previously self-destructed, fetching fresh metadata`);
+                this.stats.selfDestructedRevalidated++;
+              } else {
+                this.log(`🔍 Fetching metadata for contract ${address}`);
+              }
               // We'll fetch this in a separate step after EOA filtering
               corrections.needsMetadata = true;
             }
             
-            const isVerified = Boolean(record.name_checked && record.contract_name);
-            corrections.tags = isVerified ? ['Contract', 'Verified'] : ['Contract', 'Unverified'];
-            // If metadata is needed, set contractName to null to allow fresh update
-            corrections.contractName = needsMetadata ? null : (record.contract_name || null);
-            corrections.fund = 0;
-            corrections.lastFundUpdated = 0;
-            corrections.nameChecked = needsMetadata ? false : isVerified;
-            corrections.nameCheckedAt = needsMetadata ? 0 : (isVerified ? this.currentTime : 0);
+            // For previously self-destructed contracts, reset all metadata
+            if (wasSelfDestroyed) {
+              corrections.tags = ['Contract', 'Unverified']; // Will be updated after metadata fetch
+              corrections.contractName = null; // Reset to allow fresh update
+              corrections.nameChecked = false;
+              corrections.nameCheckedAt = 0;
+              corrections.fund = 0;
+              corrections.lastFundUpdated = 0;
+              issues.push('self_destructed_recovered'); // Mark as issue to trigger update
+            } else {
+              const isVerified = Boolean(record.name_checked && record.contract_name);
+              corrections.tags = isVerified ? ['Contract', 'Verified'] : ['Contract', 'Unverified'];
+              // If metadata is needed, set contractName to null to allow fresh update
+              corrections.contractName = needsMetadata ? null : (record.contract_name || null);
+              corrections.fund = 0;
+              corrections.lastFundUpdated = 0;
+              corrections.nameChecked = needsMetadata ? false : isVerified;
+              corrections.nameCheckedAt = needsMetadata ? 0 : (isVerified ? this.currentTime : 0);
+            }
             
             // Check for incorrect data
             if (code_hash !== contract.codeHash) {
@@ -256,18 +332,59 @@ class DataRevalidator extends Scanner {
             // Self-destroyed contract detected
             const selfDestroyed = selfDestroyedMap.get(address);
             this.log(`📋 Address ${address} is a SELF-DESTROYED CONTRACT`);
-            
-            corrections.codeHash = selfDestroyed.codeHash;
-            corrections.deployed = null;
-            corrections.tags = selfDestroyed.tags;
-            corrections.contractName = selfDestroyed.contractName;
-            corrections.fund = 0;
-            corrections.lastFundUpdated = 0;
-            corrections.nameChecked = true;
-            corrections.nameCheckedAt = this.currentTime;
-            
-            issues.push('self_destroyed_contract');
-            
+
+            // In revalidation mode, check if the contract was redeployed at the same address
+            if (this.revalidateSelfDestructed) {
+              // Check current code on chain
+              const currentCode = await this.rpcClient.getCode(address);
+
+              if (currentCode && currentCode !== '0x') {
+                // Contract has been redeployed! Treat as active contract
+                this.log(`✨ Contract ${address} was REDEPLOYED - treating as active contract`);
+                this.stats.selfDestructedRevalidated++;
+
+                // Get current code hash
+                const currentCodeHash = await this.getCodeHashes([address]);
+                const newCodeHash = currentCodeHash[0];
+
+                corrections.codeHash = newCodeHash;
+                corrections.deployed = null; // Will be fetched later
+                corrections.tags = ['Contract', 'Unverified']; // Reset to unverified
+                corrections.contractName = null; // Reset contract name
+                corrections.fund = 0;
+                corrections.lastFundUpdated = 0;
+                corrections.nameChecked = false; // Needs new verification
+                corrections.nameCheckedAt = 0;
+                corrections.needsMetadata = true; // Fetch new metadata
+
+                issues.push('self_destructed_redeployed');
+              } else {
+                // Still self-destroyed
+                corrections.codeHash = selfDestroyed.codeHash;
+                corrections.deployed = null;
+                corrections.tags = selfDestroyed.tags;
+                corrections.contractName = selfDestroyed.contractName;
+                corrections.fund = 0;
+                corrections.lastFundUpdated = 0;
+                corrections.nameChecked = true;
+                corrections.nameCheckedAt = this.currentTime;
+
+                issues.push('self_destroyed_contract');
+              }
+            } else {
+              // Standard mode - just mark as self-destroyed
+              corrections.codeHash = selfDestroyed.codeHash;
+              corrections.deployed = null;
+              corrections.tags = selfDestroyed.tags;
+              corrections.contractName = selfDestroyed.contractName;
+              corrections.fund = 0;
+              corrections.lastFundUpdated = 0;
+              corrections.nameChecked = true;
+              corrections.nameCheckedAt = this.currentTime;
+
+              issues.push('self_destroyed_contract');
+            }
+
           } else if (eoaSet.has(address)) {
             // EOA detected
             this.log(`📋 Address ${address} is an EOA`);
@@ -446,12 +563,18 @@ class DataRevalidator extends Scanner {
     try {
       // Use UnifiedScanner's contract verification logic
       const verifiedContracts = await this.unifiedScanner.verifyContracts(contractAddresses);
-      
+
       if (verifiedContracts.length > 0) {
         this.log(`📝 Fetched metadata for ${verifiedContracts.length} contracts, updating database...`);
-        
+
+        // Add tags to verified contracts (UnifiedScanner doesn't include tags)
+        const contractsWithTags = verifiedContracts.map(contract => ({
+          ...contract,
+          tags: contract.verified ? ['Contract', 'Verified'] : ['Contract', 'Unverified']
+        }));
+
         // Apply metadata updates to database
-        await batchUpsertAddresses(this.db, verifiedContracts, { batchSize: 100 });
+        await batchUpsertAddresses(this.db, contractsWithTags, { batchSize: 100 });
         this.log(`✅ Applied metadata updates for ${verifiedContracts.length} contracts`);
       } else {
         this.log(`⚠️ No metadata found for any of the ${contractAddresses.length} contracts`);
@@ -479,7 +602,8 @@ class DataRevalidator extends Scanner {
         invalidDeploymentTimes: this.stats.invalidDeploymentTimes,
         misclassifiedAddresses: this.stats.misclassifiedAddresses,
         unreasonableValues: this.stats.unreasonableValues,
-        invalidTags: this.stats.invalidTags
+        invalidTags: this.stats.invalidTags,
+        selfDestructedRevalidated: this.stats.selfDestructedRevalidated
       },
       results: {
         fixed: this.validationResults.toFix.length,
