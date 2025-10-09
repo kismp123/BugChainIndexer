@@ -16,12 +16,14 @@ class DataRevalidator extends Scanner {
   constructor() {
     // Check for recent contracts mode first
     const recentMode = process.env.RECENT_CONTRACTS === 'true';
+    // Check for untagged contracts mode
+    const untaggedMode = process.env.UNTAGGED_CONTRACTS === 'true';
 
     super('DataRevalidator', {
       timeout: 7200,
       batchSizes: {
         // Reduce batch size for recent mode due to larger dataset
-        addresses: recentMode ? 5000 : 20000,  // 5K for recent mode, 20K for standard
+        addresses: recentMode ? 5000 : (untaggedMode ? 10000 : 20000),  // 5K for recent, 10K for untagged, 20K for standard
         verification: 1000  // Increased verification batch size as well
       }
     });
@@ -32,6 +34,9 @@ class DataRevalidator extends Scanner {
     // Store recent mode settings
     this.recentMode = recentMode;
     this.recentDays = parseInt(process.env.RECENT_DAYS || '30', 10);
+
+    // Untagged contracts mode - specifically for contracts without tags
+    this.untaggedMode = untaggedMode;
 
     // Self-Destroyed Contract revalidation mode
     this.revalidateSelfDestructed = process.env.REVALIDATE_SELF_DESTRUCTED === 'true';
@@ -90,7 +95,9 @@ class DataRevalidator extends Scanner {
     // Override limit for recent mode to prevent memory issues
     const maxLimit = this.recentMode ?
       parseInt(process.env.REVALIDATOR_MAX_BATCH || '50000', 10) :
-      limit;
+      (this.untaggedMode ?
+        parseInt(process.env.REVALIDATOR_MAX_BATCH || '100000', 10) :
+        limit);
     let query;
     let params;
 
@@ -121,6 +128,34 @@ class DataRevalidator extends Scanner {
       ];
 
       this.log(`🔍 Self-Destroyed Contract revalidation mode: Finding contracts with 'SelfDestroyed' tag`);
+      this.log(`📊 Max batch size: ${maxLimit} addresses`);
+    } else if (this.untaggedMode) {
+      // Untagged mode - find all addresses with no tags or empty tags array
+      query = `
+        SELECT
+          address,
+          network,
+          deployed,
+          code_hash,
+          contract_name,
+          tags,
+          fund,
+          last_updated,
+          name_checked,
+          name_checked_at
+        FROM addresses
+        WHERE network = $1
+        AND (tags IS NULL OR tags = '{}' OR array_length(tags, 1) IS NULL)  -- No tags or empty tags
+        ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
+        LIMIT $2
+      `;
+
+      params = [
+        this.network,     // $1: network
+        maxLimit         // $2: limit (use maxLimit)
+      ];
+
+      this.log(`🔍 Untagged mode: Finding addresses with no tags`);
       this.log(`📊 Max batch size: ${maxLimit} addresses`);
     } else if (this.recentMode) {
       // Recent mode - find ALL addresses discovered in the last N days
@@ -648,9 +683,13 @@ class DataRevalidator extends Scanner {
    */
   async run() {
     this.log('🚀 Starting Data Revalidation Process');
-    
+
     if (this.recentMode) {
       this.log(`📅 RECENT MODE: Re-validating ALL addresses discovered in last ${this.recentDays} days`);
+    } else if (this.untaggedMode) {
+      this.log('🏷️  UNTAGGED MODE: Finding and tagging addresses with no tags (Contract/EOA classification)');
+    } else if (this.revalidateSelfDestructed) {
+      this.log('💥 SELF-DESTRUCTED MODE: Re-validating previously self-destructed contracts');
     } else {
       this.log('📋 STANDARD MODE: Using UnifiedScanner validation logic for strict data verification');
     }

@@ -166,13 +166,16 @@ class AlchemyRPCClient {
     }
   }
   
-  async makeRequest(method, params = []) {
+  async makeRequest(method, params = [], retryCount = 0) {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 2000; // 2 seconds between retries
+
     this.requestId++;
     const payload = {
       jsonrpc: '2.0',
       method,
       params,
-      id: this.requestId
+      id: `${this.network}-${this.requestId}` // Network prefix to prevent ID collision across networks
     };
 
     try {
@@ -185,19 +188,99 @@ class AlchemyRPCClient {
         httpAgent: this.httpAgent,
         httpsAgent: this.httpsAgent
       });
-      
+
       if (response.data.error) {
         throw new Error(`Alchemy RPC Error: ${response.data.error.message} (code: ${response.data.error.code})`);
       }
-      
+
       if (!response.data.result && response.data.result !== null && response.data.result !== false) {
         throw new Error('Invalid Alchemy RPC response: missing result');
       }
-      
+
       return response.data.result;
-      
+
     } catch (error) {
+      const isProxyError = this.useProxy && (
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ENOTFOUND' ||
+        error.message?.includes('socket hang up') ||
+        error.message?.includes('ECONNREFUSED')
+      );
+
+      // If using proxy and got connection error, try to fallback or retry
+      if (isProxyError && retryCount < MAX_RETRIES) {
+        console.warn(`[${this.network}] Proxy connection error (attempt ${retryCount + 1}/${MAX_RETRIES}): ${error.message}`);
+
+        // Wait before retry with exponential backoff
+        const delay = RETRY_DELAY_MS * Math.pow(2, retryCount);
+        console.log(`[${this.network}] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        // Retry with same proxy
+        return this.makeRequest(method, params, retryCount + 1);
+      }
+
+      // If proxy failed after all retries, try direct Alchemy API as fallback
+      if (isProxyError && retryCount >= MAX_RETRIES && process.env.ALCHEMY_API_KEY) {
+        console.error(`[${this.network}] Proxy failed after ${MAX_RETRIES} retries, attempting direct Alchemy API fallback`);
+        return this.makeRequestDirect(method, params);
+      }
+
       console.error(`[${this.network}] Alchemy RPC error for ${method}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Fallback method to make direct Alchemy API request when proxy fails
+   * This is only used as a last resort
+   */
+  async makeRequestDirect(method, params = []) {
+    const apiKey = process.env.ALCHEMY_API_KEY;
+    if (!apiKey) {
+      throw new Error('Cannot fallback to direct Alchemy API: ALCHEMY_API_KEY not configured');
+    }
+
+    // Get network config for Alchemy endpoint
+    const networkConfig = NETWORKS[this.network];
+    const alchemyNetwork = networkConfig?.alchemyNetwork || this.network;
+    const directUrl = `https://${alchemyNetwork}.g.alchemy.com/v2/${apiKey}`;
+
+    this.requestId++;
+    const payload = {
+      jsonrpc: '2.0',
+      method,
+      params,
+      id: `${this.network}-direct-${this.requestId}`
+    };
+
+    console.log(`[${this.network}] Making direct Alchemy API request for ${method}`);
+
+    try {
+      const response = await axios.post(directUrl, payload, {
+        timeout: 180000,
+        headers: { 'Content-Type': 'application/json' },
+        validateStatus: (status) => status < 500,
+        maxContentLength: 50 * 1024 * 1024,
+        maxBodyLength: 50 * 1024 * 1024,
+        httpsAgent: this.httpsAgent
+      });
+
+      if (response.data.error) {
+        throw new Error(`Alchemy RPC Error (direct): ${response.data.error.message} (code: ${response.data.error.code})`);
+      }
+
+      if (!response.data.result && response.data.result !== null && response.data.result !== false) {
+        throw new Error('Invalid Alchemy RPC response (direct): missing result');
+      }
+
+      console.log(`[${this.network}] Direct Alchemy API request successful for ${method}`);
+      return response.data.result;
+
+    } catch (error) {
+      console.error(`[${this.network}] Direct Alchemy API error for ${method}: ${error.message}`);
       throw error;
     }
   }

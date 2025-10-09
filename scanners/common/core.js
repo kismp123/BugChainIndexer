@@ -1793,9 +1793,15 @@ async function getContractDeploymentTimeBatch(scanner, addresses) {
 
         if (txData && txData.blockNumber) {
           results.set(address, { ...data, blockNumber: txData.blockNumber });
+        } else if (!txData) {
+          // Transaction not found - might be pending or pruned
+          // Skip silently as this is expected for some contracts
         }
       } catch (error) {
-        console.warn(`Failed to get tx data for ${address}:`, error.message);
+        // Only log unexpected errors, not null responses
+        if (error && error.message && !error.message.includes('null')) {
+          console.warn(`Failed to get tx data for ${address}:`, error.message);
+        }
       }
     }
     
