@@ -358,43 +358,20 @@ class UnifiedScanner extends Scanner {
         // Batch API call for up to 5 contracts at once
         const deploymentResults = await getContractDeploymentTimeBatch(this, batchAddresses);
         
-        // Process results and update database
-        const updatePromises = [];
-        
+        // Update contract objects in memory (DB will be updated by caller)
         for (const contract of batch) {
           const result = deploymentResults.get(contract.address.toLowerCase());
           
           if (result && result.timestamp && result.timestamp > 0) {
-            // Update the contract object
+            // Update the contract object in memory
             contract.deployTime = result.timestamp;
             contract.isGenesis = result.isGenesis;
             
-            // Queue database update
-            const updateQuery = `
-              UPDATE addresses 
-              SET deployed = $1, last_updated = $2
-              WHERE address = $3 AND network = $4
-            `;
-            
-            updatePromises.push(
-              this.queryDB(updateQuery, [
-                result.timestamp,
-                this.currentTime,
-                contract.address,
-                this.network
-              ]).then(() => {
-                this.log(`✅ Fetched deployment time for ${contract.address}: ${new Date(result.timestamp * 1000).toISOString()}`);
-              }).catch(error => {
-                this.log(`⚠️ Failed to update deployment time for ${contract.address}: ${error.message}`, 'warn');
-              })
-            );
+            this.log(`✅ Fetched deployment time for ${contract.address}: ${new Date(result.timestamp * 1000).toISOString()}`);
           } else {
             this.log(`⚠️ No deployment time found for ${contract.address}`, 'warn');
           }
         }
-        
-        // Execute all database updates for this batch
-        await Promise.all(updatePromises);
         
       } catch (error) {
         this.log(`⚠️ Batch deployment fetch failed for ${batchAddresses.join(', ')}: ${error.message}`, 'warn');
@@ -426,7 +403,8 @@ class UnifiedScanner extends Scanner {
       verified: true,
       contractName: c.contractName || 'Unknown',
       codeHash: c.codeHash,
-      deployTime: c.deployTime,
+      deployTime: c.deployTime || null,  // Include existing deployTime from cache
+      needsDeploymentTime: !c.deployTime || c.deployTime <= 0,  // Flag if deployment time is missing
       sourceCode: null, // Not stored in cache
       abi: null, // Not stored in cache
       compilerVersion: null,
@@ -505,6 +483,9 @@ class UnifiedScanner extends Scanner {
             network: this.network,
             verified: true,
             contractName: finalContractName || sourceData.ContractName || 'Unknown',
+            codeHash: contract.codeHash || null,  // Preserve codeHash from input
+            deployTime: null,  // Will be fetched separately by fetchDeploymentTimesAsync
+            needsDeploymentTime: true,  // Flag that this contract needs deployment time
             sourceCode: sourceData.SourceCode,
             abi: sourceData.ABI ? JSON.parse(sourceData.ABI) : null,
             compilerVersion: sourceData.CompilerVersion || null,
@@ -549,6 +530,9 @@ class UnifiedScanner extends Scanner {
               network: this.network,
               verified: false,
               contractName: null,
+              codeHash: null,
+              deployTime: null,
+              needsDeploymentTime: false,  // Don't fetch deployment time for unverified contracts
               sourceCode: null,
               abi: null,
               compilerVersion: null,
@@ -580,6 +564,9 @@ class UnifiedScanner extends Scanner {
             network: this.network,
             verified: false,
             contractName: null,
+            codeHash: null,
+            deployTime: null,
+            needsDeploymentTime: false,  // Don't fetch deployment time for failed contracts
             sourceCode: null,
             abi: null,
             compilerVersion: null,
@@ -1118,14 +1105,12 @@ class UnifiedScanner extends Scanner {
 
         // Only process contracts with balance > 0
         if (contractsWithFunds.length > 0) {
-          // Start async deployment time fetching only for contracts with funds (non-blocking)
-          this.fetchDeploymentTimesAsync(contractsWithFunds).catch(err => {
-            this.log(`⚠️ Background deployment fetch failed: ${err.message}`, 'warn');
-          });
-
           // Verify contracts with funds
           this.log(`🔍 Verifying ${contractsWithFunds.length} contracts with funds (skipping ${contractsWithoutFunds.length} zero-balance contracts)`);
           verifiedContracts = await this.verifyContracts(contractsWithFunds);
+          
+          // Fetch deployment times for verified contracts (MUST await before storing)
+          await this.fetchDeploymentTimesAsync(verifiedContracts);
         }
 
         // Only store contracts with balance (skip zero-balance contracts)

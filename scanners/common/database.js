@@ -88,16 +88,20 @@ async function upsertAddress(client, data) {
       fund, last_fund_updated, name_checked, name_checked_at
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     ON CONFLICT (address, network) DO UPDATE SET
-      code_hash = COALESCE($2, addresses.code_hash),
-      contract_name = COALESCE($3, addresses.contract_name),
-      deployed = COALESCE($4, addresses.deployed),
-      last_updated = COALESCE($5, addresses.last_updated),
-      first_seen = COALESCE($7, addresses.first_seen),
-      tags = COALESCE($8, addresses.tags),
-      fund = COALESCE($9, addresses.fund),
-      last_fund_updated = COALESCE($10, addresses.last_fund_updated),
-      name_checked = COALESCE($11, addresses.name_checked),
-      name_checked_at = COALESCE($12, addresses.name_checked_at)
+      code_hash = $2,
+      contract_name = $3,
+      deployed = $4,
+      last_updated = $5,
+      first_seen = COALESCE(addresses.first_seen, $7),
+      tags = CASE
+        WHEN $8 IS NOT NULL AND array_length($8, 1) > 0
+        THEN $8
+        ELSE addresses.tags
+      END,
+      fund = $9,
+      last_fund_updated = $10,
+      name_checked = $11,
+      name_checked_at = $12
   `;
   
   const now = Math.floor(Date.now() / 1000);
@@ -166,20 +170,20 @@ async function batchUpsertAddresses(client, addresses, options = {}) {
         fund, last_fund_updated, name_checked, name_checked_at
       ) VALUES ${values.join(', ')}
       ON CONFLICT (address, network) DO UPDATE SET
-        code_hash = COALESCE(EXCLUDED.code_hash, addresses.code_hash),
-        contract_name = COALESCE(EXCLUDED.contract_name, addresses.contract_name),
-        deployed = COALESCE(EXCLUDED.deployed, addresses.deployed),
-        last_updated = COALESCE(EXCLUDED.last_updated, addresses.last_updated),
-        first_seen = COALESCE(EXCLUDED.first_seen, addresses.first_seen),
+        code_hash = EXCLUDED.code_hash,
+        contract_name = EXCLUDED.contract_name,
+        deployed = EXCLUDED.deployed,
+        last_updated = EXCLUDED.last_updated,
+        first_seen = COALESCE(addresses.first_seen, EXCLUDED.first_seen),
         tags = CASE
           WHEN EXCLUDED.tags IS NOT NULL AND array_length(EXCLUDED.tags, 1) > 0
           THEN EXCLUDED.tags
           ELSE addresses.tags
         END,
-        fund = COALESCE(EXCLUDED.fund, addresses.fund),
-        last_fund_updated = COALESCE(EXCLUDED.last_fund_updated, addresses.last_fund_updated),
-        name_checked = COALESCE(EXCLUDED.name_checked, addresses.name_checked),
-        name_checked_at = COALESCE(EXCLUDED.name_checked_at, addresses.name_checked_at)
+        fund = EXCLUDED.fund,
+        last_fund_updated = EXCLUDED.last_fund_updated,
+        name_checked = EXCLUDED.name_checked,
+        name_checked_at = EXCLUDED.name_checked_at
     `;
     
     const result = await client.query(query, params);

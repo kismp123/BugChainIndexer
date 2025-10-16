@@ -2,6 +2,8 @@
 
 > **High-performance multi-blockchain scanner with unified architecture**
 
+🌐 **Live Platform**: [https://bugchain.xyz/](https://bugchain.xyz/)
+
 The core analysis engine of BugChainIndexer. Streamlined to 3 core scanners and 4 common modules for maximum efficiency.
 
 ## 🏗️ Current Architecture
@@ -19,12 +21,12 @@ scanners/
 │   ├── addressUtils.js      # Address normalization utilities
 │   ├── alchemyRpc.js        # Alchemy RPC with Prices API support
 │   └── TokenPriceCache.js   # Token price fetching (price only)
-├── tokens/             # Token configurations (18 networks, 1,254 tokens)
-│   ├── ethereum.json        # 99 tokens with decimals
-│   ├── binance.json         # 100 tokens with decimals
-│   └── ...                  # 16 more networks
+├── tokens/             # Token configurations (14 networks)
+│   ├── ethereum.json        # Tokens with decimals
+│   ├── binance.json         # Tokens with decimals
+│   └── ...                  # 12 more networks
 ├── config/
-│   ├── networks.js     # 18 network configurations
+│   ├── networks.js     # 14 network configurations
 │   └── genesis-timestamps.js # Genesis block timestamps
 ├── tests/              # Test scripts (13 files)
 │   ├── test-all-rpcs.js
@@ -144,7 +146,7 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 - Direct on-chain balance queries with fallback support
 
 **Key features**:
-- ✅ Multi-network support across 14 chains
+- ✅ Multi-network support across 14 configured chains (12 active)
 - ✅ BalanceHelper contract integration for efficient batch queries
 - ✅ Dynamic batch sizing (50-1000 addresses per batch, optimized for 550M gas limit)
 - ✅ USD value calculation with price caching
@@ -160,7 +162,7 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 
 ## 🌐 Supported Networks
 
-### Active Networks (14)
+### Active Networks (12)
 *These networks are enabled in run.sh and actively scanned*
 
 | Network | Chain ID | Alchemy Support | BalanceHelper | Scanner Support |
@@ -177,10 +179,15 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 | Scroll | 534352 | ✅ Yes | ✅ Deployed | ✅ Full |
 | Mantle | 5000 | ✅ Yes | ✅ Deployed | ✅ Full |
 | opBNB | 204 | ✅ Yes | ✅ Deployed | ✅ Full |
+### Additional Configured Networks (2)
+*These networks are configured in networks.js but not in default run.sh*
+
+| Network | Chain ID | Alchemy Support | BalanceHelper | Scanner Support |
+|---------|----------|----------------|---------------|-----------------|
 | Unichain | 1301 | ✅ Yes | ✅ Deployed | ✅ Full |
 | Berachain | 80084 | ✅ Yes | ✅ Deployed | ✅ Full |
 
-#### BalanceHelper Contract Addresses
+#### BalanceHelper Contract Addresses (Active Networks)
 Efficient batch balance queries for native + ERC-20 tokens:
 
 | Network | Contract Address |
@@ -197,10 +204,14 @@ Efficient batch balance queries for native + ERC-20 tokens:
 | Scroll | `0x06318Df33cea02503afc45FE65cdEAb8FAb3E20A` |
 | Mantle | `0xeAbB01920C41e1C010ba74628996EEA65Df03550` |
 | opBNB | `0xeAbB01920C41e1C010ba74628996EEA65Df03550` |
+
+#### Additional Networks (Not in default run.sh)
+| Network | Contract Address |
+|---------|-----------------|
 | Unichain | `0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384` |
 | Berachain | `0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384` |
 
-**Note**: All 14 networks have full Alchemy API support and are production-ready.
+**Note**: All 14 configured networks have full Alchemy API support. 12 networks are active in run.sh for production scanning.
 
 ## 🤖 Automation (Cron)
 
@@ -322,6 +333,13 @@ HIGH_FUND_FLAG=true ./run.sh funds-high
 - Monitor logs in `logs/` directory
 
 ## 📈 Recent Changes (2025)
+
+### Latest Updates (January 2025)
+- **Database Update Logic Fix**: Fixed `batchUpsertAddresses` to properly force update all fields
+  - Changed from `COALESCE(EXCLUDED.x, addresses.x)` to direct `EXCLUDED.x` assignment
+  - Only `first_seen` preserves earliest timestamp with `COALESCE(addresses.first_seen, EXCLUDED.first_seen)`
+  - DataRevalidator now correctly updates `code_hash`, `deployed`, `contract_name`, and other fields
+  - Ensures data consistency across all networks
 
 ### Architecture Improvements
 - **BalanceHelper Multi-Address API**: Modified to accept multiple addresses in single call

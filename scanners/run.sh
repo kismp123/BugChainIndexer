@@ -303,6 +303,20 @@ main() {
             fi
             ;;
 
+        "revalidate-untagged"|"revalidate-tags"|"DataRevalidator-untagged")
+            log "🏷️  Starting DataRevalidator for untagged contracts${network:+ on $network}..."
+
+            if [[ -n "$network" ]]; then
+                # Run for specific network
+                lock_and_run "revalidate-untagged-$network" \
+                    "env UNTAGGED_CONTRACTS=true NETWORK=\"$network\" node \"$SCANNERS_DIR/DataRevalidator.js\""
+            else
+                # Run for all networks in parallel
+                export UNTAGGED_CONTRACTS=true
+                lock_and_run "revalidate-untagged-parallel" "run_parallel DataRevalidator"
+            fi
+            ;;
+
         "update-names"|"update-contract-names")
             log "🏷️ Starting contract name update from Etherscan Nametag API${network:+ for $network}..."
 
@@ -481,6 +495,7 @@ Available Scanners:
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
   revalidate-recent  Revalidate contracts discovered in last N days (default: 30)
   revalidate-selfdestruct  Revalidate Self-Destroyed contracts (check if redeployed)
+  revalidate-untagged  Find and tag addresses with no tags (Contract/EOA classification)
   update-names  Update contract names from Etherscan Nametag API (fund >= 1M)
   all           Run complete scanner suite (unified + funds + revalidate)
 
@@ -504,6 +519,7 @@ Examples:
   $0 revalidate-recent        # Revalidate contracts discovered in last 30 days
   $0 revalidate-recent 7      # Revalidate contracts discovered in last 7 days
   $0 revalidate-selfdestruct  # Revalidate Self-Destroyed contracts for all networks
+  $0 revalidate-untagged      # Find and tag addresses with no tags (all networks)
   $0 all                      # Full unified scanner suite
 
   # Run on specific network (RECOMMENDED METHOD)
@@ -514,6 +530,7 @@ Examples:
   NETWORK=ethereum $0 revalidate   # Run revalidation for ethereum only
   NETWORK=ethereum $0 revalidate-recent    # Revalidate recent contracts on ethereum (last 30 days)
   NETWORK=ethereum $0 revalidate-selfdestruct  # Revalidate Self-Destroyed contracts on ethereum
+  NETWORK=ethereum $0 revalidate-untagged  # Find and tag untagged addresses on ethereum
   NETWORK=ethereum $0 update-names # Update contract names for ethereum only
   NETWORK=polygon $0 unified       # Run unified analysis for polygon only
 
@@ -546,6 +563,7 @@ Environment Variables:
   RECENT_CONTRACTS=true      Enable recent contracts mode for DataRevalidator
   RECENT_DAYS=30            Days to look back for recent contracts (default: 30)
   REVALIDATE_SELF_DESTRUCTED=true  Enable Self-Destroyed contract revalidation mode
+  UNTAGGED_CONTRACTS=true    Enable untagged contracts mode for DataRevalidator
 
 Available Core Scanners:
   - UnifiedScanner.js        Complete blockchain analysis pipeline

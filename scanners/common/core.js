@@ -1547,19 +1547,39 @@ function safeGetAddressType(address, codeHash, deploymentTime) {
     if (!address ) {
       return 'invalid';
     }
-    
+
+    // Explicit EOA: deploymentTime === 0
     if (deploymentTime === 0) {
       return 'eoa';
     }
-    
+
+    // Explicit Contract: deploymentTime > 0
     if (deploymentTime > 0) {
       return 'contract';
     }
-    
+
+    // deploymentTime is null or undefined - need to check code
     if (codeHash && codeHash !== BLOCKCHAIN_CONSTANTS.ZERO_HASH) {
+      // Check if it's EIP-7702 delegation code
+      // EIP-7702 uses magic bytes 0xef0100 (delegation designator)
+      // Format: 0xef0100 (3 bytes) + delegated_address (20 bytes) = 23 bytes total
+      const normalized = codeHash.toLowerCase();
+      if (normalized.startsWith('0xef0100')) {
+        // Strict validation: EIP-7702 code must be exactly 23 bytes
+        // 2 chars for "0x" + 46 hex chars (23 bytes * 2) = 48 total
+        if (normalized.length === 48) {
+          return 'eip7702_eoa';  // Valid EIP-7702 EOA with delegation code
+        }
+        // If it starts with 0xef0100 but wrong length, it's likely a different contract
+        // Fall through to treat as regular contract
+      }
+
+      // Regular contract with code but no deployment time yet
+      // This should not happen if deployment time was fetched, but handle gracefully
       return 'contract';
     }
-    
+
+    // No code, no deployment time - assume EOA
     return 'eoa';
   } catch (error) {
     console.warn(`Error in safeGetAddressType for ${address}:`, error.message);
@@ -1731,38 +1751,43 @@ async function withTimeoutAndRetry(operation, timeoutMs, retryOptions = {}) {
 async function getContractDeploymentTimeBatch(scanner, addresses) {
   const { getGenesisTimestamp } = require('../config/genesis-timestamps');
   const results = new Map();
-  
+
+  // Normalize all addresses to lowercase for consistent comparison
+  let normalizedAddresses = addresses.map(addr => addr.toLowerCase());
+
   // Initialize all addresses with default values
-  for (const address of addresses) {
-    results.set(address.toLowerCase(), { timestamp: 0, isGenesis: false });
+  for (const address of normalizedAddresses) {
+    results.set(address, { timestamp: 0, isGenesis: false });
   }
-  
-  if (addresses.length === 0) return results;
-  if (addresses.length > 5) {
-    console.warn(`Batch size ${addresses.length} exceeds limit of 5, processing first 5 only`);
-    addresses = addresses.slice(0, 5);
+
+  if (normalizedAddresses.length === 0) return results;
+  if (normalizedAddresses.length > 5) {
+    console.warn(`Batch size ${normalizedAddresses.length} exceeds limit of 5, processing first 5 only`);
+    normalizedAddresses = normalizedAddresses.slice(0, 5);
   }
-  
+
   try {
-    // Batch API call for contract creation data
+    // Batch API call for contract creation data (use normalized addresses)
     const creationData = await scanner.etherscanCall({
       module: 'contract',
       action: 'getcontractcreation',
-      contractaddresses: addresses.join(',')
+      contractaddresses: normalizedAddresses.join(',')
     });
-    
+
+    // Raw API response logging (disabled in production)
+
     if (!creationData || !Array.isArray(creationData)) {
-      console.warn('Invalid batch API response for contract creation');
+      console.warn('[getContractDeploymentTimeBatch] Invalid batch API response for contract creation');
       return results;
     }
     
     // Process each contract's creation data
     for (const creation of creationData) {
       if (!creation || !creation.contractAddress) continue;
-      
+
       const address = creation.contractAddress.toLowerCase();
       const result = { timestamp: 0, isGenesis: false };
-      
+
       // Check if it's a genesis contract
       if (creation.txHash && creation.txHash.startsWith('GENESIS')) {
         result.isGenesis = true;
@@ -1770,12 +1795,22 @@ async function getContractDeploymentTimeBatch(scanner, addresses) {
         results.set(address, result);
         continue;
       }
-      
-      // For non-genesis contracts, we need to get block timestamps
+
+      // IMPORTANT: Etherscan getcontractcreation API already returns timestamp field!
+      // Use it directly if available instead of fetching from blockchain
+      if (creation.timestamp) {
+        const timestamp = parseInt(creation.timestamp);
+        if (!isNaN(timestamp) && timestamp > 0) {
+          results.set(address, { timestamp, isGenesis: false });
+          continue;
+        }
+      }
+
+      // Fallback: If no timestamp in Etherscan response, get it from blockchain
       // Store txHash for later batch processing
       if (creation.txHash) {
-        results.set(address, { 
-          ...result, 
+        results.set(address, {
+          ...result,
           txHash: creation.txHash,
           blockNumber: null // Will be fetched next
         });
@@ -1793,9 +1828,15 @@ async function getContractDeploymentTimeBatch(scanner, addresses) {
 
         if (txData && txData.blockNumber) {
           results.set(address, { ...data, blockNumber: txData.blockNumber });
+        } else if (!txData) {
+          // Transaction not found - might be pending or pruned
+          // Skip silently as this is expected for some contracts
         }
       } catch (error) {
-        console.warn(`Failed to get tx data for ${address}:`, error.message);
+        // Only log unexpected errors, not null responses
+        if (error && error.message && !error.message.includes('null')) {
+          console.warn(`Failed to get tx data for ${address}:`, error.message);
+        }
       }
     }
     
@@ -1832,7 +1873,28 @@ async function getContractDeploymentTimeBatch(scanner, addresses) {
         results.set(address, { timestamp: 0, isGenesis: false });
       }
     }
-    
+
+    // Fallback: For addresses that didn't get timestamps from batch API, try individually
+    const addressesWithoutTimestamp = Array.from(results.entries())
+      .filter(([addr, data]) => data.timestamp === 0 && !data.isGenesis)
+      .map(([addr]) => addr);
+
+    if (addressesWithoutTimestamp.length > 0) {
+      console.log(`[getContractDeploymentTimeBatch] ${addressesWithoutTimestamp.length} addresses missing from batch response, fetching individually...`);
+
+      for (const address of addressesWithoutTimestamp) {
+        try {
+          const individualResult = await getContractDeploymentTime(scanner, address);
+          if (individualResult.timestamp > 0) {
+            results.set(address, individualResult);
+            console.log(`[getContractDeploymentTimeBatch] ✅ Fetched ${address} individually: ${individualResult.timestamp}`);
+          }
+        } catch (error) {
+          console.warn(`[getContractDeploymentTimeBatch] Failed to fetch ${address} individually:`, error.message);
+        }
+      }
+    }
+
     return results;
   } catch (error) {
     console.warn(`Batch deployment time fetch failed:`, error.message);
@@ -1859,7 +1921,7 @@ async function getContractDeploymentTime(scanner, address) {
     
     if (creationData && creationData.length > 0) {
       const creation = creationData[0];
-      
+
       // Check if it's a genesis contract
       if (creation.txHash && creation.txHash.startsWith('GENESIS')) {
         result.isGenesis = true;
@@ -1867,7 +1929,18 @@ async function getContractDeploymentTime(scanner, address) {
         result.timestamp = getGenesisTimestamp(scanner.config?.chainId) || 0;
         return result;
       }
-      
+
+      // IMPORTANT: Etherscan getcontractcreation API already returns timestamp field!
+      // Use it directly if available instead of fetching from blockchain
+      if (creation.timestamp) {
+        const timestamp = parseInt(creation.timestamp);
+        if (!isNaN(timestamp) && timestamp > 0) {
+          result.timestamp = timestamp;
+          return result;
+        }
+      }
+
+      // Fallback: If no timestamp in Etherscan response, get it from blockchain
       if (creation.txHash) {
         // Get transaction details to get timestamp
         const txData = await scanner.alchemyClient.getTransactionByHash(creation.txHash);
