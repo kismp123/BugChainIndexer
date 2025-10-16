@@ -407,7 +407,17 @@ main() {
             log "🚀 Starting large dataset optimization..."
             node "$SCRIPT_DIR/utils/db-optimize-large.js"
             ;;
-            
+
+        "index-optimize"|"optimize-indexes"|"fillfactor")
+            log "🔧 Optimizing index FILLFACTOR (reduces page splits and lock contention)..."
+            node "$SCRIPT_DIR/utils/optimize-index-fillfactor.js"
+            ;;
+
+        "index-optimize-dry"|"optimize-indexes-dry"|"fillfactor-dry")
+            log "🔍 Preview index FILLFACTOR optimization (dry run)..."
+            node "$SCRIPT_DIR/utils/optimize-index-fillfactor.js" --dry-run
+            ;;
+
         *)
             cat << EOF
 Usage: $0 [SCANNER] [MODE] [NETWORK]
@@ -459,8 +469,10 @@ Monitoring & Maintenance:
   $0 logs recent              # Show recent log entries
   $0 clean                    # Clean old logs (>3 days)
   $0 db-optimize              # Optimize database performance (with VACUUM)
-  $0 db-optimize-fast         # Fast optimization (skip VACUUM - recommended for daily use)  
+  $0 db-optimize-fast         # Fast optimization (skip VACUUM - recommended for daily use)
   $0 db-optimize-large        # Large dataset optimization (10GB+) - monthly recommended
+  $0 index-optimize           # Optimize index FILLFACTOR to reduce lock contention (70% less page splits)
+  $0 index-optimize-dry       # Preview index optimization (dry run mode)
   $0 db-analyze               # Analyze database performance (read-only)
   $0 db-cleanup               # Remove unused indexes and create optimized ones
   $0 db-normalize-addresses   # Analyze address normalization needs
