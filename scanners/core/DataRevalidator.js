@@ -88,7 +88,7 @@ class DataRevalidator extends Scanner {
     await this.initializeUnifiedScanner();
 
     // Step 3: Process in batches
-    const batchSize = 10000; // Process 10k addresses at a time
+    const batchSize = 1000; // Process 1k addresses at a time
     let totalProcessed = 0;
     let totalEOAs = 0;
     let totalContracts = 0;
