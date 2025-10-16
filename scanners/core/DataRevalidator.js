@@ -72,7 +72,7 @@ class DataRevalidator extends Scanner {
         -- OR addresses with SelfDestroyed tag
         OR 'SelfDestroyed' = ANY(tags)
       )
-      ORDER BY fund DESC NULLS LAST
+      LIMIT 100000
     `;
     const result = await this.queryDB(query, [this.network]);
     const allAddresses = result.rows.map(row => row.address);
