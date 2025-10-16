@@ -22,6 +22,51 @@ class DataRevalidator extends Scanner {
   }
 
   /**
+   * Override initialize to skip schema check (schema already exists from other scanners)
+   * This prevents the 60-180s delay caused by lock contention during heavy write load
+   */
+  async initialize() {
+    this.log('🔄 Starting initialization...');
+
+    this.log('🔗 Connecting to database...');
+    const { initializeDB } = require('../common/core.js');
+    this.db = await initializeDB();
+    this.log('✅ Database connected');
+
+    // SKIP: await ensureSchema(this.db) - Schema already exists, no need to check
+    this.log('⏭️  Skipping schema check (already exists from active scanners)');
+
+    if (!this.config) {
+      throw new Error(`Network "${this.network}" not found in config`);
+    }
+
+    this.log('🌐 Initializing RPC clients...');
+    const { createRpcClient } = require('../common/core.js');
+    const clients = createRpcClient(this.network);
+    this.alchemyClient = clients.alchemyClient;
+    this.logsClient = clients.alchemyClient;
+    this.rpc = clients;
+    this.log('✅ RPC clients ready (Alchemy RPC for all calls including getLogs)');
+
+    // Auto-detect Alchemy tier if not manually set
+    if (this.tierAutoDetect) {
+      this.log('🔍 Auto-detecting Alchemy tier...');
+      this.alchemyTier = await this.alchemyClient.detectTier();
+    }
+
+    // Set max logs block range based on detected/configured tier
+    if (this.config.maxLogsBlockRange && this.alchemyTier) {
+      this.maxLogsBlockRange = this.config.maxLogsBlockRange[this.alchemyTier];
+      this.log(`Max getLogs block range: ${this.maxLogsBlockRange} blocks (${this.alchemyTier} tier)`);
+    } else {
+      this.maxLogsBlockRange = 10;
+      this.log(`Using default max getLogs block range: ${this.maxLogsBlockRange} blocks`, 'warn');
+    }
+
+    this.log('✅ Initialization completed successfully');
+  }
+
+  /**
    * Initialize UnifiedScanner with same network and database connection
    */
   async initializeUnifiedScanner() {
