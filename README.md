@@ -219,13 +219,14 @@ npm start  # Starts HTTPS server on port 443
 High-performance blockchain analysis engine with Alchemy API integration.
 - **UnifiedScanner**: Main analysis pipeline with ERC20 balance checking
 - **FundUpdater**: Portfolio tracking with PostgreSQL advisory locks and network-specific decimals
-- **DataRevalidator**: Existing data validation and tagging
+- **DataRevalidator**: Validates and updates addresses with incomplete data
 
-**Key Improvements:**
+**Key Features:**
 - Network-specific token decimals (1,254 tokens across 18 networks)
 - PostgreSQL advisory locks prevent concurrent update conflicts
 - ERC20 balance checking includes contracts with token holdings
 - Accurate fund calculations using tokens file decimals (not DB)
+- Simplified DataRevalidator with unified reclassification logic
 
 ### Backend Server
 Express.js REST API with PostgreSQL database.

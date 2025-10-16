@@ -62,12 +62,6 @@ scanners/
 # Validate existing data
 ./run.sh revalidate
 
-# Revalidate recent contracts (last 30 days)
-./run.sh revalidate-recent
-
-# Revalidate Self-Destroyed contracts
-./run.sh revalidate-selfdestruct
-
 # Run all scanners
 ./run.sh all
 ```
@@ -155,10 +149,11 @@ HIGH_FUND_FLAG=true            # Only high-value addresses (>100k)
 
 ### DataRevalidator
 **Data consistency validation**
-- Validates and tags existing addresses
-- Classifies untagged addresses as Contract/EOA
-- Batch processing (20,000 addresses/batch)
-- Reuses UnifiedScanner's EOA filtering logic
+- Validates addresses with incomplete data (null/empty fields)
+- Reclassifies addresses using UnifiedScanner's performEOAFiltering
+- Fetches deployment times and contract metadata
+- Updates database with complete information
+- Simplified architecture with single reclassifyAllAddresses method
 
 ## 🌐 Supported Networks
 
