@@ -125,12 +125,13 @@ class DataRevalidator extends Scanner {
 
     // Log fund range statistics
     if (result.rows.length > 0) {
-      const topFund = result.rows[0].fund || 0;
-      const bottomFund = result.rows[result.rows.length - 1].fund || 0;
-      const fundValues = result.rows.map(r => r.fund || 0).filter(f => f > 0);
+      const topFund = Number(result.rows[0].fund) || 0;
+      const bottomFund = Number(result.rows[result.rows.length - 1].fund) || 0;
+      const fundValues = result.rows.map(r => Number(r.fund) || 0).filter(f => f > 0);
       const avgFund = fundValues.length > 0 ? fundValues.reduce((a, b) => a + b, 0) / fundValues.length : 0;
 
       this.log(`💰 Fund range: Top=${topFund.toFixed(4)} ETH, Avg=${avgFund.toFixed(4)} ETH, Bottom=${bottomFund.toFixed(4)} ETH`);
+      this.log(`📊 Addresses with non-zero fund: ${fundValues.length}/${result.rows.length} (${(fundValues.length / result.rows.length * 100).toFixed(2)}%)`);
     }
 
     if (allAddresses.length === 0) {
