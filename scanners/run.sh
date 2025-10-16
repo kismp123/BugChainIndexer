@@ -258,81 +258,6 @@ main() {
                 lock_and_run "revalidate-parallel" "run_parallel DataRevalidator"
             fi
             ;;
-            
-        "revalidate-recent"|"DataRevalidator-recent")
-            # Parse parameters: [days] [network]
-            local days="${mode:-30}"        # Second param is days (default: 30)
-            local target_network="${network:-}"  # Third param is network
-
-            # If days is "auto" or non-numeric, use default
-            if [[ "$days" == "auto" ]] || ! [[ "$days" =~ ^[0-9]+$ ]]; then
-                days="30"
-            fi
-
-            # If days is actually a network name, swap them
-            if [[ "$days" =~ ^(ethereum|binance|polygon|avalanche|arbitrum|optimism|base|gnosis|linea|scroll|mantle|opbnb)$ ]]; then
-                target_network="$days"
-                days="30"
-            fi
-
-            log "📅 Starting DataRevalidator for recent contracts (last ${days} days)${target_network:+ on $target_network}..."
-
-            if [[ -n "$target_network" ]]; then
-                # Run for specific network
-                lock_and_run "revalidate-recent-$target_network" \
-                    "env RECENT_CONTRACTS=true RECENT_DAYS=\"$days\" NETWORK=\"$target_network\" node \"$SCANNERS_DIR/DataRevalidator.js\""
-            else
-                # Run for all networks in parallel with recent mode
-                export RECENT_CONTRACTS=true
-                export RECENT_DAYS="$days"
-                lock_and_run "revalidate-recent-parallel" "run_parallel DataRevalidator"
-            fi
-            ;;
-
-        "revalidate-selfdestruct"|"revalidate-self-destructed"|"DataRevalidator-selfdestruct")
-            log "💥 Starting DataRevalidator for Self-Destroyed contracts${network:+ on $network}..."
-
-            if [[ -n "$network" ]]; then
-                # Run for specific network
-                lock_and_run "revalidate-selfdestruct-$network" \
-                    "env REVALIDATE_SELF_DESTRUCTED=true NETWORK=\"$network\" node \"$SCANNERS_DIR/DataRevalidator.js\""
-            else
-                # Run for all networks in parallel
-                export REVALIDATE_SELF_DESTRUCTED=true
-                lock_and_run "revalidate-selfdestruct-parallel" "run_parallel DataRevalidator"
-            fi
-            ;;
-
-        "revalidate-untagged"|"revalidate-tags"|"DataRevalidator-untagged")
-            log "🏷️  Starting DataRevalidator for untagged contracts${network:+ on $network}..."
-
-            if [[ -n "$network" ]]; then
-                # Run for specific network
-                lock_and_run "revalidate-untagged-$network" \
-                    "env UNTAGGED_CONTRACTS=true NETWORK=\"$network\" node \"$SCANNERS_DIR/DataRevalidator.js\""
-            else
-                # Run for all networks in parallel
-                export UNTAGGED_CONTRACTS=true
-                lock_and_run "revalidate-untagged-parallel" "run_parallel DataRevalidator"
-            fi
-            ;;
-
-        "update-names"|"update-contract-names")
-            log "🏷️ Starting contract name update from Etherscan Nametag API${network:+ for $network}..."
-
-            if [[ -n "$network" ]]; then
-                lock_and_run "update-names-$network" \
-                    "env NETWORK=\"$network\" node \"$SCRIPT_DIR/scripts/update-contract-names.js\""
-            else
-                # Run for all networks sequentially
-                for net in "${NETWORKS[@]}"; do
-                    log "🏷️ Updating contract names for $net..."
-                    lock_and_run "update-names-$net" \
-                        "env NETWORK=\"$net\" node \"$SCRIPT_DIR/scripts/update-contract-names.js\"" || \
-                        log "❌ Failed to update names for $net"
-                done
-            fi
-            ;;
 
         "all"|"suite")
             log "🚀 Starting complete scanner suite (unified + funds + revalidate)..."
@@ -493,10 +418,6 @@ Available Scanners:
   funds-high    Update asset balances for high-value addresses (fund >= 100,000, includes ALL_FLAG)
   unified       Complete blockchain analysis pipeline: addresses + EOA + verification (parallel)
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
-  revalidate-recent  Revalidate contracts discovered in last N days (default: 30)
-  revalidate-selfdestruct  Revalidate Self-Destroyed contracts (check if redeployed)
-  revalidate-untagged  Find and tag addresses with no tags (Contract/EOA classification)
-  update-names  Update contract names from Etherscan Nametag API (fund >= 1M)
   all           Run complete scanner suite (unified + funds + revalidate)
 
 Modes:
@@ -516,10 +437,6 @@ Examples:
   $0 unified                  # Run unified blockchain analysis pipeline (recommended)
   $0 unified parallel         # Run unified pipeline on all networks in parallel
   $0 revalidate               # Run data revalidation for all networks
-  $0 revalidate-recent        # Revalidate contracts discovered in last 30 days
-  $0 revalidate-recent 7      # Revalidate contracts discovered in last 7 days
-  $0 revalidate-selfdestruct  # Revalidate Self-Destroyed contracts for all networks
-  $0 revalidate-untagged      # Find and tag addresses with no tags (all networks)
   $0 all                      # Full unified scanner suite
 
   # Run on specific network (RECOMMENDED METHOD)
@@ -528,17 +445,12 @@ Examples:
   NETWORK=ethereum $0 funds-high   # Update high-value funds on ethereum with ALL_FLAG
   NETWORK=ethereum $0 unified      # Run unified analysis for ethereum only
   NETWORK=ethereum $0 revalidate   # Run revalidation for ethereum only
-  NETWORK=ethereum $0 revalidate-recent    # Revalidate recent contracts on ethereum (last 30 days)
-  NETWORK=ethereum $0 revalidate-selfdestruct  # Revalidate Self-Destroyed contracts on ethereum
-  NETWORK=ethereum $0 revalidate-untagged  # Find and tag untagged addresses on ethereum
-  NETWORK=ethereum $0 update-names # Update contract names for ethereum only
   NETWORK=polygon $0 unified       # Run unified analysis for polygon only
 
   # Alternative method (use correct parameter order)
   $0 funds auto ethereum      # Update funds for ethereum only
   $0 unified auto ethereum    # Run unified analysis for ethereum only
   $0 revalidate auto ethereum # Run revalidation for ethereum only
-  $0 update-names auto ethereum # Update contract names for ethereum only
   
 Monitoring & Maintenance:
   $0 logs error               # Show recent errors
@@ -560,10 +472,7 @@ Environment Variables:
   NETWORK=network_name       Override network for single-network runs
   HIGH_FUND_FLAG=true        Enable high-value address filtering (fund >= 100,000)
   FUND_UPDATE_MAX_BATCH=50000 Maximum batch size for fund updates
-  RECENT_CONTRACTS=true      Enable recent contracts mode for DataRevalidator
-  RECENT_DAYS=30            Days to look back for recent contracts (default: 30)
-  REVALIDATE_SELF_DESTRUCTED=true  Enable Self-Destroyed contract revalidation mode
-  UNTAGGED_CONTRACTS=true    Enable untagged contracts mode for DataRevalidator
+  ALL_FLAG=true              Enable processing all addresses (for funds-all mode)
 
 Available Core Scanners:
   - UnifiedScanner.js        Complete blockchain analysis pipeline
