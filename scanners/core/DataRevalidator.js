@@ -99,9 +99,9 @@ class DataRevalidator extends Scanner {
     this.log('🔄 Starting address reclassification process...');
 
     // Step 1: Read addresses with incomplete data or SelfDestroyed tag from database
-    this.log('📖 Reading addresses with incomplete data from database...');
+    this.log('📖 Reading addresses with incomplete data from database (sorted by fund DESC)...');
     const query = `
-      SELECT address
+      SELECT address, fund
       FROM addresses
       WHERE network = $1
       AND (
@@ -117,10 +117,21 @@ class DataRevalidator extends Scanner {
         -- OR addresses with SelfDestroyed tag
         OR 'SelfDestroyed' = ANY(tags)
       )
+      ORDER BY fund DESC NULLS LAST
       LIMIT 100000
     `;
     const result = await this.queryDB(query, [this.network]);
     const allAddresses = result.rows.map(row => row.address);
+
+    // Log fund range statistics
+    if (result.rows.length > 0) {
+      const topFund = result.rows[0].fund || 0;
+      const bottomFund = result.rows[result.rows.length - 1].fund || 0;
+      const fundValues = result.rows.map(r => r.fund || 0).filter(f => f > 0);
+      const avgFund = fundValues.length > 0 ? fundValues.reduce((a, b) => a + b, 0) / fundValues.length : 0;
+
+      this.log(`💰 Fund range: Top=${topFund.toFixed(4)} ETH, Avg=${avgFund.toFixed(4)} ETH, Bottom=${bottomFund.toFixed(4)} ETH`);
+    }
 
     if (allAddresses.length === 0) {
       this.log('⚠️ No addresses found in database');
