@@ -5,187 +5,65 @@
  */
 const Scanner = require('../common/Scanner');
 const UnifiedScanner = require('./UnifiedScanner');
-const { 
-  batchUpsertAddresses, 
+const {
+  batchUpsertAddresses,
   normalizeAddress,
-  isValidAddress,
   BLOCKCHAIN_CONSTANTS
 } = require('../common');
 
 class DataRevalidator extends Scanner {
   constructor() {
-    // Check for recent contracts mode first
-    const recentMode = process.env.RECENT_CONTRACTS === 'true';
-
     super('DataRevalidator', {
-      timeout: 7200,
-      batchSizes: {
-        // Reduce batch size for recent mode due to larger dataset
-        addresses: recentMode ? 5000 : 20000,  // 5K for recent mode, 20K for standard
-        verification: 1000  // Increased verification batch size as well
-      }
+      timeout: 7200
     });
 
     // Initialize UnifiedScanner instance to use its performEOAFiltering method
     this.unifiedScanner = new UnifiedScanner();
-
-    // Store recent mode settings
-    this.recentMode = recentMode;
-    this.recentDays = parseInt(process.env.RECENT_DAYS || '30', 10);
-
-    // Self-Destroyed Contract revalidation mode
-    this.revalidateSelfDestructed = process.env.REVALIDATE_SELF_DESTRUCTED === 'true';
-    
-    this.stats = {
-      totalProcessed: 0,
-      validRecords: 0,
-      invalidDeploymentTimes: 0,
-      misclassifiedAddresses: 0,
-      unreasonableValues: 0,
-      correctedRecords: 0,
-      skippedRecords: 0,
-      errors: 0,
-      invalidTags: 0,
-      selfDestructedRevalidated: 0
-    };
-
-    this.validationResults = {
-      toFix: [],
-      toFlag: [],
-      toSkip: []
-    };
   }
 
   /**
-   * Override getCodeHashes to always use direct RPC calls (not ContractValidator)
-   * This ensures we get the CURRENT on-chain code hash, not cached/stale data
+   * Override initialize to skip schema check (schema already exists from other scanners)
+   * This prevents the 60-180s delay caused by lock contention during heavy write load
    */
-  async getCodeHashes(addresses) {
-    if (!addresses?.length) return [];
+  async initialize() {
+    this.log('🔄 Starting initialization...');
 
-    const ethers = require('ethers');
-    const ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
+    this.log('🔗 Connecting to database...');
+    const { initializeDB } = require('../common/core.js');
+    this.db = await initializeDB();
+    this.log('✅ Database connected');
 
-    this.log(`🔍 Getting code hashes for ${addresses.length} addresses via direct RPC`);
+    // SKIP: await ensureSchema(this.db) - Schema already exists, no need to check
+    this.log('⏭️  Skipping schema check (already exists from active scanners)');
 
-    // Use direct RPC calls to get current code
-    const promises = addresses.map(async (addr) => {
-      try {
-        const code = await this.alchemyClient.getCode(addr);
-        return code && code !== '0x' ? ethers.keccak256(code) : ZERO_HASH;
-      } catch (e) {
-        this.log(`⚠️ Failed to get code for ${addr}: ${e.message}`, 'warn');
-        return ZERO_HASH;
-      }
-    });
-
-    return Promise.all(promises);
-  }
-
-  /**
-   * Get addresses to revalidate from database
-   * Focus on non-EOA addresses that don't have Contract tag yet
-   */
-  async getAddressesToRevalidate(limit = 100000) {
-    // Override limit for recent mode to prevent memory issues
-    const maxLimit = this.recentMode ?
-      parseInt(process.env.REVALIDATOR_MAX_BATCH || '50000', 10) :
-      limit;
-    let query;
-    let params;
-
-    if (this.revalidateSelfDestructed) {
-      // Self-Destroyed Contract revalidation mode - find contracts with 'SelfDestroyed' tag
-      query = `
-        SELECT
-          address,
-          network,
-          deployed,
-          code_hash,
-          contract_name,
-          tags,
-          fund,
-          last_updated,
-          name_checked,
-          name_checked_at
-        FROM addresses
-        WHERE network = $1
-        AND 'SelfDestroyed' = ANY(tags)                                   -- Self-Destroyed contracts
-        ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
-        LIMIT $2
-      `;
-
-      params = [
-        this.network,     // $1: network
-        maxLimit         // $2: limit (use maxLimit)
-      ];
-
-      this.log(`🔍 Self-Destroyed Contract revalidation mode: Finding contracts with 'SelfDestroyed' tag`);
-      this.log(`📊 Max batch size: ${maxLimit} addresses`);
-    } else if (this.recentMode) {
-      // Recent mode - find ALL addresses discovered in the last N days
-      // No other conditions - process everything recent
-      const cutoffTime = this.currentTime - (this.recentDays * 24 * 60 * 60);
-
-      query = `
-        SELECT
-          address,
-          network,
-          deployed,
-          code_hash,
-          contract_name,
-          tags,
-          fund,
-          last_updated,
-          name_checked,
-          name_checked_at,
-          first_seen
-        FROM addresses
-        WHERE network = $1
-        AND first_seen >= $2                                              -- Only condition: discovered within N days
-        ORDER BY first_seen DESC, fund DESC NULLS LAST
-        LIMIT $3
-      `;
-
-      params = [
-        this.network,     // $1: network
-        cutoffTime,       // $2: cutoff time for recent discovery
-        maxLimit         // $3: limit (use maxLimit instead of limit)
-      ];
-
-      this.log(`🔍 Recent mode: Finding ALL addresses discovered in last ${this.recentDays} days (including EOAs and validated contracts)`);
-      this.log(`📅 Cutoff time: ${new Date(cutoffTime * 1000).toISOString()}`);
-      this.log(`📊 Max batch size: ${maxLimit} addresses`);
-    } else {
-      // Standard mode - focus on addresses without proper tags
-      query = `
-        SELECT
-          address,
-          network,
-          deployed,
-          code_hash,
-          contract_name,
-          tags,
-          fund,
-          last_updated,
-          name_checked,
-          name_checked_at
-        FROM addresses
-        WHERE network = $1
-        AND (tags IS NULL OR tags = '{}' OR NOT 'EOA' = ANY(tags))           -- Non-EOA addresses
-        AND (tags IS NULL OR tags = '{}' OR NOT 'Contract' = ANY(tags))      -- Without Contract tag
-        ORDER BY fund DESC NULLS LAST, last_updated ASC NULLS FIRST
-        LIMIT $2
-      `;
-
-      params = [
-        this.network,     // $1: network
-        maxLimit         // $2: limit (use maxLimit)
-      ];
+    if (!this.config) {
+      throw new Error(`Network "${this.network}" not found in config`);
     }
-    
-    const result = await this.queryWithCache('getAddressesToRevalidate', query, params);
-    return result.rows;
+
+    this.log('🌐 Initializing RPC clients...');
+    const { createRpcClient } = require('../common/core.js');
+    const clients = createRpcClient(this.network);
+    this.alchemyClient = clients.alchemyClient;
+    this.logsClient = clients.alchemyClient;
+    this.rpc = clients;
+    this.log('✅ RPC clients ready (Alchemy RPC for all calls including getLogs)');
+
+    // Auto-detect Alchemy tier if not manually set
+    if (this.tierAutoDetect) {
+      this.log('🔍 Auto-detecting Alchemy tier...');
+      this.alchemyTier = await this.alchemyClient.detectTier();
+    }
+
+    // Set max logs block range based on detected/configured tier
+    if (this.config.maxLogsBlockRange && this.alchemyTier) {
+      this.maxLogsBlockRange = this.config.maxLogsBlockRange[this.alchemyTier];
+      this.log(`Max getLogs block range: ${this.maxLogsBlockRange} blocks (${this.alchemyTier} tier)`);
+    } else {
+      this.maxLogsBlockRange = 10;
+      this.log(`Using default max getLogs block range: ${this.maxLogsBlockRange} blocks`, 'warn');
+    }
+
+    this.log('✅ Initialization completed successfully');
   }
 
   /**
@@ -199,14 +77,14 @@ class DataRevalidator extends Scanner {
       this.unifiedScanner.rpcClient = this.rpcClient;
       this.unifiedScanner.currentTime = this.currentTime;
       this.unifiedScanner.ZERO_HASH = BLOCKCHAIN_CONSTANTS.ZERO_HASH;
-      
+
       // Share essential methods from Scanner base class
       this.unifiedScanner.queryDB = this.queryDB.bind(this);
       this.unifiedScanner.log = (msg, level) => this.log(`[UnifiedScanner] ${msg}`, level);
       this.unifiedScanner.isContracts = this.isContracts.bind(this);
       this.unifiedScanner.getCodeHashes = this.getCodeHashes.bind(this);
       this.unifiedScanner.etherscanCall = this.etherscanCall.bind(this);
-      
+
       this.unifiedScanner.initialized = true;
       this.log('✅ UnifiedScanner initialized for performEOAFiltering');
     }
@@ -214,503 +92,185 @@ class DataRevalidator extends Scanner {
 
 
   /**
-   * Validate multiple address records efficiently using batch performEOAFiltering
+   * Reclassify addresses with incomplete data from database using performEOAFiltering
+   * Reads addresses with null/empty fields or SelfDestroyed tag, classifies them, and updates DB
    */
-  async validateAddressBatch(records) {
-    if (records.length === 0) return [];
-    
-    // Extract addresses for batch processing
-    const addresses = records.map(record => record.address);
-    const recordMap = new Map(records.map(record => [record.address, record]));
-    
-    this.log(`🔍 Validating batch of ${addresses.length} addresses...`);
+  async reclassifyAllAddresses() {
+    this.log('🔄 Starting address reclassification process...');
 
-    try {
-      // Validate address formats first
-      const validAddresses = [];
-      const invalidResults = [];
-      
-      for (const address of addresses) {
-        if (!isValidAddress(address)) {
-          invalidResults.push({
-            address,
-            issues: ['invalid_address_format'],
-            corrections: {},
-            skip: true
-          });
-          this.stats.errors++;
-        } else {
-          validAddresses.push(address);
-        }
-      }
+    // Step 1: Read addresses with incomplete data or SelfDestroyed tag from database
+    this.log('📖 Reading addresses with incomplete data from database (sorted by fund DESC)...');
+    const query = `
+      SELECT address, fund
+      FROM addresses
+      WHERE network = $1
+      AND (
+        -- Addresses with missing classification (tags)
+        (tags IS NULL OR tags = '{}' OR array_length(tags, 1) IS NULL)
 
-      // Batch process valid addresses using UnifiedScanner's performEOAFiltering
-      let batchResults = [];
-      if (validAddresses.length > 0) {
-        // Initialize UnifiedScanner
-        await this.initializeUnifiedScanner();
-        
-        // Use UnifiedScanner's performEOAFiltering method directly
-        const filteringResult = await this.unifiedScanner.performEOAFiltering(validAddresses);
-        const { eoas, contracts, selfDestructed } = filteringResult;
-        
-        // Start async deployment time fetching for contracts that need it
-        // This runs in background and won't block the main processing
-        if (contracts.length > 0) {
-          this.unifiedScanner.fetchDeploymentTimesAsync(contracts).catch(err => {
-            this.log(`⚠️ Background deployment time fetch failed: ${err.message}`, 'warn');
-          });
-          this.log(`🚀 Started background deployment time fetch for ${contracts.filter(c => c.needsDeploymentTime).length} contracts`);
-        }
-        
-        // Create lookup maps for efficient processing
-        const contractMap = new Map(contracts.map(c => [c.address, c]));
-        const selfDestroyedMap = new Map(selfDestructed.map(s => [s.address, s]));
-        const eoaSet = new Set(eoas.map(e => e.address));
-        
-        // Process each valid address
-        for (const address of validAddresses) {
-          const record = recordMap.get(address);
-          const { deployed, code_hash } = record;
-          const issues = [];
-          const corrections = {};
-          
-          if (contractMap.has(address)) {
-            // Contract detected
-            const contract = contractMap.get(address);
-            this.log(`📋 Address ${address} is a CONTRACT`);
-            
-            // Apply EXACT UnifiedScanner contract data structure
-            corrections.codeHash = contract.codeHash;
-            corrections.deployed = contract.deployTime;
+        -- OR Contracts with missing code_hash (EOAs naturally have NULL code_hash)
+        OR (code_hash IS NULL AND tags IS NOT NULL AND 'Contract' = ANY(tags))
 
-            // Check if we need to fetch contract metadata (name_checked = false or contract_name is null)
-            // In REVALIDATE_SELF_DESTRUCTED mode, always fetch metadata for previously self-destructed contracts
-            const wasSelfDestroyed = this.revalidateSelfDestructed && record.tags?.includes('SelfDestroyed');
-            const needsMetadata = wasSelfDestroyed || !record.name_checked || !record.contract_name;
+        -- OR Contracts with missing deployed time (EOAs naturally have NULL deployed)
+        OR (deployed IS NULL AND tags IS NOT NULL AND 'Contract' = ANY(tags))
 
-            if (needsMetadata) {
-              if (wasSelfDestroyed) {
-                this.log(`✨ Contract ${address} was previously self-destructed, fetching fresh metadata`);
-                this.stats.selfDestructedRevalidated++;
-              } else {
-                this.log(`🔍 Fetching metadata for contract ${address}`);
-              }
-              // We'll fetch this in a separate step after EOA filtering
-              corrections.needsMetadata = true;
-            }
-            
-            // For previously self-destructed contracts, reset all metadata
-            if (wasSelfDestroyed) {
-              corrections.tags = ['Contract', 'Unverified']; // Will be updated after metadata fetch
-              corrections.contractName = null; // Reset to allow fresh update
-              corrections.nameChecked = false;
-              corrections.nameCheckedAt = 0;
-              corrections.fund = 0;
-              corrections.lastFundUpdated = 0;
-              issues.push('self_destructed_recovered'); // Mark as issue to trigger update
-            } else {
-              const isVerified = Boolean(record.name_checked && record.contract_name);
-              corrections.tags = isVerified ? ['Contract', 'Verified'] : ['Contract', 'Unverified'];
-              // If metadata is needed, set contractName to null to allow fresh update
-              corrections.contractName = needsMetadata ? null : (record.contract_name || null);
-              corrections.fund = 0;
-              corrections.lastFundUpdated = 0;
-              corrections.nameChecked = needsMetadata ? false : isVerified;
-              corrections.nameCheckedAt = needsMetadata ? 0 : (isVerified ? this.currentTime : 0);
-            }
-            
-            // Check for incorrect data
-            if (code_hash !== contract.codeHash) {
-              issues.push('incorrect_code_hash');
-            }
-            if (!deployed || deployed !== contract.deployTime) {
-              issues.push('incorrect_deployment_time');
-            }
-            
-          } else if (selfDestroyedMap.has(address)) {
-            // Self-destroyed contract detected
-            const selfDestroyed = selfDestroyedMap.get(address);
-            this.log(`📋 Address ${address} is a SELF-DESTROYED CONTRACT`);
+        -- OR addresses with SelfDestroyed tag that need revalidation
+        OR 'SelfDestroyed' = ANY(tags)
+      )
+      ORDER BY fund DESC NULLS LAST
+      LIMIT 100000
+    `;
+    const result = await this.queryDB(query, [this.network]);
+    const allAddresses = result.rows.map(row => row.address);
 
-            // In revalidation mode, check if the contract was redeployed at the same address
-            if (this.revalidateSelfDestructed) {
-              // Check current code on chain
-              const currentCode = await this.rpcClient.getCode(address);
+    // Log fund range statistics
+    if (result.rows.length > 0) {
+      const topFund = Number(result.rows[0].fund) || 0;
+      const bottomFund = Number(result.rows[result.rows.length - 1].fund) || 0;
+      const fundValues = result.rows.map(r => Number(r.fund) || 0).filter(f => f > 0);
+      const avgFund = fundValues.length > 0 ? fundValues.reduce((a, b) => a + b, 0) / fundValues.length : 0;
 
-              if (currentCode && currentCode !== '0x') {
-                // Contract has been redeployed! Treat as active contract
-                this.log(`✨ Contract ${address} was REDEPLOYED - treating as active contract`);
-                this.stats.selfDestructedRevalidated++;
-
-                // Get current code hash
-                const currentCodeHash = await this.getCodeHashes([address]);
-                const newCodeHash = currentCodeHash[0];
-
-                corrections.codeHash = newCodeHash;
-                corrections.deployed = null; // Will be fetched later
-                corrections.tags = ['Contract', 'Unverified']; // Reset to unverified
-                corrections.contractName = null; // Reset contract name
-                corrections.fund = 0;
-                corrections.lastFundUpdated = 0;
-                corrections.nameChecked = false; // Needs new verification
-                corrections.nameCheckedAt = 0;
-                corrections.needsMetadata = true; // Fetch new metadata
-
-                issues.push('self_destructed_redeployed');
-              } else {
-                // Still self-destroyed
-                corrections.codeHash = selfDestroyed.codeHash;
-                corrections.deployed = null;
-                corrections.tags = selfDestroyed.tags;
-                corrections.contractName = selfDestroyed.contractName;
-                corrections.fund = 0;
-                corrections.lastFundUpdated = 0;
-                corrections.nameChecked = true;
-                corrections.nameCheckedAt = this.currentTime;
-
-                issues.push('self_destroyed_contract');
-              }
-            } else {
-              // Standard mode - just mark as self-destroyed
-              corrections.codeHash = selfDestroyed.codeHash;
-              corrections.deployed = null;
-              corrections.tags = selfDestroyed.tags;
-              corrections.contractName = selfDestroyed.contractName;
-              corrections.fund = 0;
-              corrections.lastFundUpdated = 0;
-              corrections.nameChecked = true;
-              corrections.nameCheckedAt = this.currentTime;
-
-              issues.push('self_destroyed_contract');
-            }
-
-          } else if (eoaSet.has(address)) {
-            // EOA detected
-            this.log(`📋 Address ${address} is an EOA`);
-            
-            corrections.codeHash = null;
-            corrections.deployed = null;
-            corrections.tags = ['EOA'];
-            corrections.contractName = null;
-            corrections.fund = 0;
-            corrections.lastFundUpdated = 0;
-            corrections.nameChecked = false;
-            corrections.nameCheckedAt = 0;
-            
-            // Validate existing data against UnifiedScanner standards
-            if (deployed && deployed !== null) {
-              issues.push('eoa_with_deployment_time');
-            }
-            if (code_hash && code_hash !== null) {
-              issues.push('eoa_with_code_hash');
-            }
-            if (record.contract_name && record.contract_name !== null) {
-              issues.push('eoa_with_contract_name');
-            }
-            if (record.name_checked === true) {
-              issues.push('eoa_marked_as_name_checked');
-            }
-            if (record.name_checked_at && record.name_checked_at !== 0) {
-              issues.push('eoa_with_name_checked_timestamp');
-            }
-          } else {
-            // No classification possible - skip
-            this.log(`⚠️ Cannot classify ${address} - skipping`, 'warn');
-            batchResults.push({
-              address,
-              issues: ['unclassifiable_address'],
-              corrections: {},
-              skip: true
-            });
-            continue;
-          }
-
-          this.stats.totalProcessed++;
-          
-          // In recent mode, always apply corrections to ensure fresh data
-          if (this.recentMode) {
-            // Force update even if no issues found - ensures fresh validation
-            if (issues.length === 0) {
-              issues.push('recent_mode_refresh');  // Add pseudo-issue to trigger update
-            }
-            batchResults.push({ address, issues, corrections, valid: false, forceUpdate: true });
-          } else {
-            // Standard mode - only update if issues found
-            if (issues.length === 0) {
-              this.stats.validRecords++;
-              batchResults.push({ address, issues: [], corrections: {}, valid: true });
-            } else {
-              batchResults.push({ address, issues, corrections, valid: false });
-            }
-          }
-        }
-      }
-
-      return [...invalidResults, ...batchResults];
-
-    } catch (error) {
-      this.log(`❌ Batch validation error: ${error.message}`, 'error');
-      // Return error results for all addresses
-      return addresses.map(address => ({
-        address,
-        issues: ['batch_validation_error'],
-        corrections: {},
-        skip: true
-      }));
+      this.log(`💰 Fund range: Top=${topFund.toFixed(4)} ETH, Avg=${avgFund.toFixed(4)} ETH, Bottom=${bottomFund.toFixed(4)} ETH`);
+      this.log(`📊 Addresses with non-zero fund: ${fundValues.length}/${result.rows.length} (${(fundValues.length / result.rows.length * 100).toFixed(2)}%)`);
     }
-  }
 
-  /**
-   * Process validation results and apply corrections
-   */
-  async processValidationResults(results) {
-    const updates = [];
-    const contractsNeedingMetadata = [];
-    
-    for (const result of results) {
-      if (result.skip) {
-        this.validationResults.toSkip.push(result);
-        this.stats.skippedRecords++;
-        continue;
+    if (allAddresses.length === 0) {
+      this.log('⚠️ No addresses found in database');
+      return;
+    }
+
+    this.log(`✅ Found ${allAddresses.length} addresses to reclassify`);
+
+    // Step 2: Initialize UnifiedScanner
+    await this.initializeUnifiedScanner();
+
+    // Step 3: Process in batches
+    const batchSize = 1000; // Process 1k addresses at a time
+    let totalProcessed = 0;
+    let totalEOAs = 0;
+    let totalContracts = 0;
+    let totalSelfDestructed = 0;
+
+    for (let i = 0; i < allAddresses.length; i += batchSize) {
+      const batch = allAddresses.slice(i, i + batchSize);
+      this.log(`\n🔍 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allAddresses.length / batchSize)} (${batch.length} addresses)...`);
+
+      // Step 4: Classify using performEOAFiltering
+      const { eoas, contracts, selfDestructed } = await this.unifiedScanner.performEOAFiltering(batch);
+
+      this.log(`  📊 Classification results: ${eoas.length} EOAs, ${contracts.length} contracts, ${selfDestructed.length} self-destructed`);
+
+      // Step 5: Fetch deployment times for contracts
+      if (contracts.length > 0) {
+        this.log(`  ⏱️ Fetching deployment times for ${contracts.length} contracts...`);
+        await this.unifiedScanner.fetchDeploymentTimesAsync(contracts);
       }
 
-      if (result.valid && !result.forceUpdate) {
-        this.stats.validRecords++;
-        continue;
-      }
+      // Step 5.5: Fetch contract metadata (names) from Etherscan
+      if (contracts.length > 0) {
+        this.log(`  📝 Fetching contract metadata for ${contracts.length} contracts...`);
+        const verifiedContracts = await this.unifiedScanner.verifyContracts(contracts.map(c => c.address));
 
-      // Has issues and corrections (or forceUpdate in recent mode)
-      if (Object.keys(result.corrections).length > 0 || result.forceUpdate) {
-        // Check if contract needs metadata fetching
-        if (result.corrections.needsMetadata) {
-          contractsNeedingMetadata.push(result.address);
+        // Create a map of verified contract names
+        const contractNameMap = new Map();
+        for (const verified of verifiedContracts) {
+          if (verified.contractName) {
+            contractNameMap.set(verified.address, verified.contractName);
+          }
         }
-        
-        // Use EXACT same field structure as UnifiedScanner
-        const updateData = {
-          address: normalizeAddress(result.address),
+
+        // Update contract objects with names
+        for (const contract of contracts) {
+          if (contractNameMap.has(contract.address)) {
+            contract.contractName = contractNameMap.get(contract.address);
+            contract.verified = true;
+          }
+        }
+
+        this.log(`  ✅ Found metadata for ${contractNameMap.size}/${contracts.length} contracts`);
+      }
+
+      // Step 6: Prepare updates for DB
+      const updates = [];
+
+      // Add EOAs
+      for (const eoa of eoas) {
+        updates.push({
+          address: normalizeAddress(eoa.address),
           network: this.network,
-          lastUpdated: this.currentTime,
-          firstSeen: this.currentTime, // UnifiedScanner always sets firstSeen
-          nameChecked: result.corrections.nameChecked !== undefined ? result.corrections.nameChecked : false,
-          nameCheckedAt: result.corrections.nameCheckedAt !== undefined ? result.corrections.nameCheckedAt : 0,
-          fund: result.corrections.fund !== undefined ? result.corrections.fund : 0,
-          lastFundUpdated: result.corrections.lastFundUpdated !== undefined ? result.corrections.lastFundUpdated : 0,
-          contractName: result.corrections.contractName !== undefined ? result.corrections.contractName : null,
-          // Apply corrections with exact field names that batchUpsertAddresses expects
-          codeHash: result.corrections.codeHash !== undefined ? result.corrections.codeHash : undefined,
-          deployed: result.corrections.deployed !== undefined ? result.corrections.deployed : undefined,
-          tags: result.corrections.tags !== undefined ? result.corrections.tags : undefined
-        };
-
-        // Remove undefined fields to let database handle defaults
-        Object.keys(updateData).forEach(key => {
-          if (updateData[key] === undefined) {
-            delete updateData[key];
-          }
+          tags: ['EOA'],
+          codeHash: null,
+          deployed: null,
+          contractName: null,
+          nameChecked: false,
+          nameCheckedAt: 0,
+          lastUpdated: this.currentTime
         });
+      }
 
-        updates.push(updateData);
-        this.validationResults.toFix.push({
-          address: result.address,
-          issues: result.issues,
-          corrections: result.corrections
+      // Add Contracts
+      for (const contract of contracts) {
+        const hasName = contract.contractName && contract.verified;
+        updates.push({
+          address: normalizeAddress(contract.address),
+          network: this.network,
+          tags: hasName ? ['Contract', 'Verified'] : ['Contract', 'Unverified'],
+          codeHash: contract.codeHash,
+          deployed: contract.deployTime,
+          contractName: contract.contractName || null,
+          nameChecked: hasName,
+          nameCheckedAt: hasName ? this.currentTime : 0,
+          lastUpdated: this.currentTime
         });
-        
-        this.stats.correctedRecords++;
-        
-        // Different log message for recent mode refresh vs actual corrections
-        if (result.issues.includes('recent_mode_refresh')) {
-          this.log(`🔄 Refreshing ${result.address} (recent mode)`);
-        } else {
-          this.log(`🔧 Corrections for ${result.address}: ${result.issues.join(', ')}`);
-        }
-      } else {
-        this.validationResults.toFlag.push(result);
-        this.log(`🚩 Issues found for ${result.address}: ${result.issues.join(', ')}`);
       }
-    }
 
-    // Apply updates to database
-    if (updates.length > 0) {
-      try {
-        await batchUpsertAddresses(this.db, updates, { batchSize: 100 });
-        this.log(`✅ Applied ${updates.length} corrections to database`);
-      } catch (error) {
-        this.log(`❌ Failed to apply corrections: ${error.message}`, 'error');
-        throw error;
+      // Add SelfDestructed
+      for (const sd of selfDestructed) {
+        updates.push({
+          address: normalizeAddress(sd.address),
+          network: this.network,
+          tags: sd.tags,
+          codeHash: sd.codeHash,
+          deployed: null,
+          contractName: sd.contractName || null,
+          nameChecked: true,
+          nameCheckedAt: this.currentTime,
+          lastUpdated: this.currentTime
+        });
       }
+
+      // Step 7: Update database
+      if (updates.length > 0) {
+        this.log(`  💾 Updating ${updates.length} addresses in database...`);
+        await batchUpsertAddresses(this.db, updates, { batchSize: 1000 });
+        this.log(`  ✅ Batch update complete`);
+      }
+
+      totalProcessed += batch.length;
+      totalEOAs += eoas.length;
+      totalContracts += contracts.length;
+      totalSelfDestructed += selfDestructed.length;
+
+      // Small delay between batches
+      await this.sleep(1000);
     }
 
-    // Fetch metadata for contracts that need it
-    if (contractsNeedingMetadata.length > 0) {
-      this.log(`🔍 Fetching metadata for ${contractsNeedingMetadata.length} contracts...`);
-      await this.fetchContractMetadata(contractsNeedingMetadata);
-    }
-
-    return updates.length;
+    this.log('\n🎉 Reclassification complete!');
+    this.log(`📊 Final statistics:`);
+    this.log(`  Total processed: ${totalProcessed}`);
+    this.log(`  EOAs: ${totalEOAs}`);
+    this.log(`  Contracts: ${totalContracts}`);
+    this.log(`  Self-destructed: ${totalSelfDestructed}`);
   }
 
-  /**
-   * Fetch contract metadata (name, ABI, etc.) using UnifiedScanner logic
-   */
-  async fetchContractMetadata(contractAddresses) {
-    if (contractAddresses.length === 0) return;
-
-    this.log(`🔍 Starting metadata fetch for ${contractAddresses.length} contracts`);
-    
-    try {
-      // Use UnifiedScanner's contract verification logic
-      const verifiedContracts = await this.unifiedScanner.verifyContracts(contractAddresses);
-
-      if (verifiedContracts.length > 0) {
-        this.log(`📝 Fetched metadata for ${verifiedContracts.length} contracts, updating database...`);
-
-        // Add tags to verified contracts (UnifiedScanner doesn't include tags)
-        const contractsWithTags = verifiedContracts.map(contract => ({
-          ...contract,
-          tags: contract.verified ? ['Contract', 'Verified'] : ['Contract', 'Unverified']
-        }));
-
-        // Apply metadata updates to database
-        await batchUpsertAddresses(this.db, contractsWithTags, { batchSize: 100 });
-        this.log(`✅ Applied metadata updates for ${verifiedContracts.length} contracts`);
-      } else {
-        this.log(`⚠️ No metadata found for any of the ${contractAddresses.length} contracts`);
-      }
-      
-    } catch (error) {
-      this.log(`❌ Failed to fetch contract metadata: ${error.message}`, 'warn');
-      // Continue execution - metadata fetching is not critical for basic validation
-    }
-  }
-
-  /**
-   * Generate validation report
-   */
-  generateReport() {
-    const report = {
-      summary: {
-        totalProcessed: this.stats.totalProcessed,
-        validRecords: this.stats.validRecords,
-        correctedRecords: this.stats.correctedRecords,
-        skippedRecords: this.stats.skippedRecords,
-        errors: this.stats.errors
-      },
-      issues: {
-        invalidDeploymentTimes: this.stats.invalidDeploymentTimes,
-        misclassifiedAddresses: this.stats.misclassifiedAddresses,
-        unreasonableValues: this.stats.unreasonableValues,
-        invalidTags: this.stats.invalidTags,
-        selfDestructedRevalidated: this.stats.selfDestructedRevalidated
-      },
-      results: {
-        fixed: this.validationResults.toFix.length,
-        flagged: this.validationResults.toFlag.length,
-        skipped: this.validationResults.toSkip.length
-      }
-    };
-
-    this.log('\n📊 Data Revalidation Report:');
-    this.log(`  Total Processed: ${report.summary.totalProcessed}`);
-    this.log(`  Valid Records: ${report.summary.validRecords}`);
-    this.log(`  Corrected Records: ${report.summary.correctedRecords}`);
-    this.log(`  Skipped Records: ${report.summary.skippedRecords}`);
-    this.log(`  Errors: ${report.summary.errors}`);
-    this.log('');
-    this.log('🔍 Issue Breakdown:');
-    this.log(`  Missing Contract/EOA Tags: ${report.issues.invalidTags}`);
-    this.log(`  Invalid Deployment Times: ${report.issues.invalidDeploymentTimes}`);
-    this.log(`  Misclassified Addresses: ${report.issues.misclassifiedAddresses}`);
-    this.log(`  Unreasonable Values: ${report.issues.unreasonableValues}`);
-    this.log('');
-    this.log('✨ UnifiedScanner Compatibility:');
-    this.log(`  Applied same tagging system: Contract + Verified/Unverified or EOA`);
-    this.log(`  Used identical validation logic: on-chain state verification`);
-    this.log(`  Matched data structure: same field formats and values`);
-
-    if (this.validationResults.toFlag.length > 0) {
-      this.log('\n🚩 Records requiring manual review:');
-      this.validationResults.toFlag.slice(0, 10).forEach(item => {
-        this.log(`  ${item.address}: ${item.issues.join(', ')}`);
-      });
-      if (this.validationResults.toFlag.length > 10) {
-        this.log(`  ... and ${this.validationResults.toFlag.length - 10} more`);
-      }
-    }
-
-    return report;
-  }
 
   /**
    * Main validation process
    */
   async run() {
     this.log('🚀 Starting Data Revalidation Process');
-    
-    if (this.recentMode) {
-      this.log(`📅 RECENT MODE: Re-validating ALL addresses discovered in last ${this.recentDays} days`);
-    } else {
-      this.log('📋 STANDARD MODE: Using UnifiedScanner validation logic for strict data verification');
-    }
-
-    // Initialize UnifiedScanner for performEOAFiltering
-    await this.initializeUnifiedScanner();
-
-    const addresses = await this.getAddressesToRevalidate();
-    if (addresses.length === 0) {
-      if (this.recentMode) {
-        this.log(`✅ No contracts discovered in the last ${this.recentDays} days need revalidation`);
-      } else {
-        this.log('✅ No addresses need revalidation');
-      }
-      return;
-    }
-
-    this.log(`📊 Found ${addresses.length} addresses requiring revalidation`);
-
-    const processor = async (addressBatch) => {
-      try {
-        // Use efficient batch validation
-        const results = await this.validateAddressBatch(addressBatch);
-        
-        // Process validation results
-        const updatesApplied = await this.processValidationResults(results);
-        
-        return {
-          processed: results.length,
-          updated: updatesApplied
-        };
-      } catch (error) {
-        this.log(`❌ Batch processor error: ${error.message}`, 'error');
-        return {
-          processed: 0,
-          updated: 0,
-          error: true
-        };
-      }
-    };
-
-    // Process addresses in batches with optimized settings for large-scale processing
-    await this.processBatch(addresses, processor, {
-      batchSize: this.batchSizes.addresses, // 20,000 addresses per batch
-      concurrency: 1, // Sequential processing for data integrity and API rate limiting
-      delayMs: 1000   // Slightly increased delay due to larger batch size
-    });
-
-    // Generate and display final report
-    const report = this.generateReport();
-
-    // Save detailed results to file for review
-    if (this.validationResults.toFlag.length > 0) {
-      const flaggedFile = `logs/flagged-records-${this.network}-${Date.now()}.json`;
-      require('fs').writeFileSync(flaggedFile, JSON.stringify(this.validationResults.toFlag, null, 2));
-      this.log(`\n📄 Flagged records saved to: ${flaggedFile}`);
-    }
-
-    this.log('\n🎉 Data Revalidation Complete!');
-    return report;
+    await this.reclassifyAllAddresses();
+    this.log('🎉 Data Revalidation Complete!');
   }
 }
 

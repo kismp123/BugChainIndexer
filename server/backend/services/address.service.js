@@ -12,20 +12,61 @@ exports.getContractCount = async () => {
 // Perform exact count only when includeTotal=true
 exports.getAddressesByFilter = async (filters = {}) => {
   ensureDbUrl();
-  const { limit = 50, includeTotal = false, ...rest } = filters;
-  const { whereSql, params, whereSqlNoCursor, paramsNoCursor } = buildWhere(rest);
+  const { limit = 50, includeTotal = false, sortBy = 'fund', hideUnnamed = false, ...rest } = filters;
+  const { whereSql, params, whereSqlNoCursor, paramsNoCursor } = buildWhere(rest, sortBy);
 
   const take = Math.min(Math.max(+limit || 50, 1), 200);
 
-  const dataSql = `
-    SELECT address, contract_name, deployed, fund, network
-    FROM addresses
-    WHERE
-      (tags IS NULL OR NOT 'EOA' = ANY(tags))
-      ${whereSql ? 'AND ' + whereSql.replace('WHERE ', '') : ''}
-    ORDER BY fund DESC NULLS LAST, deployed DESC NULLS LAST, address ASC
-    LIMIT ${take + 1}
-  `;
+  // Determine ORDER BY clause based on sortBy parameter
+  let orderByClause;
+  if (sortBy === 'first_seen') {
+    orderByClause = 'ORDER BY first_seen DESC NULLS LAST, address ASC';
+  } else {
+    // Default: sort by fund
+    orderByClause = 'ORDER BY fund DESC NULLS LAST, deployed DESC NULLS LAST, address ASC';
+  }
+
+  // Build SQL based on hideUnnamed flag
+  let dataSql;
+  if (hideUnnamed) {
+    // Use DISTINCT ON to get unique contract names (keep first occurrence by sort order)
+    // Also exclude contracts without names
+    // IMPORTANT: When using DISTINCT ON, ORDER BY must start with the DISTINCT ON expression
+    // We use a subquery approach:
+    // 1. Inner query: DISTINCT ON to get one row per contract_name (highest fund or latest first_seen)
+    // 2. Outer query: Re-sort by the desired order (fund DESC or first_seen DESC)
+    let distinctOrderByClause;
+    if (sortBy === 'first_seen') {
+      distinctOrderByClause = 'ORDER BY contract_name, first_seen DESC NULLS LAST, fund DESC NULLS LAST, address ASC';
+    } else {
+      distinctOrderByClause = 'ORDER BY contract_name, fund DESC NULLS LAST, deployed DESC NULLS LAST, address ASC';
+    }
+
+    dataSql = `
+      SELECT * FROM (
+        SELECT DISTINCT ON (contract_name) address, contract_name, deployed, fund, network, first_seen
+        FROM addresses
+        WHERE
+          (tags IS NULL OR NOT 'EOA' = ANY(tags))
+          AND contract_name IS NOT NULL
+          AND contract_name != ''
+          ${whereSql ? 'AND ' + whereSql.replace('WHERE ', '') : ''}
+        ${distinctOrderByClause}
+      ) AS distinct_contracts
+      ${orderByClause}
+      LIMIT ${take + 1}
+    `;
+  } else {
+    dataSql = `
+      SELECT address, contract_name, deployed, fund, network, first_seen
+      FROM addresses
+      WHERE
+        (tags IS NULL OR NOT 'EOA' = ANY(tags))
+        ${whereSql ? 'AND ' + whereSql.replace('WHERE ', '') : ''}
+      ${orderByClause}
+      LIMIT ${take + 1}
+    `;
+  }
 
   const dataPromise = pool.query(dataSql, params);
 
@@ -35,7 +76,8 @@ exports.getAddressesByFilter = async (filters = {}) => {
     const hasOnlyNetworkFilter = rest.networks?.length > 0
       && !rest.address && !rest.contractName
       && !rest.deployedFrom && !rest.deployedTo
-      && !rest.fundFrom && !rest.fundTo;
+      && !rest.fundFrom && !rest.fundTo
+      && !hideUnnamed;
 
     if (hasOnlyNetworkFilter) {
       // Fast path: sum cached network counts
@@ -44,15 +86,29 @@ exports.getAddressesByFilter = async (filters = {}) => {
         const total = rest.networks.reduce((sum, net) => sum + (networkCounts[net] || 0), 0);
         return { rows: [{ total: BigInt(total) }] };
       })();
-    } else if (rest.networks?.length >= 10) {
-      // Skip expensive count for too many networks
-      countPromise = Promise.resolve({ rows: [{ total: null }] });
     } else {
       // Exact count for specific filters
-      countPromise = pool.query(
-        `SELECT COUNT(*)::bigint AS total FROM addresses WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags)) ${whereSqlNoCursor ? 'AND ' + whereSqlNoCursor.replace('WHERE ', '') : ''}`,
-        paramsNoCursor
-      );
+      let countSql;
+      if (hideUnnamed) {
+        // Count only distinct contract names (excluding unnamed contracts)
+        countSql = `
+          SELECT COUNT(DISTINCT contract_name)::bigint AS total
+          FROM addresses
+          WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags))
+            AND contract_name IS NOT NULL
+            AND contract_name != ''
+            ${whereSqlNoCursor ? 'AND ' + whereSqlNoCursor.replace('WHERE ', '') : ''}
+        `;
+      } else {
+        // Count all matching addresses
+        countSql = `
+          SELECT COUNT(*)::bigint AS total
+          FROM addresses
+          WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags))
+            ${whereSqlNoCursor ? 'AND ' + whereSqlNoCursor.replace('WHERE ', '') : ''}
+        `;
+      }
+      countPromise = pool.query(countSql, paramsNoCursor);
     }
   } else {
     countPromise = Promise.resolve({ rows: [{ total: null }] });
@@ -66,11 +122,19 @@ exports.getAddressesByFilter = async (filters = {}) => {
   let nextCursor = null;
   if (hasNext) {
     const last = data[data.length - 1];
-    nextCursor = {
-      fund: last.fund ?? null,       // ✅ Sort priority 1
-      deployed: last.deployed ?? null, // ✅ Sort priority 2
-      address: last.address,         // ✅ Sort priority 3 (tie-breaker)
-    };
+    if (sortBy === 'first_seen') {
+      nextCursor = {
+        first_seen: last.first_seen ?? null,
+        address: last.address,
+      };
+    } else {
+      // Default: fund-based cursor
+      nextCursor = {
+        fund: last.fund ?? null,
+        deployed: last.deployed ?? null,
+        address: last.address,
+      };
+    }
   }
 
   const totalCount = countRows[0]?.total != null ? Number(countRows[0].total) : null;
@@ -82,7 +146,7 @@ exports.getAddressesByFilter = async (filters = {}) => {
 function buildWhere({
   deployedFrom, deployedTo, fundFrom, fundTo, networks, tags,
   address, contractName, cursor
-}) {
+}, sortBy = 'fund') {
   const where = [], params = [];
   const whereNoCursor = [], paramsNoCursor = [];
 
@@ -117,17 +181,30 @@ function buildWhere({
 
   // 🔑 Cursor conditions are added only to "data where" (not added to count query)
   if (cursor && cursor.address) {
-    params.push(cursor.fund ?? null, cursor.deployed ?? null, cursor.address);
-    const f1 = `$${params.length-2}`;
-    const f2 = `$${params.length-1}`;
-    const f3 = `$${params.length}`;
-    where.push(`
-      (
-        COALESCE(fund, -1) <  COALESCE(${f1}, -1)
-        OR (COALESCE(fund, -1) = COALESCE(${f1}, -1) AND COALESCE(deployed, -1) <  COALESCE(${f2}, -1))
-        OR (COALESCE(fund, -1) = COALESCE(${f1}, -1) AND COALESCE(deployed, -1) = COALESCE(${f2}, -1) AND address > ${f3})
-      )
-    `);
+    if (sortBy === 'first_seen') {
+      params.push(cursor.first_seen ?? null, cursor.address);
+      const f1 = `$${params.length-1}`;
+      const f2 = `$${params.length}`;
+      where.push(`
+        (
+          COALESCE(first_seen, -1) <  COALESCE(${f1}, -1)
+          OR (COALESCE(first_seen, -1) = COALESCE(${f1}, -1) AND address > ${f2})
+        )
+      `);
+    } else {
+      // Default: fund-based cursor
+      params.push(cursor.fund ?? null, cursor.deployed ?? null, cursor.address);
+      const f1 = `$${params.length-2}`;
+      const f2 = `$${params.length-1}`;
+      const f3 = `$${params.length}`;
+      where.push(`
+        (
+          COALESCE(fund, -1) <  COALESCE(${f1}, -1)
+          OR (COALESCE(fund, -1) = COALESCE(${f1}, -1) AND COALESCE(deployed, -1) <  COALESCE(${f2}, -1))
+          OR (COALESCE(fund, -1) = COALESCE(${f1}, -1) AND COALESCE(deployed, -1) = COALESCE(${f2}, -1) AND address > ${f3})
+        )
+      `);
+    }
   }
 
   return {

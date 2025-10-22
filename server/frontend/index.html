@@ -32,6 +32,17 @@
     ::-webkit-scrollbar-thumb{background:#475569;border-radius:4px}
     ::-webkit-scrollbar-thumb:hover{background:#64748B}
     .infinity-symbol{font-size:1.2em;line-height:1;vertical-align:middle}
+    /* Skeleton loading animation */
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+      border-radius: 4px;
+    }
   </style>
 
   <!-- Google Tag Manager (can remove GTM and keep only GA4 if desired) -->
@@ -59,16 +70,35 @@
           <h1 class="text-xl font-bold">BugChain.xyz</h1>
         </div>
 
-        <div class="flex items-center gap-3 text-sm text-slate-300 w-full sm:w-auto justify-between sm:justify-end">
+        <div class="flex items-center gap-3 text-sm text-slate-300 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
           <span id="contract-count" class="truncate">Total Contracts: 0</span>
-          <button id="clear-filters" class="flex items-center gap-1 px-3 py-1 rounded-md hover:bg-slate-700 transition">
-            <i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Clear</span>
-          </button>
-          <!-- Mobile filter toggle -->
-          <button id="toggle-filters"
-                  class="sm:hidden flex items-center gap-1 px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 transition">
-            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i><span>Filters</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <!-- Sort toggle buttons -->
+            <div class="flex items-center gap-1 bg-slate-700 rounded-md p-1">
+              <button id="funds-button" class="flex items-center gap-1 px-2 py-1 rounded bg-blue-600 text-white transition" aria-label="Sort by funds">
+                <i data-lucide="dollar-sign" class="w-4 h-4"></i><span class="hidden sm:inline">Funds</span>
+              </button>
+              <button id="latest-button" class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-600 transition" aria-label="Sort by latest discovered">
+                <i data-lucide="clock" class="w-4 h-4"></i><span class="hidden sm:inline">Latest</span>
+              </button>
+            </div>
+            <button id="hide-duplicates" class="flex items-center gap-1 px-3 py-1 rounded-md hover:bg-slate-700 transition" aria-label="Hide duplicate names and unnamed contracts">
+              <i data-lucide="filter-x" class="w-4 h-4"></i><span class="hidden sm:inline">Hide Dupes</span>
+            </button>
+            <button id="show-bookmarks" class="flex items-center gap-1 px-3 py-1 rounded-md hover:bg-slate-700 transition relative">
+              <i data-lucide="bookmark" class="w-4 h-4"></i><span class="hidden sm:inline">Bookmarks</span>
+              <span id="bookmark-count-badge" class="hidden absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
+            </button>
+            <button id="clear-filters" class="flex items-center gap-1 px-3 py-1 rounded-md hover:bg-slate-700 transition">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i><span class="hidden sm:inline">Clear</span>
+            </button>
+            <!-- Mobile filter toggle -->
+            <button id="toggle-filters"
+                    class="sm:hidden flex items-center gap-1 px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 transition relative">
+              <i data-lucide="sliders-horizontal" class="w-4 h-4"></i><span>Filters</span>
+              <span id="filter-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -120,12 +150,12 @@
                 </div>
                 <div id="time-slider-container" class="relative h-2 bg-slate-600 rounded-lg">
                   <!-- Time -->
-                  <input id="time-min" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="12" value="0"/>
-                  <input id="time-max" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="12" value="12"/>
+                  <input id="time-min" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="12" value="0" aria-label="Minimum deployment time" aria-valuetext="1 hour ago"/>
+                  <input id="time-max" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="12" value="12" aria-label="Maximum deployment time" aria-valuetext="Infinity"/>
 
                   <div id="time-range-track" class="absolute h-2 bg-blue-500 rounded-lg"></div>
-                  <div id="time-min-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
-                  <div id="time-max-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
+                  <div id="time-min-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400" role="slider" tabindex="0" aria-label="Time minimum slider thumb"></div>
+                  <div id="time-max-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400" role="slider" tabindex="0" aria-label="Time maximum slider thumb"></div>
                 </div>
               </div>
             </div>
@@ -144,11 +174,11 @@
                 </div>
                 <div id="fund-slider-container" class="relative h-2 bg-slate-600 rounded-lg">
                   <!-- Fund -->
-                  <input id="fund-min" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="10000000" value="0"/>
-                  <input id="fund-max" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="10000000" value="10000000"/>
+                  <input id="fund-min" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="10000000" value="0" aria-label="Minimum fund amount" aria-valuetext="$0"/>
+                  <input id="fund-max" class="absolute w-full h-2 opacity-0 z-10 pointer-events-none" type="range" min="0" max="10000000" value="10000000" aria-label="Maximum fund amount" aria-valuetext="$10M"/>
                   <div id="fund-range-track" class="absolute h-2 bg-blue-500 rounded-lg"></div>
-                  <div id="fund-min-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
-                  <div id="fund-max-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400"></div>
+                  <div id="fund-min-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400" role="slider" tabindex="0" aria-label="Fund minimum slider thumb"></div>
+                  <div id="fund-max-thumb" class="absolute h-4 w-4 bg-blue-500 rounded-full -mt-1 z-20 cursor-pointer hover:bg-blue-400" role="slider" tabindex="0" aria-label="Fund maximum slider thumb"></div>
                 </div>
               </div>
             </div>
@@ -168,16 +198,10 @@
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="polygon">Polygon</button>
                               <!-- Additional networks -->
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="avalanche">Avalanche</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="fantom">Fantom</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="gnosis">Gnosis</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="linea">Linea</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="scroll">Scroll</button>
                 <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="mantle">Mantle</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="opbnb">opBNB</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="polygon-zkevm">Polygon zkEVM</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="arbitrum-nova">Arbitrum Nova</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="celo">Celo</button>
-                <button class="px-3 py-1 rounded-full text-sm font-medium transition bg-slate-700 text-slate-300 hover:bg-slate-600" data-network="moonbeam">Moonbeam</button>
               </div>
             </div>
 
@@ -187,6 +211,20 @@
                       class="w-full sm:w-auto sm:min-w-[220px] bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition flex items-center justify-center gap-2">
                 <i data-lucide="search" class="w-4 h-4"></i><span>Search Contracts</span>
               </button>
+              <div class="relative">
+                <button id="export-button" title="Export search results"
+                        class="px-3 py-2 rounded-md border border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <i data-lucide="download" class="w-4 h-4"></i><span class="text-sm hidden sm:inline">Export</span>
+                </button>
+                <div id="export-menu" class="hidden absolute top-full right-0 mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg z-50 min-w-[120px]">
+                  <button id="export-csv" class="w-full px-4 py-2 text-left text-sm hover:bg-slate-700 transition flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>CSV
+                  </button>
+                  <button id="export-json" class="w-full px-4 py-2 text-left text-sm hover:bg-slate-700 transition flex items-center gap-2">
+                    <i data-lucide="code" class="w-4 h-4"></i>JSON
+                  </button>
+                </div>
+              </div>
               <div class="flex items-center gap-2">
                 <button id="select-all-networks" title="Select all networks"
                         class="px-3 py-2 rounded-md border border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 transition flex items-center gap-1">
@@ -248,6 +286,151 @@
     // Selected filters
     let filters = { address:'', name:'', timeMin:0, timeMax:12, fundMin:0, fundMax:10000000, networks:[] };
 
+    // Table sorting state
+    let sortColumn = 'fund'; // default: fund
+    let sortDirection = 'desc'; // desc or asc
+
+    // Network counts cache
+    let networkCounts = {};
+
+
+    // Bookmark management
+    function loadBookmarks() {
+      try {
+        return JSON.parse(localStorage.getItem('bookmarks') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveBookmark(contract) {
+      try {
+        const bookmarks = loadBookmarks();
+        const exists = bookmarks.some(b => b.address === contract.address && b.network === contract.network);
+
+        if (!exists) {
+          bookmarks.unshift(contract);
+          localStorage.setItem('bookmarks', JSON.stringify(bookmarks.slice(0, 50))); // Max 50 bookmarks
+          updateBookmarkBadge();
+          gaEvent('bookmark_add', { address: contract.address, network: contract.network });
+          return true;
+        }
+        return false;
+      } catch (e) {
+        console.warn('Failed to save bookmark:', e);
+        return false;
+      }
+    }
+
+    function removeBookmark(address, network) {
+      try {
+        const bookmarks = loadBookmarks();
+        const filtered = bookmarks.filter(b => !(b.address === address && b.network === network));
+        localStorage.setItem('bookmarks', JSON.stringify(filtered));
+        updateBookmarkBadge();
+        gaEvent('bookmark_remove', { address, network });
+      } catch (e) {
+        console.warn('Failed to remove bookmark:', e);
+      }
+    }
+
+    function isBookmarked(address, network) {
+      const bookmarks = loadBookmarks();
+      return bookmarks.some(b => b.address === address && b.network === network);
+    }
+
+    function updateBookmarkBadge() {
+      const bookmarks = loadBookmarks();
+      const badge = document.getElementById('bookmark-count-badge');
+      if (bookmarks.length > 0) {
+        badge.textContent = bookmarks.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function showBookmarksModal() {
+      const bookmarks = loadBookmarks();
+      if (bookmarks.length === 0) {
+        alert('No bookmarks saved yet!');
+        return;
+      }
+
+      // Render bookmarks as result (reuse renderResults)
+      hasSearched = true;
+      renderResults(bookmarks);
+      contractCount.textContent = `Bookmarks: ${bookmarks.length}`;
+
+      gaEvent('view_bookmarks', { count: bookmarks.length });
+    }
+
+    document.getElementById('show-bookmarks')?.addEventListener('click', showBookmarksModal);
+
+    // Table sorting
+    function sortResults(rows, column, direction) {
+      const sorted = [...rows];
+      sorted.sort((a, b) => {
+        let valA, valB;
+
+        switch (column) {
+          case 'address':
+            valA = (a.address || '').toLowerCase();
+            valB = (b.address || '').toLowerCase();
+            break;
+          case 'name':
+            valA = (a.contract_name || '').toLowerCase();
+            valB = (b.contract_name || '').toLowerCase();
+            break;
+          case 'network':
+            valA = (a.network || '').toLowerCase();
+            valB = (b.network || '').toLowerCase();
+            break;
+          case 'deployed':
+            valA = a.deployed || 0;
+            valB = b.deployed || 0;
+            break;
+          case 'fund':
+            valA = Number(a.fund) || 0;
+            valB = Number(b.fund) || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (valA < valB) return direction === 'asc' ? -1 : 1;
+        if (valA > valB) return direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      return sorted;
+    }
+
+    function handleColumnSort(column) {
+      if (sortColumn === column) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortColumn = column;
+        sortDirection = (column === 'fund' || column === 'deployed' || column === 'discovered') ? 'desc' : 'asc';
+      }
+
+      // Disable backend sorting when using client-side column sort
+      currentSortBy = null;
+      // Reset sort button states
+      fundsButton.classList.remove('bg-blue-600', 'text-white');
+      fundsButton.classList.add('hover:bg-slate-600');
+      latestButton.classList.remove('bg-blue-600', 'text-white');
+      latestButton.classList.add('hover:bg-slate-600');
+
+      gaEvent('sort_results', { column, direction: sortDirection });
+
+      // Re-render with current data (stored temporarily)
+      if (window.lastSearchResults) {
+        const sorted = sortResults(window.lastSearchResults, sortColumn, sortDirection);
+        renderResults(sorted);
+      }
+    }
+
     // DOM
     const addressSearch=document.getElementById('address-search');
     const nameSearch=document.getElementById('name-search');
@@ -259,7 +442,13 @@
     const fundRangeDisplay=document.getElementById('fund-range-display');
     const searchButton=document.getElementById('search-button');
     const clearFiltersButton=document.getElementById('clear-filters');
-    
+
+    // Sort state
+    let currentSortBy = 'fund'; // Default sort
+
+    // Filter state for duplicates/unnamed
+    let hideDuplicates = false;
+
 const networkButtons=document.querySelectorAll('#network-buttons button[data-network]');
     const selectAllBtn=document.getElementById('select-all-networks');
     const clearAllBtn=document.getElementById('clear-all-networks');
@@ -275,13 +464,14 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     const networkColors = {
       ethereum:'#059669', binance:'#EAB308', optimism:'#DC2626', base:'#0284C7', arbitrum:'#06B6D4', polygon:'#7C3AED',
       avalanche:'#E11D48', fantom:'#4F46E5', gnosis:'#16A34A', linea:'#0D9488', scroll:'#65A30D', mantle:'#D97706',
-      opbnb:'#22C55E', 'polygon-zkevm':'#A21CAF', 'arbitrum-nova':'#22D3EE', celo:'#10B981',
+      'polygon-zkevm':'#A21CAF', 'arbitrum-nova':'#22D3EE', celo:'#10B981',
       moonbeam:'#DB2777'
     };
     const resultsSection=document.getElementById('results-section');
     const contractCount=document.getElementById('contract-count');
     const toggleFiltersBtn=document.getElementById('toggle-filters');
     const filtersPanel=document.getElementById('filters-panel');
+    const filterBadge=document.getElementById('filter-badge');
 
     // Build common GA params snapshot
     const currentFilterParams = () => ({
@@ -295,6 +485,23 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       fund_max: (filters.fundMax >= 10000000) ? null : filters.fundMax,
       networks: (filters.networks && filters.networks.length) ? filters.networks.join(',') : 'all'
     });
+
+    // Update filter badge count
+    function updateFilterBadge() {
+      let count = 0;
+      if (filters.address) count++;
+      if (filters.name) count++;
+      if (filters.timeMin !== 0 || filters.timeMax !== 12) count++;
+      if (filters.fundMin !== 0 || filters.fundMax !== 10000000) count++;
+      if (filters.networks.length > 0 && filters.networks.length < 12) count++; // Not all networks
+
+      if (count > 0) {
+        filterBadge.textContent = count;
+        filterBadge.classList.remove('hidden');
+      } else {
+        filterBadge.classList.add('hidden');
+      }
+    }
 
     // Mobile Filters Toggle
     if (toggleFiltersBtn) {
@@ -314,20 +521,24 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     // Events
     addressSearch.addEventListener('input',e=>{
       filters.address=e.target.value;
+      updateFilterBadge();
       fireFilterChange('address', { value_length: (e.target.value||'').length });
     });
     nameSearch.addEventListener('input',e=>{
       filters.name=e.target.value;
+      updateFilterBadge();
       fireFilterChange('name', { value_length: (e.target.value||'').length });
     });
     timeMin.addEventListener('input',e=>{
       filters.timeMin=parseInt(e.target.value);
       updateTimeRangeDisplay();
+      updateFilterBadge();
       fireFilterChange('time_min', { index: filters.timeMin, label: timeRanges[filters.timeMin] });
     });
     timeMax.addEventListener('input',e=>{
       filters.timeMax=parseInt(e.target.value);
       updateTimeRangeDisplay();
+      updateFilterBadge();
       fireFilterChange('time_max', { index: filters.timeMax, label: timeRanges[filters.timeMax] });
     });
 
@@ -340,6 +551,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       e.target.value = snapped;
       filters.fundMin = snapped;
       updateFundRangeDisplay();
+      updateFilterBadge();
       fireFilterChange('fund_min', { value: filters.fundMin });
     });
 
@@ -351,6 +563,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       e.target.value = snapped;
       filters.fundMax = snapped;
       updateFundRangeDisplay();
+      updateFilterBadge();
       fireFilterChange('fund_max', { value: filters.fundMax });
     });
 
@@ -361,11 +574,13 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
           filters.networks=filters.networks.filter(x=>x!==n);
           e.target.classList.remove('bg-blue-600','text-white');
           e.target.classList.add('bg-slate-700','text-slate-300');
+          updateFilterBadge();
           gaEvent('select_network', { network: n, selected: false, selected_networks: filters.networks.join(',') || 'none' });
         } else {
           filters.networks.push(n);
           e.target.classList.remove('bg-slate-700','text-slate-300');
           e.target.classList.add('bg-blue-600','text-white');
+          updateFilterBadge();
           gaEvent('select_network', { network: n, selected: true, selected_networks: filters.networks.join(',') });
         }
       })
@@ -380,6 +595,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
           btn.classList.remove('bg-slate-700','text-slate-300');
           btn.classList.add('bg-blue-600','text-white');
         });
+        updateFilterBadge();
         gaEvent('select_all_networks', { networks: filters.networks.join(',') });
       });
     }
@@ -390,6 +606,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
           btn.classList.remove('bg-blue-600','text-white');
           btn.classList.add('bg-slate-700','text-slate-300');
         });
+        updateFilterBadge();
         gaEvent('clear_all_networks', {});
       });
     }
@@ -398,13 +615,76 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     searchButton.addEventListener('click',()=>{
       gaEvent('search', {
         search_term: (filters.address || filters.name || '(filters only)'),
-        ...currentFilterParams()
+        ...currentFilterParams(),
+        sort_by: currentSortBy
       });
-      searchContracts();
+      updateURLParams(); // Sync filters to URL
+      console.log('[Search] Using sortBy:', currentSortBy); // Debug log
+      searchContracts({ sortBy: currentSortBy }); // Use current sort state
     });
     clearFiltersButton.addEventListener('click',()=>{
       gaEvent('filter_reset', { ...currentFilterParams() });
       clearFilters();
+    });
+
+    // Hide Duplicates button
+    const hideDuplicatesButton = document.getElementById('hide-duplicates');
+    hideDuplicatesButton.addEventListener('click', async () => {
+      hideDuplicates = !hideDuplicates;
+
+      // Update button style
+      if (hideDuplicates) {
+        hideDuplicatesButton.classList.add('bg-blue-600', 'text-white');
+        hideDuplicatesButton.classList.remove('hover:bg-slate-700');
+      } else {
+        hideDuplicatesButton.classList.remove('bg-blue-600', 'text-white');
+        hideDuplicatesButton.classList.add('hover:bg-slate-700');
+      }
+
+      gaEvent('toggle_hide_duplicates', { enabled: hideDuplicates });
+      console.log('[Filter] Hide duplicates:', hideDuplicates);
+
+      // Re-search with new filter from backend
+      if (hasSearched) {
+        await searchContracts({ sortBy: currentSortBy });
+      }
+    });
+
+    // Sort toggle buttons
+    const fundsButton = document.getElementById('funds-button');
+    const latestButton = document.getElementById('latest-button');
+
+    function updateSortButtonState(sortBy) {
+      currentSortBy = sortBy;
+      if (sortBy === 'fund') {
+        fundsButton.classList.add('bg-blue-600', 'text-white');
+        fundsButton.classList.remove('hover:bg-slate-600');
+        latestButton.classList.remove('bg-blue-600', 'text-white');
+        latestButton.classList.add('hover:bg-slate-600');
+      } else {
+        latestButton.classList.add('bg-blue-600', 'text-white');
+        latestButton.classList.remove('hover:bg-slate-600');
+        fundsButton.classList.remove('bg-blue-600', 'text-white');
+        fundsButton.classList.add('hover:bg-slate-600');
+      }
+    }
+
+    fundsButton.addEventListener('click', async () => {
+      if (currentSortBy !== 'fund') {
+        updateSortButtonState('fund');
+        console.log('[Sort] Switched to Funds, currentSortBy:', currentSortBy); // Debug log
+        gaEvent('funds_sort_clicked', { ...currentFilterParams() });
+        await searchContracts({ sortBy: 'fund' });
+      }
+    });
+
+    latestButton.addEventListener('click', async () => {
+      if (currentSortBy !== 'first_seen') {
+        updateSortButtonState('first_seen');
+        console.log('[Sort] Switched to Latest, currentSortBy:', currentSortBy); // Debug log
+        gaEvent('latest_sort_clicked', { ...currentFilterParams() });
+        await searchContracts({ sortBy: 'first_seen' });
+      }
     });
 
     // Slider visuals
@@ -419,8 +699,8 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     function fundStepFor(val) {
       if (val < 1_000_000) return 20_000;     // < 1M  → 20K
       if (val < 2_000_000) return 200_000;    // < 2M  → 200K
-      if (val < 3_000_000) return 500_000;    // < 5M  → 500K
-      return 1_000_000;                       // ≥ 5M  → 1M
+      if (val < 3_000_000) return 500_000;    // < 3M  → 500K
+      return 1_000_000;                       // ≥ 3M  → 1M
     }
 
     function updateSliderPositions(){
@@ -471,6 +751,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         btn.classList.remove('bg-slate-700','text-slate-300');
         btn.classList.add('bg-blue-600','text-white');
       });
+      updateFilterBadge();
       // Initialize page state as well
       pageLimit = 50; // default page size
       cursorStack = [];
@@ -481,6 +762,8 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       hasSearched = false;
       showEmptyState();
       renderPager();
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
     }
     function timeIndexToSeconds(idx){
       switch(idx){
@@ -505,11 +788,21 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     function renderResults(rows){
       if (!rows || rows.length===0){ showEmptyState(); return; }
 
+      // Store results for sorting
+      window.lastSearchResults = rows;
+
+      // Apply current sort
+      // Skip client-side sorting when using backend sortBy (Funds/Latest buttons)
+      // Only use client-side sorting for table column clicks (currentSortBy === null)
+      const sortedRows = currentSortBy
+        ? rows // Backend sorted
+        : sortResults(rows, sortColumn, sortDirection); // Client-side sorted
+
       // counts (totalCount/totalPages set externally if available)
       if (typeof totalCount!=='undefined' && totalCount!=null){
         contractCount.textContent=`Total Contracts: ${totalCount}` + (totalPages?` (pages: ${totalPages})`:``);
       } else {
-        contractCount.textContent=`Contracts (this page): ${rows.length}`;
+        contractCount.textContent=`Contracts (this page): ${sortedRows.length}`;
       }
 
       // explorers + color
@@ -526,7 +819,6 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         linea:"https://lineascan.build/address/",
         scroll:"https://scrollscan.com/address/",
         mantle:"https://mantlescan.xyz/address/",
-        opbnb:"https://opbnbscan.com/address/",
         'polygon-zkevm':"https://zkevm.polygonscan.com/address/",
         'arbitrum-nova':"https://nova.arbiscan.io/address/",
         celo:"https://celoscan.io/address/",
@@ -537,13 +829,13 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         base:'bg-sky-500', arbitrum:'bg-blue-600', polygon:'bg-purple-500',
         avalanche:'bg-rose-600', fantom:'bg-indigo-600', gnosis:'bg-emerald-600',
         linea:'bg-teal-600', scroll:'bg-lime-600', mantle:'bg-amber-600',
-        opbnb:'bg-green-500', 'polygon-zkevm':'bg-fuchsia-600', 'arbitrum-nova':'bg-cyan-500',
+        'polygon-zkevm':'bg-fuchsia-600', 'arbitrum-nova':'bg-cyan-500',
         celo:'bg-emerald-500', moonbeam:'bg-pink-600'
       };
       const networkEmojis={
         ethereum:'Ξ', binance:'🔶', optimism:'🟥', base:'🟦', arbitrum:'🌀', polygon:'🔺',
         avalanche:'🟥', fantom:'👻', gnosis:'🟩', linea:'🟪', scroll:'🟩', mantle:'🟧',
-        opbnb:'🟩', 'polygon-zkevm':'🟣', 'arbitrum-nova':'🟦', celo:'🟩', moonbeam:'🌙'
+        'polygon-zkevm':'🟣', 'arbitrum-nova':'🟦', celo:'🟩', moonbeam:'🌙'
       };
       const networkLogos={
         ethereum:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/ethereum/info/logo.png',
@@ -559,7 +851,6 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         linea:'https://lineascan.build/images/favicon-32x32.png',
         scroll:'https://scrollscan.com/images/favicon-32x32.png',
         mantle:'https://mantlescan.xyz/images/favicon-32x32.png',
-        opbnb:'https://opbnbscan.com/images/favicon-32x32.png',
         'polygon-zkevm':'https://zkevm.polygonscan.com/images/favicon-32x32.png',
         'arbitrum-nova':'https://nova.arbiscan.io/images/favicon-32x32.png',
         celo:'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/celo/info/logo.png',
@@ -572,10 +863,14 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       };
 
       // Table rows (desktop)
-      const tableRows=rows.map(r=>{
+      const tableRows=sortedRows.map(r=>{
         const short=r.address?`${r.address.slice(0,6)}...${r.address.slice(-6)}`:'';
         const base=explorerMap[r.network?.toLowerCase()];
         const href = base ? `${base}${r.address}` : '#';
+        const bookmarked = isBookmarked(r.address, r.network);
+        const bookmarkBtn = `<button class="bookmark-btn ml-2 p-1 rounded hover:bg-slate-700 transition" data-address="${r.address||''}" data-network="${r.network||''}" data-contract='${JSON.stringify(r).replace(/'/g, "&apos;")}' title="${bookmarked ? 'Remove bookmark' : 'Add bookmark'}">
+          <i data-lucide="bookmark${bookmarked ? '' : ''}" class="w-3 h-3 ${bookmarked ? 'fill-yellow-400 text-yellow-400' : 'text-slate-400'}"></i>
+        </button>`;
         const link = base
           ? `<a href="${href}" target="_blank" rel="noopener noreferrer"
                 class="text-blue-400 hover:underline"
@@ -585,8 +880,8 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
                 data-name="${(r.contract_name||'').replace(/"/g,'&quot;')}"
                 data-network="${r.network||''}"
                 data-fund="${r.fund||''}"
-             >${short}</a>`
-          : `<span class="text-slate-300">${short}</span>`;
+             >${short}</a>${bookmarkBtn}`
+          : `<span class="text-slate-300">${short}</span>${bookmarkBtn}`;
         const netKey=r.network?.toLowerCase();
         const netColor=networkColors[netKey]||'bg-slate-600';
         const icon = networkEmojis[netKey]||'⛓️';
@@ -605,7 +900,7 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
       }).join('');
 
       // Card list (mobile)
-      const cards=rows.map(r=>{
+      const cards=sortedRows.map(r=>{
         const base=explorerMap[r.network?.toLowerCase()];
         const full=r.address||'';
         const short=full?`${full.slice(0,6)}...${full.slice(-6)}`:'';
@@ -632,17 +927,24 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
             </div>
             <div class="mt-2 text-sm text-slate-200 truncate">${r.contract_name ?? ''}</div>
             <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div class="flex items-center justify-between bg-slate-900/40 rounded-md px-2 py-1">
+              <div class="flex flex-col bg-slate-900/40 rounded-md px-2 py-1">
                 <span class="text-slate-400">Deployed</span>
-                <span class="text-slate-200">${deployed || '-'}</span>
+                <span class="text-slate-200 text-xs mt-0.5">${deployed || '-'}</span>
               </div>
-              <div class="flex items-center justify-between bg-slate-900/40 rounded-md px-2 py-1">
+              <div class="flex flex-col bg-slate-900/40 rounded-md px-2 py-1">
                 <span class="text-slate-400">Fund</span>
-                <span class="text-green-400 font-semibold">${fmtFund(r.fund)}</span>
+                <span class="text-green-400 font-semibold text-xs mt-0.5">${fmtFund(r.fund)}</span>
               </div>
             </div>
           </div>`;
       }).join('');
+
+      const getSortIcon = (col) => {
+        if (sortColumn !== col) return '<i data-lucide="chevrons-up-down" class="w-3 h-3 inline-block ml-1 opacity-50"></i>';
+        return sortDirection === 'asc'
+          ? '<i data-lucide="chevron-up" class="w-3 h-3 inline-block ml-1"></i>'
+          : '<i data-lucide="chevron-down" class="w-3 h-3 inline-block ml-1"></i>';
+      };
 
       resultsSection.innerHTML=`
         <div class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
@@ -651,11 +953,11 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
             <table class="min-w-full text-sm">
               <thead class="bg-slate-900/40">
                 <tr>
-                  <th class="px-4 py-2 text-left">Address</th>
-                  <th class="px-4 py-2 text-left">Contract Name</th>
-                  <th class="px-4 py-2 text-left">Network</th>
-                  <th class="px-4 py-2 text-right">Deployed</th>
-                  <th class="px-4 py-2 text-right">Fund</th>
+                  <th class="px-4 py-2 text-left cursor-pointer hover:bg-slate-800 transition" data-sort-col="address">Address ${getSortIcon('address')}</th>
+                  <th class="px-4 py-2 text-left cursor-pointer hover:bg-slate-800 transition" data-sort-col="name">Contract Name ${getSortIcon('name')}</th>
+                  <th class="px-4 py-2 text-left cursor-pointer hover:bg-slate-800 transition" data-sort-col="network">Network ${getSortIcon('network')}</th>
+                  <th class="px-4 py-2 text-right cursor-pointer hover:bg-slate-800 transition" data-sort-col="deployed">Deployed ${getSortIcon('deployed')}</th>
+                  <th class="px-4 py-2 text-right cursor-pointer hover:bg-slate-800 transition" data-sort-col="fund">Fund ${getSortIcon('fund')}</th>
                 </tr>
               </thead>
               <tbody>${tableRows}</tbody>
@@ -694,7 +996,127 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
           });
         });
       });
+
+      // Handle bookmark button clicks
+      resultsSection.querySelectorAll('.bookmark-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const address = btn.dataset.address;
+          const network = btn.dataset.network;
+          const contract = JSON.parse(btn.dataset.contract.replace(/&apos;/g, "'"));
+
+          if (isBookmarked(address, network)) {
+            removeBookmark(address, network);
+            btn.innerHTML = '<i data-lucide="bookmark" class="w-3 h-3 text-slate-400"></i>';
+            btn.title = 'Add bookmark';
+          } else {
+            if (saveBookmark(contract)) {
+              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-yellow-400"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>';
+              btn.title = 'Remove bookmark';
+            }
+          }
+
+          // Re-render Lucide icons for non-bookmarked state
+          lucide.createIcons();
+        });
+      });
+
+      // Handle sort column clicks
+      resultsSection.querySelectorAll('[data-sort-col]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.sortCol;
+          handleColumnSort(col);
+        });
+      });
+
+      // Update export button state
+      updateExportButton();
     }
+
+    // Export functionality
+    function downloadFile(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportToCSV() {
+      if (!window.lastSearchResults || window.lastSearchResults.length === 0) {
+        alert('No data to export');
+        return;
+      }
+
+      const headers = ['Address', 'Contract Name', 'Network', 'Deployed', 'Fund'];
+      const rows = window.lastSearchResults.map(r => [
+        r.address || '',
+        r.contract_name || '',
+        r.network || '',
+        r.deployed ? new Date(r.deployed * 1000).toISOString() : '',
+        r.fund || ''
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      downloadFile(csvContent, `bugchain-contracts-${timestamp}.csv`, 'text/csv');
+
+      gaEvent('export_data', { format: 'csv', count: rows.length });
+      toggleExportMenu();
+    }
+
+    function exportToJSON() {
+      if (!window.lastSearchResults || window.lastSearchResults.length === 0) {
+        alert('No data to export');
+        return;
+      }
+
+      const jsonContent = JSON.stringify(window.lastSearchResults, null, 2);
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      downloadFile(jsonContent, `bugchain-contracts-${timestamp}.json`, 'application/json');
+
+      gaEvent('export_data', { format: 'json', count: window.lastSearchResults.length });
+      toggleExportMenu();
+    }
+
+    function updateExportButton() {
+      const exportBtn = document.getElementById('export-button');
+      if (!exportBtn) return;
+
+      const hasData = window.lastSearchResults && window.lastSearchResults.length > 0;
+      exportBtn.disabled = !hasData;
+    }
+
+    function toggleExportMenu() {
+      const menu = document.getElementById('export-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    // Export button event listeners
+    document.getElementById('export-button')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleExportMenu();
+    });
+
+    document.getElementById('export-csv')?.addEventListener('click', exportToCSV);
+    document.getElementById('export-json')?.addEventListener('click', exportToJSON);
+
+    // Close export menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('export-menu');
+      const btn = document.getElementById('export-button');
+      if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
 
     const server='https://api.bugchain.xyz';
     function encodeCursor(cur){ if(!cur)return null; return btoa(unescape(encodeURIComponent(JSON.stringify(cur)))); }
@@ -748,24 +1170,27 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         if(cursorStack.length===0)return;
         gaEvent('paginate_results', { direction:'prev', from_page:(cursorStack.length+1) });
         currentCursor=cursorStack.pop()||null;
-        await searchContracts({useExistingCursor:true});
+        await searchContracts({useExistingCursor:true, sortBy: currentSortBy});
       };
       nextBtn.onclick=async()=>{
         if(!nextCursorFromLastResult)return;
         gaEvent('paginate_results', { direction:'next', from_page:(cursorStack.length+1) });
         cursorStack.push(currentCursor);
         currentCursor=nextCursorFromLastResult;
-        await searchContracts({useExistingCursor:true});
+        await searchContracts({useExistingCursor:true, sortBy: currentSortBy});
       };
     }
 
     async function searchContracts(opts={}){
       try{
         hasSearched = true;
-        const {useExistingCursor=false}=opts;
+        const {useExistingCursor=false, sortBy=null}=opts;
         searchButton.disabled=true;
         searchButton.innerHTML='<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Searching...</span>';
         lucide.createIcons();
+
+        // Show loading skeleton
+        showLoadingSkeleton();
 
         const nowSec=Math.floor(Date.now()/1000);
         const minAgo=timeIndexToSeconds(filters.timeMin);
@@ -787,6 +1212,8 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         if(filters.address?.trim()) qp.set('address',filters.address.trim());
         if(filters.name?.trim())    qp.set('contractName',filters.name.trim());
         if(filters.networks?.length) qp.set('networks',filters.networks.join(','));
+        if(sortBy) qp.set('sortBy', sortBy);
+        if(hideDuplicates) qp.set('hideUnnamed', 'true');
         qp.set('limit',String(pageLimit));
         const enc=encodeCursor(currentCursor); if(enc) qp.set('cursor',enc);
         qp.set('includeTotal',(!useExistingCursor).toString());
@@ -797,13 +1224,26 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
 
         const rows=Array.isArray(json?.data)?json.data:(Array.isArray(json)?json:[]);
         nextCursorFromLastResult=json?.nextCursor ?? null;
-        if(json?.totalCount!=null){ totalCount=Number(json.totalCount); totalPages=json?.totalPages!=null?Number(json.totalPages):null; }
+
+        // Always update totalCount when server provides it
+        if(json?.totalCount!=null){
+          totalCount=Number(json.totalCount);
+          totalPages=json?.totalPages!=null?Number(json.totalPages):null;
+        }
 
         if(rows.length===0){ showEmptyState(); renderPager(); return; }
         renderResults(rows); renderPager();
       }catch(err){
         console.error('searchContracts failed:',err);
-        showEmptyState(); nextCursorFromLastResult=null; renderPager();
+        const isNetworkError = !navigator.onLine || err.message.includes('Failed to fetch');
+        const errorMsg = isNetworkError
+          ? 'Network connection lost. Please check your internet connection.'
+          : err.message.includes('500')
+            ? 'Server error occurred. Please try again in a moment.'
+            : err.message || 'Search failed. Please try again.';
+        showErrorState(errorMsg);
+        nextCursorFromLastResult=null;
+        renderPager();
       }finally{
         searchButton.disabled=false;
         searchButton.innerHTML='<i data-lucide="search" class="w-4 h-4"></i><span>Search Contracts</span>';
@@ -832,6 +1272,78 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
         total_count: (totalCount!=null ? totalCount : null),
         ...currentFilterParams()
       });
+    }
+
+    function showErrorState(errorMessage) {
+      resultsSection.innerHTML=`
+        <div class="bg-slate-800 rounded-lg border border-red-700 p-8 text-center">
+          <div class="text-slate-400 mb-4">
+            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-2 text-red-500"></i>
+            <h3 class="text-lg font-semibold text-white">Search Failed</h3>
+            <p class="text-sm mt-2 text-red-400">${errorMessage || 'An unexpected error occurred. Please try again.'}</p>
+            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm transition">
+              Reload Page
+            </button>
+          </div>
+        </div>`;
+      lucide.createIcons();
+      contractCount.textContent='Total Contracts: 0';
+
+      gaEvent('search_error', {
+        error_message: errorMessage || 'unknown',
+        ...currentFilterParams()
+      });
+    }
+
+    function showLoadingSkeleton() {
+      const skeletonRows = Array(10).fill(0).map(() => `
+        <tr class="border-b border-slate-700/60">
+          <td class="px-4 py-3"><div class="skeleton h-4 w-32"></div></td>
+          <td class="px-4 py-3"><div class="skeleton h-4 w-48"></div></td>
+          <td class="px-4 py-3"><div class="skeleton h-6 w-24"></div></td>
+          <td class="px-4 py-3"><div class="skeleton h-4 w-28"></div></td>
+          <td class="px-4 py-3"><div class="skeleton h-4 w-20 ml-auto"></div></td>
+        </tr>
+      `).join('');
+
+      const skeletonCards = Array(6).fill(0).map(() => `
+        <div class="p-4 rounded-xl border border-slate-700 bg-slate-800">
+          <div class="flex items-center justify-between gap-3">
+            <div class="skeleton h-4 w-32"></div>
+            <div class="skeleton h-6 w-24"></div>
+          </div>
+          <div class="mt-2"><div class="skeleton h-4 w-40"></div></div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <div class="skeleton h-8 w-full"></div>
+            <div class="skeleton h-8 w-full"></div>
+          </div>
+        </div>
+      `).join('');
+
+      resultsSection.innerHTML=`
+        <div class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+          <!-- Desktop skeleton -->
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-900/40">
+                <tr>
+                  <th class="px-4 py-2 text-left">Address</th>
+                  <th class="px-4 py-2 text-left">Contract Name</th>
+                  <th class="px-4 py-2 text-left">Network</th>
+                  <th class="px-4 py-2 text-right">Deployed</th>
+                  <th class="px-4 py-2 text-right">Fund</th>
+                </tr>
+              </thead>
+              <tbody>${skeletonRows}</tbody>
+            </table>
+          </div>
+
+          <!-- Mobile skeleton -->
+          <div class="sm:hidden p-3 grid grid-cols-1 gap-3">
+            ${skeletonCards}
+          </div>
+        </div>`;
+      contractCount.textContent='Searching...';
     }
 
     // Custom drag handle (maintain existing)
@@ -899,10 +1411,137 @@ const networkButtons=document.querySelectorAll('#network-buttons button[data-net
     setupThumbDrag(fundMinThumb,document.getElementById('fund-slider-container'),fundMin,true);
     setupThumbDrag(fundMaxThumb,document.getElementById('fund-slider-container'),fundMax,false);
 
+    // Keyboard navigation for sliders
+    function setupKeyboardNav(thumb, input, isMin) {
+      thumb.addEventListener('keydown', (e) => {
+        const step = input.id.includes('time') ? 1 : (input.id.includes('fund') ? 100000 : 1);
+        let newVal = parseInt(input.value);
+
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          newVal = Math.max(parseInt(input.min), newVal - step);
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          newVal = Math.min(parseInt(input.max), newVal + step);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          newVal = parseInt(input.min);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          newVal = parseInt(input.max);
+        } else {
+          return;
+        }
+
+        input.value = newVal;
+        input.dispatchEvent(new Event('input'));
+      });
+    }
+
+    setupKeyboardNav(timeMinThumb, timeMin, true);
+    setupKeyboardNav(timeMaxThumb, timeMax, false);
+    setupKeyboardNav(fundMinThumb, fundMin, true);
+    setupKeyboardNav(fundMaxThumb, fundMax, false);
+
+    // Fetch and display network counts
+    async function fetchNetworkCounts() {
+      try {
+        const resp = await fetch(`${server}/networkCounts`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        networkCounts = json?.networks || {};
+        updateNetworkButtons();
+      } catch (err) {
+        console.warn('Failed to fetch network counts:', err);
+      }
+    }
+
+    function updateNetworkButtons() {
+      networkButtons.forEach(btn => {
+        const network = btn.dataset.network;
+        const count = networkCounts[network];
+        if (count != null && count > 0) {
+          const countText = count >= 1000 ? `${(count / 1000).toFixed(1)}K` : count.toString();
+          const currentText = btn.textContent.trim().split('(')[0].trim();
+          btn.innerHTML = `${currentText} <span class="text-xs opacity-75">(${countText})</span>`;
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // URL parameter synchronization
+    function updateURLParams() {
+      const params = new URLSearchParams();
+      if (filters.address) params.set('address', filters.address);
+      if (filters.name) params.set('name', filters.name);
+      if (filters.timeMin !== 0) params.set('timeMin', filters.timeMin);
+      if (filters.timeMax !== 12) params.set('timeMax', filters.timeMax);
+      if (filters.fundMin !== 0) params.set('fundMin', filters.fundMin);
+      if (filters.fundMax !== 10000000) params.set('fundMax', filters.fundMax);
+      if (filters.networks.length > 0) params.set('networks', filters.networks.join(','));
+
+      const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+      window.history.replaceState({}, '', newURL);
+    }
+
+    function loadFiltersFromURL() {
+      const params = new URLSearchParams(window.location.search);
+
+      if (params.has('address')) {
+        filters.address = params.get('address');
+        addressSearch.value = filters.address;
+      }
+      if (params.has('name')) {
+        filters.name = params.get('name');
+        nameSearch.value = filters.name;
+      }
+      if (params.has('timeMin')) {
+        filters.timeMin = parseInt(params.get('timeMin'));
+        timeMin.value = filters.timeMin;
+      }
+      if (params.has('timeMax')) {
+        filters.timeMax = parseInt(params.get('timeMax'));
+        timeMax.value = filters.timeMax;
+      }
+      if (params.has('fundMin')) {
+        filters.fundMin = parseInt(params.get('fundMin'));
+        fundMin.value = filters.fundMin;
+      }
+      if (params.has('fundMax')) {
+        filters.fundMax = parseInt(params.get('fundMax'));
+        fundMax.value = filters.fundMax;
+      }
+      if (params.has('networks')) {
+        const nets = params.get('networks').split(',').filter(Boolean);
+        filters.networks = nets;
+        networkButtons.forEach(btn => {
+          const n = btn.dataset.network;
+          if (nets.includes(n)) {
+            btn.classList.remove('bg-slate-700','text-slate-300');
+            btn.classList.add('bg-blue-600','text-white');
+          } else {
+            btn.classList.remove('bg-blue-600','text-white');
+            btn.classList.add('bg-slate-700','text-slate-300');
+          }
+        });
+      }
+
+      updateTimeRangeDisplay();
+      updateFundRangeDisplay();
+
+      // Auto-search if URL has parameters
+      if (params.toString()) {
+        setTimeout(() => searchContracts(), 100);
+      }
+    }
+
     // Init
     updateTimeRangeDisplay();
     updateFundRangeDisplay();
     updateSliderPositions();
+    fetchNetworkCounts(); // Load network counts on page load
+    updateBookmarkBadge(); // Load bookmark badge
+    loadFiltersFromURL(); // Load filters from URL
 
     // Footer social link clicks → GA
     document.querySelectorAll('a[aria-label="Twitter"], a[aria-label="LinkedIn"]').forEach(a=>{

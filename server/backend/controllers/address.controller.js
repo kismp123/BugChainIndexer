@@ -40,6 +40,12 @@ exports.getAddressesByFilter = async (req, res) => {
       address:      q.address ? String(q.address).trim() : null,           // address ILIKE %address%
       contractName: q.contractName ? String(q.contractName).trim() : null, // contract_name ILIKE %contractName%
 
+      // Sorting
+      sortBy: q.sortBy && ['fund', 'first_seen'].includes(q.sortBy) ? q.sortBy : 'fund',
+
+      // Hide unnamed/duplicate contracts
+      hideUnnamed: parseBool(q.hideUnnamed),
+
       // Cursor pagination
       limit,
       cursor,

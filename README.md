@@ -2,15 +2,17 @@
 
 > **Multi-blockchain contract analysis and indexing system**
 
-BugChainIndexer is a comprehensive blockchain analysis platform that monitors, analyzes, and indexes contract data across 18 blockchain networks. The system uses Alchemy API for reliable data access and features an optimized backend delivering sub-second response times.
+🌐 **Live Platform**: [https://bugchain.xyz/](https://bugchain.xyz/)
+
+BugChainIndexer is a comprehensive blockchain analysis platform that monitors, analyzes, and indexes contract data across 14 blockchain networks (12 active). The system uses Alchemy API for reliable data access and features an optimized backend delivering sub-second response times.
 
 ## ✨ Key Features
 
 ### 🔍 **Multi-Chain Analysis**
-- **18 Blockchain Networks**: Ethereum, BSC, Polygon, Arbitrum, Optimism, Base, Avalanche, Gnosis, Linea, Scroll, Mantle, opBNB, Arbitrum Nova, Polygon zkEVM, Celo, Cronos, Moonbeam, Moonriver
+- **14 Blockchain Networks** (12 Active): Ethereum, BSC, Polygon, Arbitrum, Optimism, Base, Avalanche, Gnosis, Linea, Scroll, Mantle, opBNB, Unichain, Berachain
 - **Unified Processing**: Single codebase handles all networks with consistent data structures
 - **Parallel Execution**: Process multiple networks simultaneously for maximum efficiency
-- **Network-Specific Token Decimals**: Accurate decimals for 1,254 tokens across all networks
+- **Network-Specific Token Decimals**: Accurate decimals for tokens across all networks
 
 ### 🚀 **High-Performance Scanning**
 - **50,000+ addresses/hour**: Revolutionary processing speed per network
@@ -24,7 +26,7 @@ BugChainIndexer is a comprehensive blockchain analysis platform that monitors, a
 - **BalanceHelper Contracts**: Batch balance queries using on-chain contracts (550M gas limit optimized)
 - **Alchemy Prices API**: Real-time token prices with 7-day update cycle
 - **Accurate Token Decimals**: Network-specific decimals from tokens files (not DB)
-- **Multi-Network Support**: Portfolio tracking across 18 blockchain networks
+- **Multi-Network Support**: Portfolio tracking across 14 blockchain networks
 - **PostgreSQL Advisory Locks**: Concurrent-safe fund updates across multiple networks
 - **ERC20 Balance Checking**: UnifiedScanner includes contracts with token holdings
 - **Dynamic Batch Sizing**: Adaptive chunk sizes (50-1000 addresses) based on performance
@@ -176,17 +178,19 @@ npm start  # Starts HTTPS server on port 443
 
 ## 🌐 Supported Networks
 
-**18 Active Networks:**
+**14 Configured Networks (12 Active in run.sh):**
 
-✅ **Fully Operational:**
+✅ **Fully Operational (Active in run.sh):**
 - **Tier 1**: Ethereum, Binance Smart Chain, Polygon
 - **Tier 2**: Arbitrum, Optimism, Base
 - **Tier 3**: Avalanche, Gnosis, Linea, Scroll, Mantle, opBNB
-- **Tier 4**: Arbitrum Nova, Polygon zkEVM, Celo, Cronos, Moonbeam, Moonriver
+
+✅ **Configured (Available but not in default run.sh):**
+- Unichain, Berachain
 
 **Network Support:**
-- All networks have token decimals configured
-- Alchemy API integration for supported networks
+- All networks have Alchemy API integration
+- BalanceHelper contracts deployed on all active networks
 - Network-specific RPC fallbacks for reliability
 
 ## 📊 Performance Metrics
@@ -215,13 +219,14 @@ npm start  # Starts HTTPS server on port 443
 High-performance blockchain analysis engine with Alchemy API integration.
 - **UnifiedScanner**: Main analysis pipeline with ERC20 balance checking
 - **FundUpdater**: Portfolio tracking with PostgreSQL advisory locks and network-specific decimals
-- **DataRevalidator**: Existing data validation and tagging
+- **DataRevalidator**: Validates and updates addresses with incomplete data
 
-**Key Improvements:**
+**Key Features:**
 - Network-specific token decimals (1,254 tokens across 18 networks)
 - PostgreSQL advisory locks prevent concurrent update conflicts
 - ERC20 balance checking includes contracts with token holdings
 - Accurate fund calculations using tokens file decimals (not DB)
+- Simplified DataRevalidator with unified reclassification logic
 
 ### Backend Server
 Express.js REST API with PostgreSQL database.

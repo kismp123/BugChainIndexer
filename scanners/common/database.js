@@ -61,6 +61,8 @@ async function ensureSchema(client) {
     `CREATE INDEX IF NOT EXISTS idx_addresses_tags_gin ON addresses USING GIN(tags)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_fund ON addresses(network, fund)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_last_updated ON addresses(network, last_updated)`,
+    `CREATE INDEX IF NOT EXISTS idx_addresses_first_seen ON addresses(network, first_seen DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_addresses_first_seen_global ON addresses(first_seen DESC NULLS LAST) WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags))`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_network_notags ON addresses(network) WHERE (tags IS NULL OR NOT 'EOA' = ANY(tags))`,
     `CREATE INDEX IF NOT EXISTS idx_tokens_network ON tokens(network)`,
     `CREATE INDEX IF NOT EXISTS idx_tokens_price_updated ON tokens(network, price_updated)`,
@@ -88,16 +90,20 @@ async function upsertAddress(client, data) {
       fund, last_fund_updated, name_checked, name_checked_at
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     ON CONFLICT (address, network) DO UPDATE SET
-      code_hash = COALESCE($2, addresses.code_hash),
-      contract_name = COALESCE($3, addresses.contract_name),
-      deployed = COALESCE($4, addresses.deployed),
-      last_updated = COALESCE($5, addresses.last_updated),
-      first_seen = COALESCE($7, addresses.first_seen),
-      tags = COALESCE($8, addresses.tags),
-      fund = COALESCE($9, addresses.fund),
-      last_fund_updated = COALESCE($10, addresses.last_fund_updated),
-      name_checked = COALESCE($11, addresses.name_checked),
-      name_checked_at = COALESCE($12, addresses.name_checked_at)
+      code_hash = $2,
+      contract_name = $3,
+      deployed = $4,
+      last_updated = $5,
+      first_seen = COALESCE(addresses.first_seen, $7),
+      tags = CASE
+        WHEN $8 IS NOT NULL AND array_length($8, 1) > 0
+        THEN $8
+        ELSE addresses.tags
+      END,
+      fund = $9,
+      last_fund_updated = $10,
+      name_checked = $11,
+      name_checked_at = $12
   `;
   
   const now = Math.floor(Date.now() / 1000);
@@ -128,14 +134,24 @@ async function batchUpsertAddresses(client, addresses, options = {}) {
   const batchSize = options.batchSize || 500;
   const now = Math.floor(Date.now() / 1000);
   let totalRowCount = 0;
-  
+
+  // DEBUG: Log first address to see what data is being passed
+  if (addresses.length > 0 && addresses[0].deployed) {
+    console.log('[DEBUG] batchUpsertAddresses called with sample data:', {
+      address: addresses[0].address,
+      deployed: addresses[0].deployed,
+      deployedType: typeof addresses[0].deployed,
+      codeHash: addresses[0].codeHash ? addresses[0].codeHash.substring(0, 20) : null
+    });
+  }
+
   for (let i = 0; i < addresses.length; i += batchSize) {
     const batch = addresses.slice(i, i + batchSize);
-    
+
     const values = [];
     const params = [];
     let paramIndex = 1;
-    
+
     for (const data of batch) {
       const rowParams = [
         data.address,
@@ -166,20 +182,30 @@ async function batchUpsertAddresses(client, addresses, options = {}) {
         fund, last_fund_updated, name_checked, name_checked_at
       ) VALUES ${values.join(', ')}
       ON CONFLICT (address, network) DO UPDATE SET
-        code_hash = COALESCE(EXCLUDED.code_hash, addresses.code_hash),
-        contract_name = COALESCE(EXCLUDED.contract_name, addresses.contract_name),
-        deployed = COALESCE(EXCLUDED.deployed, addresses.deployed),
-        last_updated = COALESCE(EXCLUDED.last_updated, addresses.last_updated),
-        first_seen = COALESCE(EXCLUDED.first_seen, addresses.first_seen),
+        -- Update with new value, but keep existing if new is null (protection)
+        code_hash = CASE
+          WHEN EXCLUDED.code_hash IS NOT NULL THEN EXCLUDED.code_hash
+          ELSE addresses.code_hash
+        END,
+        contract_name = CASE
+          WHEN EXCLUDED.contract_name IS NOT NULL THEN EXCLUDED.contract_name
+          ELSE addresses.contract_name
+        END,
+        deployed = CASE
+          WHEN EXCLUDED.deployed IS NOT NULL THEN EXCLUDED.deployed
+          ELSE addresses.deployed
+        END,
+        last_updated = EXCLUDED.last_updated,
+        first_seen = COALESCE(addresses.first_seen, EXCLUDED.first_seen),
         tags = CASE
           WHEN EXCLUDED.tags IS NOT NULL AND array_length(EXCLUDED.tags, 1) > 0
           THEN EXCLUDED.tags
           ELSE addresses.tags
         END,
-        fund = COALESCE(EXCLUDED.fund, addresses.fund),
-        last_fund_updated = COALESCE(EXCLUDED.last_fund_updated, addresses.last_fund_updated),
-        name_checked = COALESCE(EXCLUDED.name_checked, addresses.name_checked),
-        name_checked_at = COALESCE(EXCLUDED.name_checked_at, addresses.name_checked_at)
+        fund = EXCLUDED.fund,
+        last_fund_updated = EXCLUDED.last_fund_updated,
+        name_checked = EXCLUDED.name_checked,
+        name_checked_at = EXCLUDED.name_checked_at
     `;
     
     const result = await client.query(query, params);

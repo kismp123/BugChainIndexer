@@ -73,3 +73,6 @@ build/
 *.lock
 # Learning data
 scanners/data/
+
+# Serena MCP
+.serena/
