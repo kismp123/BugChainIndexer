@@ -710,7 +710,7 @@ class UnifiedScanner extends Scanner {
     
     // Adaptive batch sizing parameters
     // Use network-specific optimization config if available, otherwise use global defaults
-    const logsOptimization = this.config?.logsOptimization || {
+    const logsOptimization = this.logsOptimization || {
       initialBatchSize: BATCH_SIZES.LOGS_DEFAULT,
       minBatchSize: BATCH_SIZES.LOGS_MIN,
       maxBatchSize: BATCH_SIZES.LOGS_MAX,
