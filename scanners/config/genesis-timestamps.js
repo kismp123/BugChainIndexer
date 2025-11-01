@@ -79,12 +79,6 @@ const GENESIS_TIMESTAMPS = {
     block: 0,
     date: '2023-06-27T10:00:00Z'
   },
-  204: {
-    name: 'opBNB',
-    timestamp: 1691753542,  // August 11, 2023
-    block: 0,
-    date: '2023-08-11T13:12:22Z'
-  },
   1101: {
     name: 'Polygon zkEVM',
     timestamp: 1679431200,  // March 21, 2023

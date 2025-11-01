@@ -3,7 +3,7 @@
  * Unified Scanner Base Class
  * Consolidates all common scanner functionality
  */
-const { NETWORKS, CONFIG } = require('../config/networks.js');
+const { NETWORKS, CONFIG, getLogsOptimization } = require('../config/networks.js');
 const { 
   initializeDB, 
   closeDB, 
@@ -101,12 +101,47 @@ class Scanner {
 
     // Set max logs block range based on detected/configured tier
     if (this.config.maxLogsBlockRange && this.alchemyTier) {
-      this.maxLogsBlockRange = this.config.maxLogsBlockRange[this.alchemyTier];
-      this.log(`Max getLogs block range: ${this.maxLogsBlockRange} blocks (${this.alchemyTier} tier)`);
+      // Try to get tier-specific limit, fallback to premium if not found
+      // (payg/growth/enterprise tiers use premium limits)
+      this.maxLogsBlockRange = this.config.maxLogsBlockRange[this.alchemyTier] ||
+                                this.config.maxLogsBlockRange['premium'] ||
+                                10;
+
+      // Normalize tier display name (growth/payg/enterprise -> premium)
+      const displayTier = (this.alchemyTier === 'free') ? 'free' : 'premium';
+      this.log(`Max getLogs block range: ${this.maxLogsBlockRange} blocks (${displayTier} tier)`);
     } else {
       // Fallback to conservative default
       this.maxLogsBlockRange = 10;
       this.log(`Using default max getLogs block range: ${this.maxLogsBlockRange} blocks`, 'warn');
+    }
+
+    // Apply tier-optimized logs configuration if network has logsOptimization profile
+    if (this.config.logsOptimization && this.alchemyTier) {
+      // Get activity profile name from network config
+      const activityProfile = this.getActivityProfileName(this.config.logsOptimization);
+
+      // Get tier-optimized configuration
+      this.logsOptimization = getLogsOptimization(activityProfile, this.alchemyTier);
+
+      // Normalize tier display name (growth/payg/enterprise -> premium)
+      const displayTier = (this.alchemyTier === 'free') ? 'free' : 'premium';
+      this.log(`📊 Using logs optimization profile: ${activityProfile}-${displayTier}`);
+      this.log(`   Initial batch: ${this.logsOptimization.initialBatchSize}, ` +
+               `Range: ${this.logsOptimization.minBatchSize}-${this.logsOptimization.maxBatchSize} blocks, ` +
+               `Target logs: ${this.logsOptimization.targetLogsPerRequest}`);
+
+      // Load learned statistics and apply dynamic tuning if available
+      if (typeof this.loadLogDensityStats === 'function') {
+        const learnedStats = await this.loadLogDensityStats();
+        if (learnedStats) {
+          this.applyLearnedOptimizations(learnedStats);
+        }
+      }
+    } else if (this.config.logsOptimization) {
+      // Use network-defined profile as fallback (legacy behavior)
+      this.logsOptimization = this.config.logsOptimization;
+      this.log(`📊 Using legacy logs optimization profile`, 'warn');
     }
 
     this.log('✅ Initialization completed successfully');
@@ -129,6 +164,32 @@ class Scanner {
       }
     }
     this.log('Cleanup completed');
+  }
+
+  /**
+   * Extract activity profile name from logsOptimization config
+   * @param {object} logsOptConfig - The logsOptimization config object or profile name
+   * @returns {string} Activity profile name (e.g., 'high-activity', 'medium-activity', 'low-activity')
+   */
+  getActivityProfileName(logsOptConfig) {
+    // If it's already a string profile name (legacy config), return as-is
+    if (typeof logsOptConfig === 'string') {
+      return logsOptConfig;
+    }
+
+    // If it's an object, try to match it against known profiles
+    const { LOGS_OPTIMIZATION } = require('../config/networks.js');
+
+    // Check which profile this config matches
+    for (const [profileName, profileConfig] of Object.entries(LOGS_OPTIMIZATION)) {
+      if (profileConfig === logsOptConfig) {
+        // Strip tier suffix if present (e.g., 'high-activity-payg' -> 'high-activity')
+        return profileName.replace(/-(?:free|payg|premium|growth)$/, '');
+      }
+    }
+
+    // If no match found, default to medium-activity
+    return 'medium-activity';
   }
 
   log(message, level = 'info') {

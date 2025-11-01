@@ -19,40 +19,314 @@ const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || 'demo';
 const USE_ALCHEMY_PROXY = process.env.USE_ALCHEMY_PROXY === 'true';
 const ALCHEMY_PROXY_URL = process.env.ALCHEMY_PROXY_URL || 'http://localhost:3001';
 
-// Logs optimization configurations based on network activity tier
+// Logs optimization configurations based on network activity tier and Alchemy tier
+// IMPORTANT: Alchemy has a 10,000 logs per request limit
+// targetLogsPerRequest set to 80-90% of limit for safety margin
+//
+// Tier-specific optimizations:
+// - Free tier: 10 blocks per request limit
+// - PAYG/Growth tier: Unlimited blocks (Ethereum/L2) or 2K-10K blocks (other chains)
+//
+// Density profiles (logs per block):
+// - ultra-high-density: 150+ logs/block (Ethereum, Binance)
+// - high-density: 50-150 logs/block (Polygon, Base)
+// - medium-density: 20-50 logs/block (Optimism, Avalanche)
+// - low-density: 5-20 logs/block (Arbitrum, Linea, Scroll, etc.)
+
 const LOGS_OPTIMIZATION = {
-  // High-activity networks: Ethereum, BSC, Polygon, Base
-  'high-activity': {
-    initialBatchSize: 100,
+  // ============================================
+  // FREE TIER PROFILES (10 blocks per request)
+  // ============================================
+
+  'high-activity-free': {
+    initialBatchSize: 10,        // Start at tier limit
+    minBatchSize: 10,            // Cannot go below tier limit
+    maxBatchSize: 10,            // Tier constraint
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8000,
+    fastMultiplier: 1.0,         // No increase possible
+    slowMultiplier: 1.0          // Keep at 10
+  },
+
+  'medium-activity-free': {
+    initialBatchSize: 10,
     minBatchSize: 10,
-    maxBatchSize: 500,
-    targetDuration: 3000,      // 3 seconds
-    targetLogsPerRequest: 20000,
+    maxBatchSize: 10,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
+    fastMultiplier: 1.0,
+    slowMultiplier: 1.0
+  },
+
+  'low-activity-free': {
+    initialBatchSize: 10,
+    minBatchSize: 10,
+    maxBatchSize: 10,
+    targetDuration: 8000,
+    targetLogsPerRequest: 9000,
+    fastMultiplier: 1.0,
+    slowMultiplier: 1.0
+  },
+
+  // ============================================
+  // PAYG/GROWTH TIER PROFILES (Large batches)
+  // ============================================
+
+  'high-activity-payg': {
+    initialBatchSize: 100,       // Conservative start
+    minBatchSize: 20,            // Allow smaller if needed
+    maxBatchSize: 1000,          // Increased for efficiency
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8000,
     fastMultiplier: 1.5,
     slowMultiplier: 0.7
   },
 
-  // Medium-activity networks: Optimism, Avalanche
-  'medium-activity': {
-    initialBatchSize: 500,
+  'high-activity-premium': {   // Alias for payg
+    initialBatchSize: 100,
+    minBatchSize: 20,
+    maxBatchSize: 1000,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8000,
+    fastMultiplier: 1.5,
+    slowMultiplier: 0.7
+  },
+
+  'medium-activity-payg': {
+    initialBatchSize: 500,       // Larger initial batch
     minBatchSize: 50,
-    maxBatchSize: 2000,
-    targetDuration: 5000,      // 5 seconds
-    targetLogsPerRequest: 35000,
+    maxBatchSize: 3000,          // Increased for efficiency
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
     fastMultiplier: 2.0,
     slowMultiplier: 0.8
   },
 
-  // Low-activity networks: Arbitrum, Scroll, Linea, etc.
+  'medium-activity-premium': {
+    initialBatchSize: 500,
+    minBatchSize: 50,
+    maxBatchSize: 3000,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
+    fastMultiplier: 2.0,
+    slowMultiplier: 0.8
+  },
+
+  'low-activity-payg': {
+    initialBatchSize: 2000,      // Large initial batch
+    minBatchSize: 500,
+    maxBatchSize: 10000,         // Very large for low-activity chains
+    targetDuration: 8000,
+    targetLogsPerRequest: 9000,
+    fastMultiplier: 3.0,
+    slowMultiplier: 0.9
+  },
+
+  'low-activity-premium': {
+    initialBatchSize: 2000,
+    minBatchSize: 500,
+    maxBatchSize: 10000,
+    targetDuration: 8000,
+    targetLogsPerRequest: 9000,
+    fastMultiplier: 3.0,
+    slowMultiplier: 0.9
+  },
+
+  // ============================================
+  // DENSITY-BASED PROFILES (More granular optimization)
+  // ============================================
+
+  // Ultra-high density: 150+ logs/block (Ethereum, Binance)
+  'ultra-high-density-free': {
+    initialBatchSize: 10,
+    minBatchSize: 10,
+    maxBatchSize: 10,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 9000,   // Expanded to 9K (90% of Alchemy limit)
+    fastMultiplier: 1.0,
+    slowMultiplier: 1.0
+  },
+
+  'ultra-high-density-payg': {
+    initialBatchSize: 50,         // Start smaller than high-density
+    minBatchSize: 10,
+    maxBatchSize: 200,            // Increased max for longer acceptable duration
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 9000,   // Expanded to 9K (90% of Alchemy limit)
+    fastMultiplier: 1.5,          // Can increase more aggressively
+    slowMultiplier: 0.7
+  },
+
+  'ultra-high-density-premium': {
+    initialBatchSize: 50,
+    minBatchSize: 10,
+    maxBatchSize: 200,            // Increased max for longer acceptable duration
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 9000,   // Expanded to 9K (90% of Alchemy limit)
+    fastMultiplier: 1.5,          // Can increase more aggressively
+    slowMultiplier: 0.7
+  },
+
+  // High density: 50-150 logs/block (Polygon, Base)
+  'high-density-free': {
+    initialBatchSize: 10,
+    minBatchSize: 10,
+    maxBatchSize: 10,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 7500,
+    fastMultiplier: 1.0,
+    slowMultiplier: 1.0
+  },
+
+  'high-density-payg': {
+    initialBatchSize: 100,
+    minBatchSize: 20,
+    maxBatchSize: 500,            // Moderate max
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 7500,
+    fastMultiplier: 1.4,
+    slowMultiplier: 0.7
+  },
+
+  'high-density-premium': {
+    initialBatchSize: 100,
+    minBatchSize: 20,
+    maxBatchSize: 500,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 7500,
+    fastMultiplier: 1.4,
+    slowMultiplier: 0.7
+  },
+
+  // Medium density: 20-50 logs/block (Optimism, Avalanche)
+  'medium-density-free': {
+    initialBatchSize: 10,
+    minBatchSize: 10,
+    maxBatchSize: 10,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
+    fastMultiplier: 1.0,
+    slowMultiplier: 1.0
+  },
+
+  'medium-density-payg': {
+    initialBatchSize: 300,
+    minBatchSize: 50,
+    maxBatchSize: 2000,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
+    fastMultiplier: 1.8,
+    slowMultiplier: 0.8
+  },
+
+  'medium-density-premium': {
+    initialBatchSize: 300,
+    minBatchSize: 50,
+    maxBatchSize: 2000,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
+    fastMultiplier: 1.8,
+    slowMultiplier: 0.8
+  },
+
+  // Low density: 5-20 logs/block (Arbitrum, Linea, Scroll, etc.)
+  'low-density-free': {
+    initialBatchSize: 10,
+    minBatchSize: 10,
+    maxBatchSize: 10,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 9000,
+    fastMultiplier: 1.0,
+    slowMultiplier: 1.0
+  },
+
+  'low-density-payg': {
+    initialBatchSize: 1000,       // Start large for low-density chains
+    minBatchSize: 200,
+    maxBatchSize: 10000,          // Very large batches possible (10K block limit)
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 9000,
+    fastMultiplier: 2.5,
+    slowMultiplier: 0.9
+  },
+
+  'low-density-premium': {
+    initialBatchSize: 1000,
+    minBatchSize: 200,
+    maxBatchSize: 10000,          // Very large batches possible (10K block limit)
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 9000,
+    fastMultiplier: 2.5,
+    slowMultiplier: 0.9
+  },
+
+  // ============================================
+  // LEGACY PROFILES (For backward compatibility)
+  // These map to density profiles for existing configurations
+  // ============================================
+
+  'high-activity': {
+    initialBatchSize: 100,
+    minBatchSize: 10,
+    maxBatchSize: 500,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8000,
+    fastMultiplier: 1.5,
+    slowMultiplier: 0.7
+  },
+
+  'medium-activity': {
+    initialBatchSize: 500,
+    minBatchSize: 50,
+    maxBatchSize: 2000,
+    targetDuration: 10000,        // 10 seconds acceptable response time
+    targetLogsPerRequest: 8500,
+    fastMultiplier: 2.0,
+    slowMultiplier: 0.8
+  },
+
   'low-activity': {
     initialBatchSize: 2000,
     minBatchSize: 500,
     maxBatchSize: 10000,
-    targetDuration: 8000,      // 8 seconds
-    targetLogsPerRequest: 50000,
+    targetDuration: 8000,
+    targetLogsPerRequest: 9000,
     fastMultiplier: 3.0,
     slowMultiplier: 0.9
   }
+};
+
+/**
+ * Get optimized logs configuration based on activity profile and detected Alchemy tier
+ * @param {string} activityProfile - 'high-activity', 'medium-activity', or 'low-activity'
+ * @param {string} alchemyTier - 'free', 'payg', 'premium', or 'growth'
+ * @returns {object} Optimized configuration for the given profile and tier
+ */
+const getLogsOptimization = (activityProfile, alchemyTier) => {
+  // Normalize tier names (payg, growth, premium all use same config)
+  const normalizedTier = (alchemyTier === 'free') ? 'free' : 'payg';
+
+  // Try different tier variants in order of preference
+  const tierVariants = [
+    `${activityProfile}-${alchemyTier}`,  // Try exact match first (e.g., high-activity-premium)
+    `${activityProfile}-${normalizedTier}` // Then try normalized (e.g., high-activity-payg)
+  ];
+
+  // Try each variant
+  for (const variant of tierVariants) {
+    if (LOGS_OPTIMIZATION[variant]) {
+      return LOGS_OPTIMIZATION[variant];
+    }
+  }
+
+  // Fallback to legacy profile (for backward compatibility)
+  if (LOGS_OPTIMIZATION[activityProfile]) {
+    return LOGS_OPTIMIZATION[activityProfile];
+  }
+
+  // Final fallback to medium-activity
+  console.warn(`Unknown activity profile: ${activityProfile}, falling back to medium-activity`);
+  return LOGS_OPTIMIZATION[`medium-activity-${normalizedTier}`] || LOGS_OPTIMIZATION['medium-activity'];
 };
 
 // Helper function to generate Alchemy URL or proxy URL
@@ -78,7 +352,6 @@ const getAlchemyUrl = (network) => {
     'arbitrum-nova': 'arbnova-mainnet',  // Arbitrum Nova
     'moonbeam': 'moonbeam-mainnet',  // Moonbeam
     'gnosis': 'gnosis-mainnet',  // Gnosis (xDAI)
-    'opbnb': 'opbnb-mainnet',  // opBNB
     'celo': 'celo-mainnet'  // Celo
   };
   
@@ -143,10 +416,12 @@ const NETWORKS = {
     // Alchemy getLogs block range limits
     maxLogsBlockRange: {
       free: 10,          // Free tier
-      premium: 999999    // Premium tier (unlimited)
+      premium: 999999    // Premium/PAYG/Growth tier (unlimited for Ethereum)
     },
     // Logs optimization configuration
-    logsOptimization: LOGS_OPTIMIZATION['high-activity']
+    // Ethereum has ultra-high log density (150+ logs/block)
+    // Use string profile name, Scanner will apply tier-specific optimization
+    logsOptimization: 'ultra-high-density'
   },
 
   binance: {
@@ -185,7 +460,8 @@ const NETWORKS = {
       free: 10,
       premium: 10000     // BSC: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['high-activity']
+    // BSC has ultra-high log density similar to Ethereum
+    logsOptimization: 'ultra-high-density'
   },
 
   polygon: {
@@ -223,7 +499,8 @@ const NETWORKS = {
       free: 10,
       premium: 2000      // Polygon: 2000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['high-activity']
+    // Polygon has high log density (50-150 logs/block)
+    logsOptimization: 'high-density'
   },
 
   arbitrum: {
@@ -261,7 +538,8 @@ const NETWORKS = {
       free: 10,
       premium: 999999    // Arbitrum (Layer 2): unlimited
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Arbitrum has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
   },
 
   optimism: {
@@ -300,7 +578,8 @@ const NETWORKS = {
       free: 10,
       premium: 999999    // Optimism (Layer 2): unlimited
     },
-    logsOptimization: LOGS_OPTIMIZATION['medium-activity']
+    // Optimism has medium log density (20-50 logs/block)
+    logsOptimization: 'medium-density'
   },
 
   base: {
@@ -338,7 +617,8 @@ const NETWORKS = {
       free: 10,
       premium: 999999    // Base (Layer 2): unlimited
     },
-    logsOptimization: LOGS_OPTIMIZATION['high-activity']
+    // Base has high log density (50-150 logs/block)
+    logsOptimization: 'high-density'
   },
 
   avalanche: {
@@ -374,7 +654,8 @@ const NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['medium-activity']
+    // Avalanche has medium log density (20-50 logs/block)
+    logsOptimization: 'medium-density'
   }
 };
 
@@ -402,7 +683,8 @@ const ADDITIONAL_NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Gnosis has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
   },
 
   linea: {
@@ -425,7 +707,8 @@ const ADDITIONAL_NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Linea has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
   },
 
   scroll: {
@@ -449,7 +732,8 @@ const ADDITIONAL_NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Scroll has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
   },
 
   mantle: {
@@ -472,30 +756,8 @@ const ADDITIONAL_NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
-  },
-
-  opbnb: {
-    chainId: 204,
-    name: 'opBNB',
-    alchemyNetwork: 'opbnb-mainnet',
-
-    rpcUrls: envArray('OPBNB_RPC_URL', [
-      getAlchemyUrl('opbnb'),
-      'https://opbnb-mainnet-rpc.bnbchain.org',
-      'https://opbnb-rpc.publicnode.com',
-      'https://1rpc.io/opbnb',
-      'https://opbnb.drpc.org',
-      'https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3'
-    ].filter(Boolean)),
-    contractValidator: '0xa3ba28ccdda4ba986f20e395d41f5bb37f8f900d',
-    nativeCurrency: 'BNB',
-    BalanceHelper: '0xeAbB01920C41e1C010ba74628996EEA65Df03550',
-    maxLogsBlockRange: {
-      free: 10,
-      premium: 10000     // All Other Chains: 10000 blocks
-    },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Mantle has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
   },
 
   unichain: {
@@ -518,7 +780,8 @@ const ADDITIONAL_NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Unichain has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
   },
 
   berachain: {
@@ -541,7 +804,26 @@ const ADDITIONAL_NETWORKS = {
       free: 10,
       premium: 10000     // All Other Chains: 10000 blocks
     },
-    logsOptimization: LOGS_OPTIMIZATION['low-activity']
+    // Berachain has low log density (5-20 logs/block)
+    logsOptimization: 'low-density'
+  },
+
+  sui: {
+    chainId: 0, // Sui doesn't use EVM chainId
+    name: 'Sui Network',
+    chainType: 'move', // Non-EVM blockchain
+    suiNetwork: 'mainnet',
+
+    rpcUrls: envArray('SUI_RPC_URL', [
+      `https://sui-mainnet.alchemy-blast.com/v2/${ALCHEMY_API_KEY}`,
+      'https://fullnode.mainnet.sui.io:443'
+    ].filter(Boolean)),
+    nativeCurrency: 'SUI',
+    // Sui-specific: no contract validator or balance helper (Move blockchain)
+    maxLogsBlockRange: {
+      free: 1000,        // Events per query
+      premium: 1000      // Sui max events per query
+    }
   }
 };
 
@@ -584,4 +866,9 @@ const CONFIG = {
   ...NETWORKS
 };
 
-module.exports = { NETWORKS, CONFIG };
+module.exports = {
+  NETWORKS,
+  CONFIG,
+  LOGS_OPTIMIZATION,
+  getLogsOptimization
+};

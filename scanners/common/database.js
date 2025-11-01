@@ -56,6 +56,22 @@ async function ensureSchema(client) {
       last_updated BIGINT
     )`,
 
+    // Network log density statistics for dynamic optimization
+    `CREATE TABLE IF NOT EXISTS network_log_density_stats (
+      network VARCHAR(50) PRIMARY KEY,
+      avg_logs_per_block DECIMAL(10, 2) NOT NULL,
+      stddev_logs_per_block DECIMAL(10, 2),
+      min_logs_per_block INTEGER,
+      max_logs_per_block INTEGER,
+      optimal_batch_size INTEGER,
+      recommended_profile VARCHAR(50),
+      sample_count INTEGER NOT NULL DEFAULT 0,
+      total_logs_sampled BIGINT NOT NULL DEFAULT 0,
+      total_blocks_sampled BIGINT NOT NULL DEFAULT 0,
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+
     // Essential indexes for performance - optimized for common queries
     `CREATE INDEX IF NOT EXISTS idx_addresses_network ON addresses(network)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_tags_gin ON addresses USING GIN(tags)`,
@@ -67,7 +83,8 @@ async function ensureSchema(client) {
     `CREATE INDEX IF NOT EXISTS idx_tokens_network ON tokens(network)`,
     `CREATE INDEX IF NOT EXISTS idx_tokens_price_updated ON tokens(network, price_updated)`,
     `CREATE INDEX IF NOT EXISTS idx_token_metadata_cache_updated ON token_metadata_cache(network, last_updated)`,
-    `CREATE INDEX IF NOT EXISTS idx_symbol_prices_symbol ON symbol_prices(LOWER(symbol))`
+    `CREATE INDEX IF NOT EXISTS idx_symbol_prices_symbol ON symbol_prices(LOWER(symbol))`,
+    `CREATE INDEX IF NOT EXISTS idx_log_density_stats_updated ON network_log_density_stats(last_updated DESC)`
   ];
 
   for (const schema of schemas) {

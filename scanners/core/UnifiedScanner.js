@@ -36,6 +36,19 @@ class UnifiedScanner extends Scanner {
     this.blockRetryCount = new Map(); // Track retry attempts for each block range
     this.permanentlyExcludedBlocks = new Set(); // Track blocks that permanently failed getLogs
 
+    // Log density learning system
+    this.logDensityStats = {
+      samples: [],           // Array of {blocks, logs, logsPerBlock}
+      totalLogs: 0,
+      totalBlocks: 0,
+      avgLogsPerBlock: 0,
+      minLogsPerBlock: Infinity,
+      maxLogsPerBlock: 0,
+      sampleCount: 0,
+      lastSaved: 0           // Timestamp of last DB save
+    };
+    this.SAVE_STATS_INTERVAL = 100; // Save stats every 100 samples
+    this.MAX_SAMPLES = 1000;        // Keep last 1000 samples in memory
 
     // Pipeline statistics
     this.stats = {
@@ -830,6 +843,9 @@ class UnifiedScanner extends Scanner {
       
       this.log(`Fetched ${logs.length} logs with ${addresses.size} unique addresses in ${duration}ms`);
 
+      // Update log density statistics for learning
+      await this.updateLogDensityStats(endBlock - currentBlock + 1, logs.length);
+
       return { addresses, duration, logCount: logs.length };
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -887,6 +903,236 @@ class UnifiedScanner extends Scanner {
     }
 
     return currentBatchSize;
+  }
+
+  /**
+   * Update log density statistics with new sample
+   * @param {number} blockCount - Number of blocks in this sample
+   * @param {number} logCount - Number of logs returned
+   */
+  async updateLogDensityStats(blockCount, logCount) {
+    if (blockCount <= 0) return;
+
+    const logsPerBlock = logCount / blockCount;
+
+    // Add sample to array
+    this.logDensityStats.samples.push({
+      blocks: blockCount,
+      logs: logCount,
+      logsPerBlock: logsPerBlock,
+      timestamp: Date.now()
+    });
+
+    // Keep only recent samples
+    if (this.logDensityStats.samples.length > this.MAX_SAMPLES) {
+      this.logDensityStats.samples.shift();
+    }
+
+    // Update running statistics
+    this.logDensityStats.totalLogs += logCount;
+    this.logDensityStats.totalBlocks += blockCount;
+    this.logDensityStats.sampleCount++;
+    this.logDensityStats.avgLogsPerBlock =
+      this.logDensityStats.totalLogs / this.logDensityStats.totalBlocks;
+    this.logDensityStats.minLogsPerBlock =
+      Math.min(this.logDensityStats.minLogsPerBlock, logsPerBlock);
+    this.logDensityStats.maxLogsPerBlock =
+      Math.max(this.logDensityStats.maxLogsPerBlock, logsPerBlock);
+
+    // Periodically save to database
+    if (this.logDensityStats.sampleCount % this.SAVE_STATS_INTERVAL === 0) {
+      await this.saveLogDensityStats();
+    }
+  }
+
+  /**
+   * Save log density statistics to database
+   */
+  async saveLogDensityStats() {
+    try {
+      const stats = this.logDensityStats;
+
+      // Calculate standard deviation
+      const mean = stats.avgLogsPerBlock;
+      const squaredDiffs = stats.samples.map(s => Math.pow(s.logsPerBlock - mean, 2));
+      const stddev = Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / stats.samples.length);
+
+      // Determine optimal batch size based on avg logs per block
+      // Target: ~8000 logs per request (80% of 10K limit)
+      const targetLogs = 8000;
+      const optimalBatchSize = Math.max(10, Math.floor(targetLogs / stats.avgLogsPerBlock));
+
+      // Recommend profile based on log density
+      let recommendedProfile;
+      if (stats.avgLogsPerBlock >= 150) {
+        recommendedProfile = 'ultra-high-density';
+      } else if (stats.avgLogsPerBlock >= 50) {
+        recommendedProfile = 'high-density';
+      } else if (stats.avgLogsPerBlock >= 20) {
+        recommendedProfile = 'medium-density';
+      } else {
+        recommendedProfile = 'low-density';
+      }
+
+      const query = `
+        INSERT INTO network_log_density_stats (
+          network, avg_logs_per_block, stddev_logs_per_block,
+          min_logs_per_block, max_logs_per_block, optimal_batch_size,
+          recommended_profile, sample_count, total_logs_sampled,
+          total_blocks_sampled, last_updated
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        ON CONFLICT (network) DO UPDATE SET
+          avg_logs_per_block = $2,
+          stddev_logs_per_block = $3,
+          min_logs_per_block = $4,
+          max_logs_per_block = $5,
+          optimal_batch_size = $6,
+          recommended_profile = $7,
+          sample_count = network_log_density_stats.sample_count + $8,
+          total_logs_sampled = network_log_density_stats.total_logs_sampled + $9,
+          total_blocks_sampled = network_log_density_stats.total_blocks_sampled + $10,
+          last_updated = NOW()
+      `;
+
+      await this.queryDB(query, [
+        this.network,
+        stats.avgLogsPerBlock.toFixed(2),
+        stddev.toFixed(2),
+        Math.floor(stats.minLogsPerBlock),
+        Math.ceil(stats.maxLogsPerBlock),
+        optimalBatchSize,
+        recommendedProfile,
+        stats.sampleCount,
+        stats.totalLogs,
+        stats.totalBlocks
+      ]);
+
+      this.log(`📊 Saved log density stats: avg=${stats.avgLogsPerBlock.toFixed(2)} logs/block, ` +
+               `optimal batch=${optimalBatchSize}, profile=${recommendedProfile}`);
+
+      stats.lastSaved = Date.now();
+
+      // Reset counters for next interval
+      stats.sampleCount = 0;
+      stats.totalLogs = 0;
+      stats.totalBlocks = 0;
+
+    } catch (error) {
+      this.log(`⚠️ Failed to save log density stats: ${error.message}`, 'warn');
+    }
+  }
+
+  /**
+   * Load log density statistics from database
+   */
+  async loadLogDensityStats() {
+    try {
+      const query = `
+        SELECT
+          avg_logs_per_block,
+          stddev_logs_per_block,
+          min_logs_per_block,
+          max_logs_per_block,
+          optimal_batch_size,
+          recommended_profile,
+          sample_count,
+          total_logs_sampled,
+          total_blocks_sampled,
+          last_updated
+        FROM network_log_density_stats
+        WHERE network = $1
+      `;
+
+      const result = await this.queryDB(query, [this.network]);
+
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+
+        this.log(`📊 Loaded log density stats from DB:`);
+        this.log(`   Avg: ${row.avg_logs_per_block} logs/block (range: ${row.min_logs_per_block}-${row.max_logs_per_block})`);
+        this.log(`   Optimal batch: ${row.optimal_batch_size} blocks`);
+        this.log(`   Recommended profile: ${row.recommended_profile}`);
+        this.log(`   Samples: ${row.sample_count.toLocaleString()} (${row.total_blocks_sampled.toLocaleString()} blocks)`);
+
+        // Initialize stats with loaded values
+        this.logDensityStats.avgLogsPerBlock = parseFloat(row.avg_logs_per_block);
+        this.logDensityStats.minLogsPerBlock = parseInt(row.min_logs_per_block);
+        this.logDensityStats.maxLogsPerBlock = parseInt(row.max_logs_per_block);
+        this.logDensityStats.sampleCount = parseInt(row.sample_count);
+        this.logDensityStats.totalBlocks = parseInt(row.total_blocks_sampled);
+        this.logDensityStats.totalLogs = parseInt(row.total_logs_sampled);
+        this.logDensityStats.loadedFromDB = true; // Mark as loaded from DB
+
+        return {
+          avgLogsPerBlock: parseFloat(row.avg_logs_per_block),
+          optimalBatchSize: parseInt(row.optimal_batch_size),
+          recommendedProfile: row.recommended_profile,
+          avg_logs_per_block: parseFloat(row.avg_logs_per_block),
+          optimal_batch_size: parseInt(row.optimal_batch_size),
+          recommended_profile: row.recommended_profile,
+          sample_count: parseInt(row.sample_count)
+        };
+      } else {
+        this.log(`📊 No existing log density stats found for ${this.network}`);
+        return null;
+      }
+    } catch (error) {
+      this.log(`⚠️ Failed to load log density stats: ${error.message}`, 'warn');
+      return null;
+    }
+  }
+
+  /**
+   * Apply learned optimizations based on historical data
+   * @param {object} learnedStats - Statistics loaded from database
+   */
+  applyLearnedOptimizations(learnedStats) {
+    if (!learnedStats || !this.logsOptimization) return;
+
+    this.log(`🧠 Applying learned optimizations:`);
+
+    // Adjust initial batch size based on optimal learned value
+    const optimalBatch = learnedStats.optimalBatchSize;
+    const currentInitial = this.logsOptimization.initialBatchSize;
+
+    // Apply learned optimal batch size, but respect tier limits
+    if (optimalBatch && optimalBatch !== currentInitial) {
+      // Ensure it's within min/max bounds
+      const adjustedBatch = Math.max(
+        this.logsOptimization.minBatchSize,
+        Math.min(this.logsOptimization.maxBatchSize, optimalBatch)
+      );
+
+      if (adjustedBatch !== currentInitial) {
+        this.log(`   Initial batch: ${currentInitial} → ${adjustedBatch} (learned optimal)`);
+        this.logsOptimization.initialBatchSize = adjustedBatch;
+      }
+    }
+
+    // Check if recommended profile differs from current profile
+    const currentProfile = this.getActivityProfileName(this.config.logsOptimization);
+    const recommendedProfile = learnedStats.recommendedProfile;
+
+    if (recommendedProfile && recommendedProfile !== currentProfile) {
+      this.log(`   ⚠️ Profile mismatch detected!`);
+      this.log(`   Current: ${currentProfile}, Recommended: ${recommendedProfile}`);
+      this.log(`   Consider updating network config to use '${recommendedProfile}' profile`);
+
+      // Optionally apply recommended profile (commented out for safety)
+      // const { getLogsOptimization } = require('../config/networks.js');
+      // this.logsOptimization = getLogsOptimization(recommendedProfile, this.alchemyTier);
+    }
+
+    // Adjust target logs if we have reliable average data
+    if (learnedStats.avgLogsPerBlock > 0) {
+      const safetyMargin = 0.8; // 80% of 10K limit
+      const newTargetLogs = Math.floor(9000 / learnedStats.avgLogsPerBlock) * learnedStats.avgLogsPerBlock * safetyMargin;
+
+      if (newTargetLogs > 5000 && newTargetLogs < 9000) {
+        this.log(`   Target logs: ${this.logsOptimization.targetLogsPerRequest} → ${Math.floor(newTargetLogs)} (density-adjusted)`);
+        this.logsOptimization.targetLogsPerRequest = Math.floor(newTargetLogs);
+      }
+    }
   }
 
   /**
@@ -1176,6 +1422,20 @@ class UnifiedScanner extends Scanner {
     this.log(`📊 Addresses: ${this.stats.transferAddresses} found, ${this.stats.newAddresses} processed`);
     this.log(`📝 Contracts: ${this.stats.contractsFound} found, ${this.stats.contractsVerified} verified, ${this.stats.contractsUnverified} unverified`);
     this.log(`👤 EOAs: ${this.stats.eoaFiltered} identified`);
+  }
+
+  /**
+   * Override cleanup to save final statistics
+   */
+  async cleanup() {
+    // Save final log density statistics if we have any samples
+    if (this.logDensityStats && this.logDensityStats.sampleCount > 0) {
+      this.log(`💾 Saving final log density statistics...`);
+      await this.saveLogDensityStats();
+    }
+
+    // Call parent cleanup
+    await super.cleanup();
   }
 }
 
