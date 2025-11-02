@@ -10,7 +10,7 @@ LOG_DIR="$SCRIPT_DIR/logs"
 
 # Configuration
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-7200}"
-NETWORKS=(ethereum binance optimism base arbitrum polygon avalanche gnosis linea scroll mantle opbnb)
+NETWORKS=(ethereum binance optimism base arbitrum polygon avalanche gnosis linea scroll mantle)
 
 # Create logs directory
 mkdir -p "$LOG_DIR"

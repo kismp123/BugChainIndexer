@@ -672,7 +672,8 @@ const ADDITIONAL_NETWORKS = {
     chainId: 100,
     name: 'Gnosis Chain',
     alchemyNetwork: 'gnosis-mainnet',
-    explorerApiUrl: 'https://api.gnosisscan.io/api',
+    // Gnosis uses Etherscan v2 API - Gnosisscan deprecated V1 endpoint
+    // explorerApiUrl: 'https://api.gnosisscan.io/api',
 
     rpcUrls: envArray('GNOSIS_RPC_URL', [
       getAlchemyUrl('gnosis'),
