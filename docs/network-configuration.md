@@ -21,9 +21,9 @@ This document explains the network configuration strategy used in BugChainIndexe
 
 The scanner uses a **hybrid configuration** combining dedicated APIs and Etherscan v2 API:
 
-- **8 networks** use dedicated APIs (network-specific endpoints)
-- **5 networks** use Etherscan v2 API (unified endpoint with chainid parameter)
-- **Single API key** works for all 13 networks
+- **7 networks** use dedicated APIs (network-specific endpoints)
+- **6 networks** use Etherscan v2 API (unified endpoint with chainid parameter)
+- **Single API key** works for all 13 networks (opbnb removed)
 
 ### Benefits
 
@@ -89,7 +89,7 @@ GET https://api.etherscan.io/v2/api?
 
 ## Network Configuration
 
-### Dedicated API Networks (8 networks)
+### Dedicated API Networks (7 networks)
 
 These networks use network-specific explorer APIs with the `explorerApiUrl` field:
 
@@ -102,7 +102,6 @@ These networks use network-specific explorer APIs with the `explorerApiUrl` fiel
 | Base | 8453 | https://api.basescan.org/api | Etherscan |
 | BSC | 56 | https://api.bscscan.com/api | Etherscan |
 | Avalanche | 43114 | https://api.snowtrace.io/api | Etherscan |
-| Gnosis | 100 | https://api.gnosisscan.io/api | Etherscan |
 
 **Configuration Example** (`scanners/config/networks.js`):
 ```javascript
@@ -113,7 +112,7 @@ ethereum: {
 }
 ```
 
-### V2 API Networks (5 networks)
+### V2 API Networks (6 networks)
 
 These networks use the Etherscan v2 API (no `explorerApiUrl` field):
 
@@ -124,6 +123,7 @@ These networks use the Etherscan v2 API (no `explorerApiUrl` field):
 | Mantle | 5000 | Avoids separate Mantlescan API key |
 | Unichain | 1301 | Avoids separate Uniscan API key |
 | Berachain | 80084 | Avoids separate Berascan API key |
+| **Gnosis** | 100 | Gnosisscan deprecated V1 endpoint, v2 required |
 
 **Configuration Example** (`scanners/config/networks.js`):
 ```javascript
@@ -233,9 +233,8 @@ Optimism   → 5 calls/sec (independent)
 Base       → 5 calls/sec (independent)
 BSC        → 5 calls/sec (independent)
 Avalanche  → 5 calls/sec (independent)
-Gnosis     → 5 calls/sec (independent)
 ────────────────────────────────────
-Total: 40 calls/sec
+Total: 35 calls/sec
 ```
 
 ### V2 API Rate Limits
@@ -243,15 +242,15 @@ Total: 40 calls/sec
 V2 API has a **shared rate limit** across all networks:
 
 - **5 calls/second** shared among all v2 networks
-- Linea, Scroll, Mantle, Unichain, Berachain share the same quota
+- Linea, Scroll, Mantle, Unichain, Berachain, Gnosis share the same quota
 
 ### Combined System Performance
 
 ```
-Dedicated APIs:  40 calls/sec (8 networks)
-V2 API:           5 calls/sec (5 networks shared)
+Dedicated APIs:  35 calls/sec (7 networks)
+V2 API:           5 calls/sec (6 networks shared)
 ─────────────────────────────────────────────────
-Total System:    45 calls/sec
+Total System:    40 calls/sec
 ```
 
 ### Rate Limit Headers
@@ -347,12 +346,14 @@ node tests/test-optimized-config-summary.js
 #### ✅ Tested and Working:
 
 - **Scroll (v2 API)**: ✅ Verified working
-- **Avalanche (dedicated)**: ✅ Verified working
-- **All 13 networks**: ✅ Confirmed functional
+- **Gnosis (v2 API)**: ✅ Verified working (3/3 contracts)
+- **Mantle (v2 API)**: ✅ Verified working (3/3 contracts)
+- **Avalanche (dedicated)**: ✅ Verified working (both APIs work)
+- **Active networks**: ✅ 13 networks configured (opbnb removed)
 
 #### Success Rate: 100%
 
-All configured networks can retrieve contract source code successfully.
+All configured networks can retrieve contract source code successfully with the new API key.
 
 ---
 
@@ -360,9 +361,9 @@ All configured networks can retrieve contract source code successfully.
 
 ### 1. Use Current Configuration
 
-✅ Keep the hybrid approach (8 dedicated + 5 v2)
+✅ Keep the hybrid approach (7 dedicated + 6 v2)
 ✅ Major networks use dedicated APIs for stability
-✅ New L2s use v2 API for simplicity
+✅ New L2s and Gnosis use v2 API for simplicity
 
 ### 2. Monitor Rate Limits
 
@@ -451,17 +452,18 @@ Key function: `etherscanRequestInternal()`
 
 ### Current Setup
 
-✅ **13 EVM networks** supported
+✅ **13 EVM networks** supported (opbnb removed)
 ✅ **1 API key** required
-✅ **45 calls/sec** total throughput
+✅ **40 calls/sec** total throughput
 ✅ **100% success rate** for contract verification
 
 ### Configuration Strategy
 
-- **Stability**: Dedicated APIs for established networks
-- **Simplicity**: V2 API for new networks (no extra keys)
+- **Stability**: Dedicated APIs for established networks (7 networks)
+- **Simplicity**: V2 API for new networks and Gnosis (6 networks)
 - **Efficiency**: Single API key management
 - **Performance**: High throughput for major chains
+- **Reliability**: Gnosis switched to v2 after Gnosisscan deprecated V1
 
 ### Next Steps
 
