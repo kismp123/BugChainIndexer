@@ -390,13 +390,20 @@ async function etherscanRequestInternal(network, params, maxRetries = 3) {
     throw new Error(`No Etherscan API keys configured for network: ${network}`);
   }
 
-  const baseURL = 'https://api.etherscan.io/v2/api';
-  
+  // Use network-specific explorer API URL if available, otherwise fall back to Etherscan v2 API
+  const baseURL = config.explorerApiUrl || 'https://api.etherscan.io/v2/api';
+  const useV2Api = !config.explorerApiUrl; // Only use v2 API if no network-specific URL
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const apikey = state.keys[state.index % state.keys.length];
+      // For v2 API, include chainid; for network-specific APIs, exclude it
+      const params = useV2Api
+        ? { ...cleanedParams, chainid: config.chainId, apikey }
+        : { ...cleanedParams, apikey };
+
       const response = await axios.get(baseURL, {
-        params: { ...cleanedParams, chainid: config.chainId, apikey },
+        params,
         timeout: 20000
       });
 

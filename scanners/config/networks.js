@@ -374,6 +374,7 @@ const NETWORKS = {
     chainId: 1,
     name: 'Ethereum Mainnet',
     alchemyNetwork: 'eth-mainnet',
+    explorerApiUrl: 'https://api.etherscan.io/api',
 
     rpcUrls: envArray('ETHEREUM_RPC_URL', [
       // Alchemy RPC (prioritized for reliability)
@@ -428,6 +429,7 @@ const NETWORKS = {
     chainId: 56,
     name: 'BNB Smart Chain',
     alchemyNetwork: 'bnb-mainnet',
+    explorerApiUrl: 'https://api.bscscan.com/api',
 
     rpcUrls: envArray('BSC_RPC_URL', [
       // Alchemy RPC for BNB Smart Chain
@@ -468,6 +470,7 @@ const NETWORKS = {
     chainId: 137,
     name: 'Polygon',
     alchemyNetwork: 'polygon-mainnet',
+    explorerApiUrl: 'https://api.polygonscan.com/api',
 
     rpcUrls: envArray('POLYGON_RPC_URL', [
       // Alchemy RPC
@@ -507,6 +510,7 @@ const NETWORKS = {
     chainId: 42161,
     name: 'Arbitrum One',
     alchemyNetwork: 'arb-mainnet',
+    explorerApiUrl: 'https://api.arbiscan.io/api',
 
     rpcUrls: envArray('ARBITRUM_RPC_URL', [
       // Alchemy RPC
@@ -546,6 +550,7 @@ const NETWORKS = {
     chainId: 10,
     name: 'Optimism',
     alchemyNetwork: 'opt-mainnet',
+    explorerApiUrl: 'https://api-optimistic.etherscan.io/api',
 
     rpcUrls: envArray('OPTIMISM_RPC_URL', [
       // Alchemy RPC
@@ -586,6 +591,7 @@ const NETWORKS = {
     chainId: 8453,
     name: 'Base',
     alchemyNetwork: 'base-mainnet',
+    explorerApiUrl: 'https://api.basescan.org/api',
 
     rpcUrls: envArray('BASE_RPC_URL', [
       // Alchemy RPC
@@ -625,6 +631,7 @@ const NETWORKS = {
     chainId: 43114,
     name: 'Avalanche C-Chain',
     alchemyNetwork: 'avax-mainnet',
+    explorerApiUrl: 'https://api.snowtrace.io/api',
 
     rpcUrls: envArray('AVALANCHE_RPC_URL', [
       // Public RPCs first (Alchemy AVAX not enabled on free tier)
@@ -665,6 +672,7 @@ const ADDITIONAL_NETWORKS = {
     chainId: 100,
     name: 'Gnosis Chain',
     alchemyNetwork: 'gnosis-mainnet',
+    explorerApiUrl: 'https://api.gnosisscan.io/api',
 
     rpcUrls: envArray('GNOSIS_RPC_URL', [
       getAlchemyUrl('gnosis'),
@@ -691,6 +699,8 @@ const ADDITIONAL_NETWORKS = {
     chainId: 59144,
     name: 'Linea',
     alchemyNetwork: 'linea-mainnet',
+    // Linea supports Etherscan v2 API - use v2 to avoid separate API key
+    // explorerApiUrl: 'https://api.lineascan.build/api',
 
     rpcUrls: envArray('LINEA_RPC_URL', [
       getAlchemyUrl('linea'),
@@ -715,6 +725,8 @@ const ADDITIONAL_NETWORKS = {
     chainId: 534352,
     name: 'Scroll',
     alchemyNetwork: 'scroll-mainnet',
+    // Scroll uses Etherscan v2 API - avoids separate API key requirement
+    // explorerApiUrl: 'https://api.scrollscan.com/api',
 
     rpcUrls: envArray('SCROLL_RPC_URL', [
       getAlchemyUrl('scroll'),
@@ -740,6 +752,8 @@ const ADDITIONAL_NETWORKS = {
     chainId: 5000,
     name: 'Mantle',
     alchemyNetwork: 'mantle-mainnet',
+    // Mantle supports Etherscan v2 API - use v2 to avoid separate API key
+    // explorerApiUrl: 'https://api.mantlescan.info/api',
 
     rpcUrls: envArray('MANTLE_RPC_URL', [
       getAlchemyUrl('mantle'),
@@ -764,6 +778,8 @@ const ADDITIONAL_NETWORKS = {
     chainId: 1301,
     name: 'Unichain',
     alchemyNetwork: 'unichain-mainnet',
+    // Unichain uses Etherscan v2 API - avoids separate API key requirement
+    // explorerApiUrl: 'https://api.uniscan.xyz/api',
 
     rpcUrls: envArray('UNICHAIN_RPC_URL', [
       'https://mainnet.unichain.org',
@@ -788,6 +804,8 @@ const ADDITIONAL_NETWORKS = {
     chainId: 80084,
     name: 'Berachain',
     alchemyNetwork: 'berachain-mainnet',
+    // Berachain uses Etherscan v2 API - avoids separate API key requirement
+    // explorerApiUrl: 'https://api.berascan.com/api',
 
     rpcUrls: envArray('BERACHAIN_RPC_URL', [
       'https://rpc.berachain.com',
