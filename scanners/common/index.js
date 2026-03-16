@@ -8,17 +8,27 @@ const core = require('./core');
 const database = require('./database');
 const Scanner = require('./Scanner');
 
+// Import extracted modules
+const LogFetcher = require('./LogFetcher');
+const EOAFilter = require('./EOAFilter');
+const ContractVerifier = require('./ContractVerifier');
+
 // Re-export everything for backward compatibility
 module.exports = {
   // Core Scanner class
   Scanner,
-  
+
   // From core.js (includes all former helpers.js functions)
   ...core,
-  
+
   // From database.js
   ...database,
-  
+
+  // Extracted reusable modules
+  LogFetcher,
+  EOAFilter,
+  ContractVerifier,
+
   // Backward compatibility aliases
   utils: core,
   contractCall: core.contractCall,

@@ -72,6 +72,27 @@ async function ensureSchema(client) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
+    // Approvals table for ERC20 Approval event tracking
+    `CREATE TABLE IF NOT EXISTS approvals (
+      owner TEXT NOT NULL,
+      spender TEXT NOT NULL,
+      token_address TEXT NOT NULL,
+      value TEXT NOT NULL,
+      block_number BIGINT NOT NULL,
+      tx_hash TEXT NOT NULL,
+      log_index INTEGER NOT NULL,
+      network TEXT NOT NULL,
+      first_seen BIGINT NOT NULL,
+      last_updated BIGINT NOT NULL,
+      PRIMARY KEY (owner, spender, token_address, network)
+    )`,
+
+    // Approvals indexes
+    `CREATE INDEX IF NOT EXISTS idx_approvals_spender ON approvals(spender, network)`,
+    `CREATE INDEX IF NOT EXISTS idx_approvals_network ON approvals(network)`,
+    `CREATE INDEX IF NOT EXISTS idx_approvals_block ON approvals(network, block_number DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_approvals_token ON approvals(token_address, network)`,
+
     // Essential indexes for performance - optimized for common queries
     `CREATE INDEX IF NOT EXISTS idx_addresses_network ON addresses(network)`,
     `CREATE INDEX IF NOT EXISTS idx_addresses_tags_gin ON addresses USING GIN(tags)`,
@@ -871,6 +892,74 @@ async function getTokenStats(client, network = null) {
   }
 }
 
+// ====== APPROVAL OPERATIONS ======
+async function batchUpsertApprovals(client, approvals, options = {}) {
+  if (approvals.length === 0) {
+    return { rowCount: 0 };
+  }
+
+  // Deduplicate by PK (owner, spender, token_address, network), keep latest block_number
+  const deduped = new Map();
+  for (const a of approvals) {
+    const key = `${a.owner}|${a.spender}|${a.tokenAddress}|${a.network}`;
+    const existing = deduped.get(key);
+    if (!existing || a.blockNumber > existing.blockNumber) {
+      deduped.set(key, a);
+    }
+  }
+  const uniqueApprovals = Array.from(deduped.values());
+
+  const batchSize = options.batchSize || 500;
+  const now = Math.floor(Date.now() / 1000);
+  let totalRowCount = 0;
+
+  for (let i = 0; i < uniqueApprovals.length; i += batchSize) {
+    const batch = uniqueApprovals.slice(i, i + batchSize);
+
+    const values = [];
+    const params = [];
+    let paramIndex = 1;
+
+    for (const data of batch) {
+      const rowParams = [
+        data.owner,
+        data.spender,
+        data.tokenAddress,
+        data.value || '0',
+        data.blockNumber,
+        data.txHash,
+        data.logIndex,
+        data.network,
+        data.firstSeen || now,
+        data.lastUpdated || now
+      ];
+
+      const placeholders = rowParams.map(() => `$${paramIndex++}`).join(', ');
+      values.push(`(${placeholders})`);
+      params.push(...rowParams);
+    }
+
+    const query = `
+      INSERT INTO approvals (
+        owner, spender, token_address, value,
+        block_number, tx_hash, log_index, network,
+        first_seen, last_updated
+      ) VALUES ${values.join(', ')}
+      ON CONFLICT (owner, spender, token_address, network) DO UPDATE SET
+        value = EXCLUDED.value,
+        block_number = EXCLUDED.block_number,
+        tx_hash = EXCLUDED.tx_hash,
+        log_index = EXCLUDED.log_index,
+        last_updated = EXCLUDED.last_updated
+    `;
+
+    const result = await client.query(query, params);
+    totalRowCount += result.rowCount;
+  }
+
+  return { rowCount: totalRowCount };
+}
+
 // ====== EXPORTS ======
 module.exports = {
   // Schema management
@@ -896,5 +985,8 @@ module.exports = {
   
   // Token management
   loadTokensFromFile,
-  getTokenStats
+  getTokenStats,
+
+  // Approval operations
+  batchUpsertApprovals
 };

@@ -5,18 +5,21 @@
  * Multi-stage pipeline: Transfer Events → Filter Existing → EOA Detection → Contract Verification → Database Storage
  */
 const Scanner = require('../common/Scanner');
-const { 
-  batchUpsertAddresses, 
-  normalizeAddress, 
+const {
+  batchUpsertAddresses,
+  normalizeAddress,
   normalizeAddressArray,
-  BATCH_SIZES, 
-  TIMEOUTS, 
-  PERFORMANCE, 
-  PROCESSING, 
+  BATCH_SIZES,
+  TIMEOUTS,
+  PERFORMANCE,
+  PROCESSING,
   BLOCKCHAIN_CONSTANTS,
   withTimeoutAndRetry
 } = require('../common');
 const { CONFIG } = require('../config/networks.js');
+const { fetchLogs: _fetchLogs, adjustBatchSize: _adjustBatchSize } = require('../common/LogFetcher');
+const { filterAddresses: _filterAddresses, fetchDeploymentTimes: _fetchDeploymentTimes } = require('../common/EOAFilter');
+const { verify: _verify } = require('../common/ContractVerifier');
 
 class UnifiedScanner extends Scanner {
   constructor() {
@@ -191,235 +194,66 @@ class UnifiedScanner extends Scanner {
   }
 
   async performEOAFiltering(addresses) {
-    this.log(`Processing ${addresses.length} addresses for advanced EOA filtering...`);
-    
-    // Check which are contracts vs EOA
-    const contractFlags = await this.isContracts(addresses);
-    const codeHashes = await this.getCodeHashes(addresses);
-    
-    // Batch fetch deployment times from database for all potential contracts
-    const deploymentCache = new Map();
-    
-    try {
-      // Get all existing contract data in a single query
-      const deploymentQuery = `
-        SELECT address, deployed, code_hash, contract_name, name_checked
-        FROM addresses
-        WHERE address = ANY($1)
-        AND network = $2
-      `;
-      const deploymentResult = await this.queryDB(deploymentQuery, [addresses, this.network]);
-      
-      // Build cache map
-      for (const row of deploymentResult.rows) {
-        deploymentCache.set(row.address.toLowerCase(), {
-          deployed: row.deployed,
-          codeHash: row.code_hash,
-          contractName: row.contract_name,
-          nameChecked: row.name_checked
-        });
-      }
-      
-      this.log(`📊 Loaded ${deploymentCache.size} deployment times from cache`);
-    } catch (error) {
-      this.log(`⚠️ Failed to batch fetch deployment times: ${error.message}`, 'warn');
-      // Continue without cache
-    }
-    
-    const eoas = [];
-    const contracts = [];
-    const selfDestructed = [];
-    
-    // Process each address with enhanced classification
-    for (let i = 0; i < addresses.length; i++) {
-      const address = addresses[i];
-      const isContract = contractFlags[i];
-      const codeHash = codeHashes[i] || null;
-      
-      if (isContract && codeHash && codeHash !== this.ZERO_HASH) {
-        // Active contract - check cache first
-        let deployTime = null;
-        let isGenesisContract = false;
-        let needsDeploymentTime = false;
-        
-        // Check if we have cached deployment time
-        const cached = deploymentCache.get(address.toLowerCase());
-        if (cached && cached.deployed && cached.deployed > 0) {
-          deployTime = cached.deployed;
-          this.log(`📋 Using cached deployment time for ${address}`);
-        } else {
-          // Mark for async deployment time fetching later
-          needsDeploymentTime = true;
-          deployTime = null; // Will be fetched asynchronously later
-          
-          // Check if it might be a genesis contract (simple check without API call)
-          const { getGenesisTimestamp } = require('../config/genesis-timestamps');
-          const genesisTime = getGenesisTimestamp(this.config?.chainId);
-          if (genesisTime) {
-            // For now, we'll use genesis time as a placeholder for contracts that might be genesis
-            // The actual verification will happen in background
-            isGenesisContract = false; // Will be determined later
-          }
-        }
-        
-        // Now use actual deployment time for address type classification
-        const { safeGetAddressType } = require('../common');
-        const addressType = safeGetAddressType(address, codeHash, deployTime);
-        
-        if (!addressType || addressType === 'unknown') {
-          this.log(`⚠️ Unknown address type for ${address} - skipping`, 'warn');
-          continue; // Skip if we can't determine address type
-        }
-        
-        if (addressType === 'eoa') {
-          // True EOA
-          eoas.push({ address, codeHash: null, isContract: false });
-        } else if (addressType === 'eip7702_eoa') {
-          // EIP-7702 EOA - treat as enhanced EOA
-          // Strict validation: EIP-7702 should have specific code hash
-          if (!codeHash || codeHash === this.ZERO_HASH) {
-            this.log(`⚠️ Skipping EIP-7702 EOA ${address} - invalid code hash (${codeHash})`, 'warn');
-            continue;
-          }
-          
-          this.log(`🎯 EIP-7702 EOA detected: ${address}`, 'info');
-          eoas.push({ 
-            address, 
-            codeHash: codeHash, // Store the actual code hash for EIP-7702 pattern
-            isContract: false, // Still classified as EOA
-            type: 'eip7702_eoa',
-            tags: ['EOA', 'SmartWallet']
-          });
-        } else if (addressType === 'smart_contract' || addressType === 'contract') {
-          // Smart Contract - deployment time will be fetched asynchronously if needed
-          if (deployTime) {
-            this.log(`📍 Contract ${address} deployment time: ${new Date(deployTime * 1000).toISOString()}`);
-          } else if (needsDeploymentTime) {
-            this.log(`📍 Contract ${address} - deployment time will be fetched asynchronously`);
-          }
-
-          contracts.push({
-            address,
-            codeHash,
-            deployTime,
-            type: 'smart_contract',
-            isGenesis: isGenesisContract,
-            needsDeploymentTime: needsDeploymentTime || false,
-            // Include cached verification data to skip already verified contracts
-            nameChecked: cached?.nameChecked || false,
-            contractName: cached?.contractName || null
-          });
-        } else {
-          // Unknown type - skip completely to avoid uncertain data
-          this.log(`⚠️ Unknown address type for ${address} - skipping (uncertain data)`, 'warn');
-          continue;
-        }
-      } else if (!isContract) {
-        // No code on chain currently - check if it was a contract before (self-destructed)
-        const cached = deploymentCache.get(address.toLowerCase());
-
-        if (cached && cached.codeHash && cached.codeHash !== this.ZERO_HASH) {
-          // DB has code_hash but chain has no code → Self-Destroyed Contract
-          this.log(`💥 Self-destructed contract detected: ${address}`);
-          selfDestructed.push({
-            address,
-            codeHash: cached.codeHash,  // Use DB's code hash
-            type: 'self_destroyed',
-            contractName: 'Self-Destroyed Contract',
-            tags: ['Contract', 'SelfDestroyed']
-          });
-        } else {
-          // No code_hash in DB either → True EOA
-          eoas.push({ address, codeHash: null, isContract: false });
-        }
-      } else {
-        // Edge case: shouldn't reach here
-        this.log(`⚠️ Unexpected state for ${address}: isContract=${isContract}, codeHash=${codeHash}`, 'warn');
-        eoas.push({ address, codeHash: null, isContract: false });
-      }
-    }
-    
-    this.log(`Simplified filtering: ${eoas.length} EOAs (including EIP-7702), ${contracts.length} smart contracts, ${selfDestructed.length} self-destroyed`);
-    
-    return { eoas, contracts, selfDestructed };
+    return _filterAddresses(this, addresses);
   }
 
 
 
 
-  /**
-   * Asynchronously fetch deployment times for contracts that need them
-   * This runs in background to avoid blocking the main processing pipeline
-   * @param {Array} contracts - Array of contract objects with needsDeploymentTime flag
-   */
   async fetchDeploymentTimesAsync(contracts = []) {
-    const contractsNeedingTime = contracts.filter(c => c.needsDeploymentTime);
-    
-    if (contractsNeedingTime.length === 0) return;
-    
-    this.log(`⏳ Starting async deployment time fetch for ${contractsNeedingTime.length} contracts...`);
-    
-    // Use batch API (max 5 addresses per call)
-    const batchSize = 5;
-    const { getContractDeploymentTimeBatch } = require('../common');
-    
-    for (let i = 0; i < contractsNeedingTime.length; i += batchSize) {
-      const batch = contractsNeedingTime.slice(i, i + batchSize);
-      const batchAddresses = batch.map(c => c.address);
-      
-      try {
-        // Batch API call for up to 5 contracts at once
-        const deploymentResults = await getContractDeploymentTimeBatch(this, batchAddresses);
-        
-        // Update contract objects in memory (DB will be updated by caller)
-        for (const contract of batch) {
-          const result = deploymentResults.get(contract.address.toLowerCase());
-          
-          if (result && result.timestamp && result.timestamp > 0) {
-            // Update the contract object in memory
-            contract.deployTime = result.timestamp;
-            contract.isGenesis = result.isGenesis;
-            
-            this.log(`✅ Fetched deployment time for ${contract.address}: ${new Date(result.timestamp * 1000).toISOString()}`);
-          } else {
-            this.log(`⚠️ No deployment time found for ${contract.address}`, 'warn');
-          }
-        }
-        
-      } catch (error) {
-        this.log(`⚠️ Batch deployment fetch failed for ${batchAddresses.join(', ')}: ${error.message}`, 'warn');
-      }
-      
-      // Small delay between batches to respect API rate limits (skip if using proxy)
-      const useEtherscanProxy = process.env.USE_ETHERSCAN_PROXY === 'true';
-      if (!useEtherscanProxy && i + batchSize < contractsNeedingTime.length) {
-        await this.sleep(1000); // 1 second delay between batches
-      }
+    if (this._etherscanDisabled) {
+      this.log('⏭️  Skipping deployment time fetch (Etherscan API unavailable)');
+      return;
     }
-    
-    this.log(`✅ Completed async deployment time fetch for ${contractsNeedingTime.length} contracts`);
+    return _fetchDeploymentTimes(this, contracts);
   }
 
   async verifyContracts(contracts = []) {
-    if (contracts.length === 0) return [];
+    // Skip verification if Etherscan API is unavailable
+    if (this._etherscanDisabled) {
+      return this._skipVerification(contracts, 'Etherscan API disabled (previous failures)');
+    }
 
-    // Filter out contracts that are already verified (cached)
-    const needsVerification = contracts.filter(c => !c.nameChecked);
-    const alreadyVerified = contracts.filter(c => c.nameChecked);
+    // Test Etherscan API availability with a single probe request (1 retry only)
+    try {
+      const { etherscanRequest } = require('../common/core');
+      await etherscanRequest(this.network, {
+        module: 'contract',
+        action: 'getsourcecode',
+        address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // WETH
+      }, 1);
+    } catch (error) {
+      this.log(`⚠️  Etherscan API probe failed: ${error.message}`, 'warn');
+      this._etherscanDisabled = true;
+      return this._skipVerification(contracts, 'Etherscan API keys invalid or unavailable');
+    }
 
-    this.log(`🔍 Contracts: ${contracts.length} total, ${alreadyVerified.length} cached, ${needsVerification.length} need verification`);
+    const verifiedContracts = await _verify(this, contracts);
 
-    // Prepare cached contracts (skip API calls)
-    const verifiedContracts = alreadyVerified.map(c => ({
-      address: c.address,
+    const verified = verifiedContracts.filter(c => c.verified).length;
+    this.stats.contractsFound = contracts.length;
+    this.stats.contractsVerified = verified;
+    this.stats.contractsUnverified = contracts.length - verified;
+
+    return verifiedContracts;
+  }
+
+  _skipVerification(contracts, reason) {
+    this.log(`⏭️  Skipping contract verification (${reason})`);
+    this.stats.contractsFound = contracts.length;
+    this.stats.contractsVerified = 0;
+    this.stats.contractsUnverified = contracts.length;
+
+    return contracts.map(c => ({
+      address: c.address || c,
       network: this.network,
-      verified: true,
-      contractName: c.contractName || 'Unknown',
-      codeHash: c.codeHash,
-      deployTime: c.deployTime || null,  // Include existing deployTime from cache
-      needsDeploymentTime: !c.deployTime || c.deployTime <= 0,  // Flag if deployment time is missing
-      sourceCode: null, // Not stored in cache
-      abi: null, // Not stored in cache
+      verified: false,
+      contractName: null,
+      codeHash: c.codeHash || null,
+      deployTime: c.deployTime || null,
+      needsDeploymentTime: true,
+      sourceCode: null,
+      abi: null,
       compilerVersion: null,
       optimization: false,
       runs: 0,
@@ -430,192 +264,10 @@ class UnifiedScanner extends Scanner {
       proxy: false,
       implementation: null,
       swarmSource: null,
-      nameChecked: true,
-      nameCheckedAt: this.currentTime || Math.floor(Date.now() / 1000),
+      nameChecked: false,
+      nameCheckedAt: 0,
       lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
     }));
-
-    if (alreadyVerified.length > 0) {
-      this.log(`✅ Using ${alreadyVerified.length} cached verified contracts`);
-    }
-
-    // If all contracts are cached, return early
-    if (needsVerification.length === 0) {
-      this.log(`📊 All contracts already verified (from cache)`);
-      return verifiedContracts;
-    }
-
-    this.log(`🔍 Verifying ${needsVerification.length} new contracts with batch processing...`);
-
-    const batchSize = 5; // Process 5 contracts concurrently (Etherscan rate limit: 5/sec)
-    const { getContractNameWithProxy } = require('../common');
-    
-    // Process in batches for better performance (only unverified contracts)
-    for (let i = 0; i < needsVerification.length; i += batchSize) {
-      const batch = needsVerification.slice(i, i + batchSize);
-      const batchNum = Math.floor(i / batchSize) + 1;
-      const totalBatches = Math.ceil(needsVerification.length / batchSize);
-      
-      this.log(`📦 Processing verification batch ${batchNum}/${totalBatches} (${batch.length} contracts)`);
-      
-      // Create promises for parallel verification
-      const batchPromises = batch.map(async (contract) => {
-        const contractAddr = contract.address || contract;
-        
-        try {
-          const result = await this.etherscanCall({
-            module: 'contract',
-            action: 'getsourcecode',
-            address: contractAddr
-          });
-          
-          if (!result || !Array.isArray(result) || result.length === 0) {
-            return {
-              address: contractAddr,
-              network: this.network,
-              verified: false,
-              error: 'Invalid API response'
-            };
-          }
-          
-          const sourceData = result[0];
-          if (!sourceData.SourceCode || sourceData.SourceCode === '') {
-            return {
-              address: contractAddr,
-              network: this.network,
-              verified: false,
-              error: 'Source code not verified'
-            };
-          }
-          
-          // Get contract name with proxy resolution
-          const finalContractName = await getContractNameWithProxy(this, contractAddr, sourceData);
-          
-          return {
-            address: contractAddr,
-            network: this.network,
-            verified: true,
-            contractName: finalContractName || sourceData.ContractName || 'Unknown',
-            codeHash: contract.codeHash || null,  // Preserve codeHash from input
-            deployTime: null,  // Will be fetched separately by fetchDeploymentTimesAsync
-            needsDeploymentTime: true,  // Flag that this contract needs deployment time
-            sourceCode: sourceData.SourceCode,
-            abi: sourceData.ABI ? JSON.parse(sourceData.ABI) : null,
-            compilerVersion: sourceData.CompilerVersion || null,
-            optimization: sourceData.OptimizationUsed === '1',
-            runs: parseInt(sourceData.Runs) || 0,
-            constructorArguments: sourceData.ConstructorArguments || null,
-            evmVersion: sourceData.EVMVersion || 'default',
-            library: sourceData.Library || null,
-            licenseType: sourceData.LicenseType || null,
-            proxy: sourceData.Proxy === '1',
-            implementation: sourceData.Implementation || null,
-            swarmSource: sourceData.SwarmSource || null,
-            nameChecked: true,
-            nameCheckedAt: this.currentTime || Math.floor(Date.now() / 1000),
-            lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
-          };
-        } catch (error) {
-          return {
-            address: contractAddr,
-            network: this.network,
-            verified: false,
-            error: error.message
-          };
-        }
-      });
-      
-      // Wait for all promises in batch to complete
-      const batchResults = await Promise.allSettled(batchPromises);
-      
-      // Process batch results
-      for (const result of batchResults) {
-        if (result.status === 'fulfilled') {
-          const contractData = result.value;
-          
-          if (contractData.verified) {
-            verifiedContracts.push(contractData);
-            this.log(`✅ Verified: ${contractData.address} (${contractData.contractName})`);
-          } else {
-            // Push unverified contract with default values
-            const unverifiedContract = {
-              address: contractData.address,
-              network: this.network,
-              verified: false,
-              contractName: null,
-              codeHash: null,
-              deployTime: null,
-              needsDeploymentTime: false,  // Don't fetch deployment time for unverified contracts
-              sourceCode: null,
-              abi: null,
-              compilerVersion: null,
-              optimization: false,
-              runs: 0,
-              constructorArguments: null,
-              evmVersion: null,
-              library: null,
-              licenseType: null,
-              proxy: false,
-              implementation: null,
-              swarmSource: null,
-              nameChecked: false,
-              nameCheckedAt: 0,
-              lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
-            };
-            
-            verifiedContracts.push(unverifiedContract);
-            
-            if (contractData.error && !contractData.error.includes('Source code not verified')) {
-              this.log(`⚠️ ${contractData.address}: ${contractData.error}`, 'warn');
-            }
-          }
-        } else {
-          // Handle rejected promise - add as unverified
-          const contractAddr = batch[batchResults.indexOf(result)].address || batch[batchResults.indexOf(result)];
-          verifiedContracts.push({
-            address: contractAddr,
-            network: this.network,
-            verified: false,
-            contractName: null,
-            codeHash: null,
-            deployTime: null,
-            needsDeploymentTime: false,  // Don't fetch deployment time for failed contracts
-            sourceCode: null,
-            abi: null,
-            compilerVersion: null,
-            optimization: false,
-            runs: 0,
-            constructorArguments: null,
-            evmVersion: null,
-            library: null,
-            licenseType: null,
-            proxy: false,
-            implementation: null,
-            swarmSource: null,
-            nameChecked: false,
-            nameCheckedAt: 0,
-            lastUpdated: this.currentTime || Math.floor(Date.now() / 1000)
-          });
-          
-          this.log(`❌ Verification failed for contract: ${result.reason}`, 'error');
-        }
-      }
-      
-      // Delay between batches to respect rate limits (5 requests/sec) (skip if using proxy)
-      const useEtherscanProxy = process.env.USE_ETHERSCAN_PROXY === 'true';
-      if (!useEtherscanProxy && i + batchSize < needsVerification.length) {
-        await this.sleep(1000); // 1 second delay between batches for safety
-      }
-    }
-
-    const verified = verifiedContracts.filter(c => c.verified).length;
-    this.log(`📊 Verification complete: ${verified}/${contracts.length} verified (${alreadyVerified.length} from cache, ${needsVerification.length} newly verified)`);
-    
-    this.stats.contractsFound = contracts.length;
-    this.stats.contractsVerified = verified;
-    this.stats.contractsUnverified = contracts.length - verified;
-    
-    return verifiedContracts;
   }
 
   async storeResults(eoas, verifiedContracts, selfDestructed = []) {
@@ -814,95 +466,29 @@ class UnifiedScanner extends Scanner {
    * Fetch logs with adaptive batching and timeout handling
    */
   async fetchLogsWithAdaptiveBatching(currentBlock, endBlock) {
-    const startTime = Date.now();
-    this.log(`📥 Calling getLogs for blocks ${currentBlock}-${endBlock} (timeout: 20s)...`);
-    
-    try {
-      const logs = await withTimeoutAndRetry(
-        () => this.getLogs({
-          fromBlock: `0x${currentBlock.toString(16)}`,
-          toBlock: `0x${endBlock.toString(16)}`,
-          topics: [this.transferEvent]
-        }),
-        TIMEOUTS.GET_LOGS,
-        {
-          operationName: `getLogs(${currentBlock}-${endBlock})`,
-          maxAttempts: 2 // Fewer retries for logs to avoid long delays
-        }
-      );
-      const duration = Date.now() - startTime;
-      this.log(`✅ getLogs completed in ${duration}ms`);
-      
-      // Parse addresses from logs with normalization
-      const addresses = new Set();
-      logs.forEach(log => {
-        addresses.add(normalizeAddress(log.address));
-        if (log.topics[1]) addresses.add(normalizeAddress('0x' + log.topics[1].slice(26)));
-        if (log.topics[2]) addresses.add(normalizeAddress('0x' + log.topics[2].slice(26)));
-      });
-      
-      this.log(`Fetched ${logs.length} logs with ${addresses.size} unique addresses in ${duration}ms`);
+    const result = await _fetchLogs(this, currentBlock, endBlock, [this.transferEvent]);
 
-      // Update log density statistics for learning
-      await this.updateLogDensityStats(endBlock - currentBlock + 1, logs.length);
+    // Parse addresses from logs with normalization
+    const addresses = new Set();
+    result.logs.forEach(log => {
+      addresses.add(normalizeAddress(log.address));
+      if (log.topics[1]) addresses.add(normalizeAddress('0x' + log.topics[1].slice(26)));
+      if (log.topics[2]) addresses.add(normalizeAddress('0x' + log.topics[2].slice(26)));
+    });
 
-      return { addresses, duration, logCount: logs.length };
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      this.log(`❌ getLogs failed after ${duration}ms: ${error.message}`, 'error');
-      throw error;
-    }
+    this.log(`Fetched ${result.logCount} logs with ${addresses.size} unique addresses in ${result.duration}ms`);
+
+    // Update log density statistics for learning
+    await this.updateLogDensityStats(endBlock - currentBlock + 1, result.logCount);
+
+    return { addresses, duration: result.duration, logCount: result.logCount };
   }
 
   /**
    * Adjust batch size based on response time and log count using network-specific optimization
    */
   adjustBatchSize(currentBatchSize, duration, logCount, minBatchSize, maxBatchSize, logsOptimization) {
-    const targetDuration = logsOptimization.targetDuration;
-    const targetLogsPerRequest = logsOptimization.targetLogsPerRequest;
-    const fastMultiplier = logsOptimization.fastMultiplier;
-    const slowMultiplier = logsOptimization.slowMultiplier;
-
-    // Fast response - increase aggressively
-    if (duration < targetDuration / 3) {
-      const newBatchSize = Math.min(maxBatchSize, Math.floor(currentBatchSize * fastMultiplier));
-      if (newBatchSize > currentBatchSize) {
-        this.log(`Fast response (${duration}ms, ${logCount} logs). Increasing batch size: ${currentBatchSize} → ${newBatchSize} blocks`);
-        return newBatchSize;
-      }
-    }
-    // Good response - increase moderately
-    else if (duration < targetDuration) {
-      const ratio = targetDuration / duration;
-      const newBatchSize = Math.min(maxBatchSize, Math.floor(currentBatchSize * Math.min(ratio, 1.5)));
-      if (newBatchSize > currentBatchSize * 1.2) {
-        this.log(`Good response (${duration}ms, ${logCount} logs). Increasing batch size: ${currentBatchSize} → ${newBatchSize} blocks`);
-        return newBatchSize;
-      }
-    }
-    // Very slow response - reduce aggressively
-    else if (duration > targetDuration * 3) {
-      const newBatchSize = Math.max(minBatchSize, Math.floor(currentBatchSize * slowMultiplier));
-      this.log(`Very slow response (${duration}ms, ${logCount} logs). Reducing batch size: ${currentBatchSize} → ${newBatchSize} blocks`);
-      return newBatchSize;
-    }
-    // Slow response - reduce moderately
-    else if (duration > targetDuration * 1.5) {
-      const newBatchSize = Math.max(minBatchSize, Math.floor(currentBatchSize * slowMultiplier));
-      if (newBatchSize < currentBatchSize * 0.8) {
-        this.log(`Slow response (${duration}ms, ${logCount} logs). Reducing batch size: ${currentBatchSize} → ${newBatchSize} blocks`);
-        return newBatchSize;
-      }
-    }
-
-    // Also consider log count - if we're getting close to response size limit
-    if (logCount > targetLogsPerRequest * 0.8 && currentBatchSize > minBatchSize) {
-      const newBatchSize = Math.max(minBatchSize, Math.floor(currentBatchSize * 0.8));
-      this.log(`High log count (${logCount} logs, target: ${targetLogsPerRequest}). Reducing batch size: ${currentBatchSize} → ${newBatchSize} blocks`);
-      return newBatchSize;
-    }
-
-    return currentBatchSize;
+    return _adjustBatchSize(this, currentBatchSize, duration, logCount, minBatchSize, maxBatchSize, logsOptimization);
   }
 
   /**

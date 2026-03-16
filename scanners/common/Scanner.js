@@ -269,40 +269,96 @@ class Scanner {
   }
 
   /**
-   * Find block number closest to target timestamp using binary search
-   * @param {number} targetTimestamp - Target timestamp (Unix timestamp)
-   * @param {number} tolerance - Acceptable time difference in seconds (default: 300 = 5 minutes)
-   * @returns {Promise<number>} Block number closest to target timestamp
-   */
-  /**
-   * Get block number by timestamp using Etherscan API
+   * Get block number by timestamp.
+   * 1) Etherscan API (fast, single call)
+   * 2) Fallback: RPC binary search (no external API dependency)
    * @param {number} targetTimestamp - Unix timestamp in seconds
    * @returns {Promise<number>} Block number at or before target timestamp
    */
   async getBlockNumberByTime(targetTimestamp) {
+    // 1) Try Etherscan API first (single call, fastest)
     try {
-      // Use Etherscan API to get block number by timestamp
       const result = await this.etherscanCall({
         module: 'block',
         action: 'getblocknobytime',
         timestamp: targetTimestamp,
-        closest: 'before'  // Get block before or at timestamp
+        closest: 'before'
       });
-      
+
       const blockNumber = parseInt(result);
-      
-      // Simple validation - ensure reasonable block number
-      if (blockNumber <= 0 ) {
-        this.log(`Invalid block number ${blockNumber} from API, using current block`, 'warn');
-        return await this.getBlockNumber(); // Return current block as fallback
+      if (blockNumber > 0) {
+        return blockNumber;
       }
-      
-      return blockNumber;
     } catch (error) {
-      this.log(`Failed to get block by timestamp via API: ${error.message}`, 'warn');
-      // Fallback to current block
-      return await this.getBlockNumber();
+      this.log(`Etherscan getblocknobytime failed: ${error.message}, falling back to RPC binary search`, 'warn');
     }
+
+    // 2) Fallback: RPC binary search
+    return this.getBlockByTimeBinarySearch(targetTimestamp);
+  }
+
+  /**
+   * Find block number closest to target timestamp using RPC binary search.
+   * No Etherscan dependency - uses only eth_getBlockByNumber.
+   * @param {number} targetTimestamp - Unix timestamp in seconds
+   * @param {number} tolerance - Acceptable time difference in seconds (default: 30)
+   * @returns {Promise<number>} Block number at or before target timestamp
+   */
+  async getBlockByTimeBinarySearch(targetTimestamp, tolerance = 30) {
+    const currentBlock = await this.getBlockNumber();
+    const currentBlockData = await this.getBlockByNumber(currentBlock);
+    const currentTimestamp = parseInt(currentBlockData.timestamp, 16);
+
+    // Target is in the future or very close to now
+    if (targetTimestamp >= currentTimestamp) {
+      return currentBlock;
+    }
+
+    const timeDiff = currentTimestamp - targetTimestamp;
+
+    // Estimate average block time for initial guess (12s for ETH, 2s for L2s)
+    const avgBlockTime = this.config?.blockTime || 12;
+    const estimatedBlocksBack = Math.floor(timeDiff / avgBlockTime);
+
+    let low = Math.max(1, currentBlock - Math.floor(estimatedBlocksBack * 1.5));
+    let high = currentBlock;
+    let bestBlock = currentBlock;
+
+    this.log(`Binary search: target=${new Date(targetTimestamp * 1000).toISOString()}, estimated ~${estimatedBlocksBack} blocks back`);
+
+    // Max ~20 iterations for any block range (log2(billions) ≈ 30)
+    let iterations = 0;
+    const maxIterations = 25;
+
+    while (low <= high && iterations < maxIterations) {
+      iterations++;
+      const mid = Math.floor((low + high) / 2);
+
+      const block = await this.getBlockByNumber(mid);
+      if (!block || !block.timestamp) {
+        // Block doesn't exist, narrow range
+        high = mid - 1;
+        continue;
+      }
+
+      const blockTimestamp = parseInt(block.timestamp, 16);
+      const diff = Math.abs(blockTimestamp - targetTimestamp);
+
+      if (diff <= tolerance) {
+        this.log(`Binary search found block ${mid} (${iterations} iterations, diff=${diff}s)`);
+        return mid;
+      }
+
+      if (blockTimestamp < targetTimestamp) {
+        bestBlock = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    this.log(`Binary search settled on block ${bestBlock} (${iterations} iterations)`);
+    return bestBlock;
   }
 
 

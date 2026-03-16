@@ -250,6 +250,17 @@ main() {
             fi
             ;;
             
+        "approval"|"ApprovalScanner")
+            log "🔍 Starting ApprovalScanner pipeline${network:+ for $network} ($mode mode)..."
+            if [[ -n "$network" ]]; then
+                lock_and_run "approval-$network" "run_network ApprovalScanner $network"
+            elif [[ "$mode" == "sequential" ]]; then
+                lock_and_run "approval-sequential" "run_sequential ApprovalScanner"
+            else
+                lock_and_run "approval-parallel" "run_parallel ApprovalScanner"
+            fi
+            ;;
+
         "revalidate"|"data-revalidate"|"DataRevalidator")
             log "🔍 Starting DataRevalidator scanner${network:+ for $network}..."
             if [[ -n "$network" ]]; then
@@ -437,6 +448,7 @@ Available Scanners:
   funds-all     Update asset balances for ALL contracts (ALL_FLAG enabled, batch size: 500,000)
   funds-high    Update asset balances for high-value addresses (fund >= 100,000, includes ALL_FLAG)
   unified       Complete blockchain analysis pipeline: addresses + EOA + verification (parallel)
+  approval      ERC20 Approval event scanner: tracks contract spender approvals (parallel)
   revalidate    Revalidate existing data for consistency (data-revalidate, DataRevalidator)
   all           Run complete scanner suite (unified + funds + revalidate)
 
@@ -456,6 +468,7 @@ Examples:
   $0 funds-high               # Update funds for high-value addresses (fund >= 100,000) with ALL_FLAG
   $0 unified                  # Run unified blockchain analysis pipeline (recommended)
   $0 unified parallel         # Run unified pipeline on all networks in parallel
+  $0 approval                  # Run approval event scanner for all networks
   $0 revalidate               # Run data revalidation for all networks
   $0 all                      # Full unified scanner suite
 
@@ -500,6 +513,7 @@ Environment Variables:
 
 Available Core Scanners:
   - UnifiedScanner.js        Complete blockchain analysis pipeline
+  - ApprovalScanner.js       ERC20 Approval event tracking (contract spenders only)
   - FundUpdater.js          Asset price and balance updates
   - DataRevalidator.js      Data consistency validation
 EOF
