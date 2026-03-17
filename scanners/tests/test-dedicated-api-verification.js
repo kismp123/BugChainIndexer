@@ -135,23 +135,23 @@ async function testAllDedicatedAPIs() {
 
   // Answer the question
   console.log('\n' + '='.repeat(80));
-  console.log('❓ QUESTION: 전용 API로 컨트랙트 검증이 가능해?');
+  console.log('❓ QUESTION: Can dedicated APIs verify contracts?');
   console.log('='.repeat(80));
 
   if (successful.length === results.length) {
-    console.log('\n✅ 답변: 네! 전용 API로 컨트랙트 소스코드 검증이 완벽하게 작동합니다!\n');
-    console.log('📋 기능:');
-    console.log('   ✓ 소스코드 조회 (getsourcecode) - 완벽 지원');
-    console.log('   ✓ 컨트랙트명, 컴파일러 버전, ABI 등 모든 정보 제공');
-    console.log('   ✓ Proxy 컨트랙트 감지');
-    console.log('   ✓ 최적화 설정, 라이센스 정보 등');
-    console.log('\n💡 전용 API vs V2 API:');
-    console.log('   • 기능: 동일 (모두 소스코드 검증 가능)');
-    console.log('   • 차이: 접근 방법만 다름 (URL/파라미터)');
-    console.log('   • 데이터: 완전히 동일한 응답');
+    console.log('\n✅ ANSWER: Yes! Dedicated APIs fully support contract source code verification!\n');
+    console.log('📋 Features:');
+    console.log('   ✓ Source code retrieval (getsourcecode) - fully supported');
+    console.log('   ✓ Contract name, compiler version, ABI and all metadata');
+    console.log('   ✓ Proxy contract detection');
+    console.log('   ✓ Optimization settings, license info, etc.');
+    console.log('\n💡 Dedicated API vs V2 API:');
+    console.log('   • Features: Identical (both support source verification)');
+    console.log('   • Difference: Only access method differs (URL/parameters)');
+    console.log('   • Data: Completely identical responses');
   } else {
-    console.log('\n⚠️  답변: 일부 네트워크에서 문제가 발생했습니다.');
-    console.log(`   성공: ${successful.length}/${results.length}`);
+    console.log('\n⚠️  ANSWER: Some networks had issues.');
+    console.log(`   Success: ${successful.length}/${results.length}`);
   }
 
   console.log('\n' + '='.repeat(80));

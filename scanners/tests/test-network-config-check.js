@@ -22,14 +22,7 @@ function validateNetworkConfig() {
   allNetworks.forEach(name => {
     const config = NETWORKS[name];
 
-    if (config.chainType === 'move') {
-      // Sui blockchain - non-EVM
-      noExplorerNetworks.push({
-        name,
-        reason: 'Non-EVM blockchain (Move)',
-        chainId: config.chainId
-      });
-    } else if (config.explorerApiUrl) {
+    if (config.explorerApiUrl) {
       dedicatedAPINetworks.push({
         name,
         apiUrl: config.explorerApiUrl,

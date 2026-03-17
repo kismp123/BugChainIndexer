@@ -37,13 +37,7 @@ async function testNetworkWithV2API(networkName) {
     };
   }
 
-  if (networkConfig.chainType === 'move') {
-    return {
-      network: networkName,
-      tested: false,
-      reason: 'Non-EVM blockchain (Move)'
-    };
-  }
+
 
   if (!testContract) {
     return {

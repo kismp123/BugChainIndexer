@@ -7,6 +7,7 @@
 const Scanner = require('../common/Scanner');
 const {
   batchUpsertAddresses,
+  batchUpsertApprovals,
   normalizeAddress,
   normalizeAddressArray,
   BATCH_SIZES,
@@ -36,6 +37,7 @@ class UnifiedScanner extends Scanner {
     
     this.timeDelay = CONFIG.TIMEDELAY || 1;
     this.transferEvent = BLOCKCHAIN_CONSTANTS.TRANSFER_EVENT;
+    this.approvalEvent = BLOCKCHAIN_CONSTANTS.APPROVAL_EVENT;
     this.blockRetryCount = new Map(); // Track retry attempts for each block range
     this.permanentlyExcludedBlocks = new Set(); // Track blocks that permanently failed getLogs
 
@@ -61,6 +63,8 @@ class UnifiedScanner extends Scanner {
       contractsFound: 0,
       contractsVerified: 0,
       contractsUnverified: 0,
+      approvalsParsed: 0,
+      approvalsStored: 0,
       errors: 0
     };
 
@@ -463,25 +467,81 @@ class UnifiedScanner extends Scanner {
   }
 
   /**
-   * Fetch logs with adaptive batching and timeout handling
+   * Fetch Transfer + Approval logs with adaptive batching and timeout handling
    */
   async fetchLogsWithAdaptiveBatching(currentBlock, endBlock) {
-    const result = await _fetchLogs(this, currentBlock, endBlock, [this.transferEvent]);
+    // Use nested array for OR matching: topics[0] matches either Transfer OR Approval
+    const result = await _fetchLogs(this, currentBlock, endBlock, [[this.transferEvent, this.approvalEvent]]);
 
-    // Parse addresses from logs with normalization
+    // Separate Transfer and Approval logs
+    const transferLogs = [];
+    const approvalLogs = [];
+
+    for (const log of result.logs) {
+      if (!log.topics || log.topics.length === 0) continue;
+      if (log.topics[0] === this.transferEvent) {
+        transferLogs.push(log);
+      } else if (log.topics[0] === this.approvalEvent) {
+        approvalLogs.push(log);
+      }
+    }
+
+    // Parse addresses from Transfer logs
     const addresses = new Set();
-    result.logs.forEach(log => {
+    transferLogs.forEach(log => {
       addresses.add(normalizeAddress(log.address));
       if (log.topics[1]) addresses.add(normalizeAddress('0x' + log.topics[1].slice(26)));
       if (log.topics[2]) addresses.add(normalizeAddress('0x' + log.topics[2].slice(26)));
     });
 
-    this.log(`Fetched ${result.logCount} logs with ${addresses.size} unique addresses in ${result.duration}ms`);
+    // Parse and store Approval logs
+    if (approvalLogs.length > 0) {
+      await this.processApprovalLogs(approvalLogs);
+    }
+
+    this.log(`Fetched ${transferLogs.length} transfers + ${approvalLogs.length} approvals (${addresses.size} unique addresses) in ${result.duration}ms`);
 
     // Update log density statistics for learning
     await this.updateLogDensityStats(endBlock - currentBlock + 1, result.logCount);
 
     return { addresses, duration: result.duration, logCount: result.logCount };
+  }
+
+  /**
+   * Parse Approval logs and store to approvals table.
+   * Approval(address indexed owner, address indexed spender, uint256 value)
+   */
+  async processApprovalLogs(logs) {
+    const approvals = [];
+    const now = Math.floor(Date.now() / 1000);
+
+    for (const log of logs) {
+      try {
+        if (!log.topics || log.topics.length < 3) continue;
+
+        approvals.push({
+          owner: normalizeAddress('0x' + log.topics[1].slice(26)),
+          spender: normalizeAddress('0x' + log.topics[2].slice(26)),
+          tokenAddress: normalizeAddress(log.address),
+          value: log.data || '0x0',
+          blockNumber: parseInt(log.blockNumber, 16),
+          txHash: log.transactionHash,
+          logIndex: parseInt(log.logIndex, 16),
+          network: this.network,
+          firstSeen: now,
+          lastUpdated: now
+        });
+      } catch (error) {
+        this.log(`⚠️ Failed to parse approval log: ${error.message}`, 'warn');
+      }
+    }
+
+    this.stats.approvalsParsed += approvals.length;
+
+    if (approvals.length > 0) {
+      const { rowCount } = await batchUpsertApprovals(this.db, approvals);
+      this.stats.approvalsStored += rowCount;
+    }
   }
 
   /**
@@ -1008,6 +1068,7 @@ class UnifiedScanner extends Scanner {
     this.log(`📊 Addresses: ${this.stats.transferAddresses} found, ${this.stats.newAddresses} processed`);
     this.log(`📝 Contracts: ${this.stats.contractsFound} found, ${this.stats.contractsVerified} verified, ${this.stats.contractsUnverified} unverified`);
     this.log(`👤 EOAs: ${this.stats.eoaFiltered} identified`);
+    this.log(`📋 Approvals: ${this.stats.approvalsParsed} parsed, ${this.stats.approvalsStored} stored`);
   }
 
   /**

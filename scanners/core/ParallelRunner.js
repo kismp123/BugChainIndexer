@@ -1,26 +1,26 @@
 /**
  * Parallel Multi-Network Runner
- * 여러 네트워크를 병렬로 스캔
+ * Scan multiple networks in parallel
  *
- * 사용법:
- *   node core/ParallelRunner.js approval       # 모든 네트워크 Approval 스캔
- *   node core/ParallelRunner.js approval 4     # 동시 실행 수 제한 (기본: 8)
+ * Usage:
+ *   node core/ParallelRunner.js approval       # Scan Approval events for all networks
+ *   node core/ParallelRunner.js approval 4     # Limit concurrency (default: 8)
  */
 const { spawn } = require('child_process');
 const path = require('path');
 const { NETWORKS } = require('../config/networks');
 
-// 설정
+// Configuration
 const MAX_CONCURRENT = parseInt(process.argv[3] || '8', 10);
 const MODE = process.argv[2] || 'approval';
 
-// 네트워크 우선순위 (TVL 기준)
+// Network priority (by TVL)
 const NETWORK_PRIORITY = {
-  // Tier 1: 높은 TVL
+  // Tier 1: High TVL
   ethereum: 1, arbitrum: 1, base: 1, polygon: 1,
-  // Tier 2: 중간 TVL
+  // Tier 2: Medium TVL
   optimism: 2, gnosis: 2, zksync: 2, scroll: 2,
-  // Tier 3: 나머지
+  // Tier 3: Others
 };
 
 class ParallelRunner {
@@ -37,7 +37,7 @@ class ParallelRunner {
     console.log(`[${elapsed}s] ${message}`);
   }
 
-  // 네트워크 우선순위로 정렬
+  // Sort networks by priority
   getSortedNetworks() {
     return [...this.networks].sort((a, b) => {
       const priorityA = NETWORK_PRIORITY[a] || 3;
@@ -46,11 +46,11 @@ class ParallelRunner {
     });
   }
 
-  // 단일 작업 실행
+  // Run a single task
   runTask(network, type) {
     return new Promise((resolve) => {
       const scriptMap = {
-        approval: 'ApprovalScanner.js'
+        unified: 'UnifiedScanner.js'
       };
       const script = scriptMap[type];
       if (!script) {
@@ -60,7 +60,7 @@ class ParallelRunner {
       }
       const scriptPath = path.join(__dirname, script);
 
-      this.log(`🚀 [${network}] ${type} 시작`);
+      this.log(`🚀 [${network}] ${type} started`);
 
       const child = spawn('node', [scriptPath], {
         env: { ...process.env, NETWORK: network },
@@ -85,15 +85,15 @@ class ParallelRunner {
         let summary = '';
         const match = output.match(/Processed (\d+)/);
         if (match) {
-          summary = `${match[1]}개 처리`;
+          summary = `${match[1]} processed`;
         }
 
         this.results.set(key, { success, summary });
 
         if (success) {
-          this.log(`✅ [${network}] ${type} 완료 ${summary ? '- ' + summary : ''}`);
+          this.log(`✅ [${network}] ${type} completed ${summary ? '- ' + summary : ''}`);
         } else {
-          this.log(`❌ [${network}] ${type} 실패`);
+          this.log(`❌ [${network}] ${type} failed`);
         }
 
         resolve({ network, type, success });
@@ -101,7 +101,7 @@ class ParallelRunner {
     });
   }
 
-  // 큐에서 다음 작업 실행
+  // Process next task from the queue
   async processQueue() {
     while (this.queue.length > 0 && this.running < MAX_CONCURRENT) {
       const task = this.queue.shift();
@@ -114,7 +114,7 @@ class ParallelRunner {
     }
   }
 
-  // 모든 작업을 큐에 추가하고 실행
+  // Add all tasks to queue and start execution
   async run() {
     const networks = this.getSortedNetworks();
 
@@ -128,33 +128,33 @@ class ParallelRunner {
     console.log('═══════════════════════════════════════════════════════');
     console.log('');
 
-    // 작업 생성
+    // Create tasks
     const tasks = [];
     for (const network of networks) {
-      if (MODE === 'approval' || MODE === 'all') {
-        tasks.push({ network, type: 'approval' });
+      if (MODE === 'unified' || MODE === 'all') {
+        tasks.push({ network, type: 'unified' });
       }
     }
 
-    // 큐에 추가
+    // Add to queue
     this.queue = tasks;
     const totalTasks = tasks.length;
 
-    this.log(`📋 총 ${totalTasks}개 작업 시작 (${networks.length} 네트워크)`);
+    this.log(`📋 Starting ${totalTasks} tasks (${networks.length} networks)`);
     console.log('');
 
-    // 큐 처리 시작
+    // Start queue processing
     const promises = [];
     for (let i = 0; i < Math.min(MAX_CONCURRENT, this.queue.length); i++) {
       promises.push(this.processQueue());
     }
 
-    // 모든 작업 완료 대기
+    // Wait for all tasks to complete
     while (this.running > 0 || this.queue.length > 0) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    // 결과 출력
+    // Print results
     this.printSummary();
   }
 
@@ -163,7 +163,7 @@ class ParallelRunner {
 
     console.log('');
     console.log('═══════════════════════════════════════════════════════');
-    console.log('  실행 결과');
+    console.log('  Results');
     console.log('═══════════════════════════════════════════════════════');
 
     let successCount = 0;
@@ -180,22 +180,22 @@ class ParallelRunner {
     }
 
     console.log('═══════════════════════════════════════════════════════');
-    console.log(`  완료: ${successCount} 성공, ${failCount} 실패`);
-    console.log(`  소요 시간: ${elapsed}초`);
+    console.log(`  Done: ${successCount} succeeded, ${failCount} failed`);
+    console.log(`  Elapsed: ${elapsed}s`);
     console.log('═══════════════════════════════════════════════════════');
     console.log('');
   }
 }
 
-// 실행
+// Execute
 if (require.main === module) {
-  if (!['approval', 'all'].includes(MODE)) {
-    console.log('Usage: node ParallelRunner.js {approval|all} [concurrency]');
+  if (!['unified', 'all'].includes(MODE)) {
+    console.log('Usage: node ParallelRunner.js {unified|all} [concurrency]');
     console.log('');
-    console.log('  approval - Scan ERC20 Approval events for all networks');
+    console.log('  unified  - Run UnifiedScanner (Transfer + Approval) for all networks');
     console.log('  all      - Run all tasks');
     console.log('');
-    console.log('  concurrency - 동시 실행 수 (기본: 8)');
+    console.log('  concurrency - Max concurrent tasks (default: 8)');
     process.exit(1);
   }
 

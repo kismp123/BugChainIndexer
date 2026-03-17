@@ -23,11 +23,6 @@ const apiVersions = {
 networks.forEach(name => {
   const config = NETWORKS[name];
 
-  if (config.chainType === 'move') {
-    // Skip non-EVM chains
-    return;
-  }
-
   if (config.explorerApiUrl) {
     // Using dedicated API
     apiVersions.dedicated.push(name);
@@ -77,7 +72,7 @@ if (apiVersions.dedicated.length === 0) {
 console.log('\n' + '='.repeat(80));
 console.log('📊 SUMMARY');
 console.log('─'.repeat(80));
-console.log(`   Total EVM Networks:        ${networks.length - 1}`); // -1 for sui
+console.log(`   Total Networks:             ${networks.length}`);
 console.log(`   Using Etherscan v2 API:    ${apiVersions.v2.length}`);
 console.log(`   Using Dedicated APIs:      ${apiVersions.dedicated.length}`);
 

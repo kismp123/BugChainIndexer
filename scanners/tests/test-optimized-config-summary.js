@@ -12,7 +12,7 @@ console.log('='.repeat(80));
 
 const networks = Object.keys(NETWORKS).filter(name => {
   const config = NETWORKS[name];
-  return config.chainId !== 0 && config.chainType !== 'move';
+  return config.chainId !== 0;
 });
 
 const v2Networks = networks.filter(name => !NETWORKS[name].explorerApiUrl);

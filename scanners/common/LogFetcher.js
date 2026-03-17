@@ -1,6 +1,6 @@
 /**
  * LogFetcher - Reusable log fetching with adaptive batching
- * Extracted from UnifiedScanner for reuse by ApprovalScanner and others.
+ * Extracted from UnifiedScanner for reuse by other scanners.
  * All functions take a Scanner instance as first argument.
  */
 const { TIMEOUTS, withTimeoutAndRetry } = require('./core');

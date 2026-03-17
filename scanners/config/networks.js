@@ -773,77 +773,11 @@ const ADDITIONAL_NETWORKS = {
     },
     // Mantle has low log density (5-20 logs/block)
     logsOptimization: 'low-density'
-  },
-
-  unichain: {
-    chainId: 1301,
-    name: 'Unichain',
-    alchemyNetwork: 'unichain-mainnet',
-    // Unichain uses Etherscan v2 API - avoids separate API key requirement
-    // explorerApiUrl: 'https://api.uniscan.xyz/api',
-
-    rpcUrls: envArray('UNICHAIN_RPC_URL', [
-      'https://mainnet.unichain.org',
-      'https://unichain-rpc.publicnode.com',
-      'https://unichain.drpc.org',
-      'https://1rpc.io/unichain',
-      'https://rpc.unichain.org',
-      'https://unichain.gateway.tenderly.co'
-    ].filter(Boolean)),
-    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
-    nativeCurrency: 'ETH',
-    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
-    maxLogsBlockRange: {
-      free: 10,
-      premium: 10000     // All Other Chains: 10000 blocks
-    },
-    // Unichain has low log density (5-20 logs/block)
-    logsOptimization: 'low-density'
-  },
-
-  berachain: {
-    chainId: 80084,
-    name: 'Berachain',
-    alchemyNetwork: 'berachain-mainnet',
-    // Berachain uses Etherscan v2 API - avoids separate API key requirement
-    // explorerApiUrl: 'https://api.berascan.com/api',
-
-    rpcUrls: envArray('BERACHAIN_RPC_URL', [
-      'https://rpc.berachain.com',
-      'https://berachain.drpc.org',
-      'https://1rpc.io/berachain',
-      'https://bartio.rpc.berachain.com',
-      'https://berachain-rpc.publicnode.com',
-      'https://bera.rpc.thirdweb.com'
-    ].filter(Boolean)),
-    contractValidator: '0x235a064473515789e2781B051bbd9e24AFb46DAc',
-    nativeCurrency: 'BERA',
-    BalanceHelper: '0x6F4A97C44669a74Ee6b6EE95D2cD6C4803F6b384',
-    maxLogsBlockRange: {
-      free: 10,
-      premium: 10000     // All Other Chains: 10000 blocks
-    },
-    // Berachain has low log density (5-20 logs/block)
-    logsOptimization: 'low-density'
-  },
-
-  sui: {
-    chainId: 0, // Sui doesn't use EVM chainId
-    name: 'Sui Network',
-    chainType: 'move', // Non-EVM blockchain
-    suiNetwork: 'mainnet',
-
-    rpcUrls: envArray('SUI_RPC_URL', [
-      `https://sui-mainnet.alchemy-blast.com/v2/${ALCHEMY_API_KEY}`,
-      'https://fullnode.mainnet.sui.io:443'
-    ].filter(Boolean)),
-    nativeCurrency: 'SUI',
-    // Sui-specific: no contract validator or balance helper (Move blockchain)
-    maxLogsBlockRange: {
-      free: 1000,        // Events per query
-      premium: 1000      // Sui max events per query
-    }
   }
+
+  // unichain and berachain are disabled until BalanceHelper contracts are fully tested
+  // unichain: { chainId: 1301, ... },
+  // berachain: { chainId: 80084, ... },
 };
 
 

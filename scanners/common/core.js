@@ -1116,17 +1116,7 @@ class ContractCall {
     const rpc = this.getAlchemyClient(network);  // Use Alchemy for contract calls
 
     if (!validator) {
-      return this.chunkOperation(addresses, async (chunk) => {
-        const promises = chunk.map(async (addr) => {
-          try {
-            const code = await rpc.getCode(addr);
-            return code && code !== '0x';
-          } catch (e) {
-            return false;
-          }
-        });
-        return Promise.all(promises);
-      }, 500); // No contract validator - use individual calls with larger chunks
+      throw new Error(`Validator contract not configured for network: ${network}. Cannot check isContracts without validator.`);
     }
 
     // isContract: ~30k gas per address
@@ -1522,34 +1512,6 @@ async function batchOperation(items, processor, options = {}) {
   return results;
 }
 
-// ====== VALIDATION UTILITIES (FROM HELPERS.JS) ======
-function isValidAddress(address) {
-  try {
-    return ethers.isAddress(address);
-  } catch {
-    return false;
-  }
-}
-
-function validateFinancialValue(value) {
-  // Returns true if value is valid, false otherwise
-  if (value === null || value === undefined) {
-    return false;
-  }
-  
-  if (typeof value === 'number') {
-    // Check for NaN, Infinity, and negative values
-    return !isNaN(value) && isFinite(value) && value >= 0;
-  }
-  
-  if (typeof value === 'string') {
-    const parsed = parseFloat(value);
-    return !isNaN(parsed) && isFinite(parsed) && parsed >= 0;
-  }
-  
-  return false;
-}
-
 function safeGetAddressType(address, codeHash, deploymentTime) {
   try {
     if (!address ) {
@@ -1594,113 +1556,6 @@ function safeGetAddressType(address, codeHash, deploymentTime) {
     return 'unknown';
   }
 }
-
-function validateDeploymentTimestamp(timestamp) {
-  if (timestamp === null || timestamp === undefined) {
-    return null;
-  }
-  
-  if (typeof timestamp === 'number') {
-    return timestamp > 0 ? timestamp : null;
-  }
-  
-  if (typeof timestamp === 'string') {
-    const parsed = parseInt(timestamp);
-    return !isNaN(parsed) && parsed > 0 ? parsed : null;
-  }
-  
-  return null;
-}
-
-function getValidatedDeploymentTimestamp(timestamp, address) {
-  try {
-    const validated = validateDeploymentTimestamp(timestamp);
-    
-    if (validated === null) {
-      console.warn(`Null deployment timestamp for address ${address}, assuming EOA (timestamp=0)`);
-      return 0;
-    }
-    
-    return validated;
-  } catch (error) {
-    console.warn(`Error validating deployment timestamp for ${address}:`, error.message);
-    return 0;
-  }
-}
-
-
-// ====== PROCESSING UTILITIES (FROM HELPERS.JS) ======
-function chunkArray(array, size) {
-  const chunks = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-}
-
-async function processBatch(items, processor, options = {}) {
-  const {
-    batchSize = 100,
-    concurrency = 1,
-    delayMs = 0,
-    onProgress = null,
-    onError = null
-  } = options;
-  
-  const results = [];
-  const chunks = chunkArray(items, batchSize);
-  
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    
-    try {
-      if (concurrency === 1) {
-        const result = await processor(chunk, i);
-        results.push(result);
-      } else {
-        const subChunks = chunkArray(chunk, Math.ceil(chunk.length / concurrency));
-        const promises = subChunks.map((subChunk, j) => 
-          processor(subChunk, i * concurrency + j)
-        );
-        const subResults = await Promise.all(promises);
-        results.push(...subResults);
-      }
-      
-      if (onProgress) {
-        onProgress(i + 1, chunks.length, chunk.length);
-      }
-      
-      if (delayMs > 0 && i < chunks.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    } catch (error) {
-      if (onError) {
-        onError(error, chunk, i);
-      } else {
-        throw error;
-      }
-    }
-  }
-  
-  return results.flat();
-}
-
-function removeDuplicates(array, keyFn = null) {
-  if (!keyFn) {
-    return [...new Set(array)];
-  }
-  
-  const seen = new Set();
-  return array.filter(item => {
-    const key = keyFn(item);
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
-}
-
 
 // ====== NETWORK UTILITIES (FROM HELPERS.JS) ======
 async function withRetry(operation, options = {}) {
@@ -2024,16 +1879,7 @@ module.exports = {
   normalizeAddressArray,
   
   // Validation utilities
-  isValidAddress,
-  validateFinancialValue,
   safeGetAddressType,
-  validateDeploymentTimestamp,
-  getValidatedDeploymentTimestamp,
-  
-  // Processing utilities
-  chunkArray,
-  processBatch,
-  removeDuplicates,
   
   // Network utilities
   withRetry,
