@@ -218,14 +218,14 @@ class UnifiedScanner extends Scanner {
       return this._skipVerification(contracts, 'Etherscan API disabled (previous failures)');
     }
 
-    // Test Etherscan API availability with a single probe request (1 retry only)
+    // Test Etherscan API availability with a probe request (3 retries to ride through transient NOTOK)
     try {
       const { etherscanRequest } = require('../common/core');
       await etherscanRequest(this.network, {
         module: 'contract',
         action: 'getsourcecode',
         address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // WETH
-      }, 1);
+      }, 3);
     } catch (error) {
       this.log(`⚠️  Etherscan API probe failed: ${error.message}`, 'warn');
       this._etherscanDisabled = true;

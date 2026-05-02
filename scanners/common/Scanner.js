@@ -326,6 +326,21 @@ class Scanner {
 
     this.log(`Binary search: target=${new Date(targetTimestamp * 1000).toISOString()}, estimated ~${estimatedBlocksBack} blocks back`);
 
+    // Exponentially expand `low` outward until its timestamp is older than target.
+    // Required when actual block time is faster than the assumed 12s (chains like BSC/OP/Base/Arb/Polygon/Scroll),
+    // otherwise the entire [low, high] window sits newer than target and search converges on currentBlock.
+    let expandFactor = 2;
+    while (low > 1) {
+      const lowBlockData = await this.getBlockByNumber(low);
+      if (!lowBlockData || !lowBlockData.timestamp) break;
+      const lowTimestamp = parseInt(lowBlockData.timestamp, 16);
+      if (lowTimestamp <= targetTimestamp) break;
+      const newLow = Math.max(1, currentBlock - Math.floor(estimatedBlocksBack * expandFactor));
+      if (newLow === low) break;
+      low = newLow;
+      expandFactor *= 2;
+    }
+
     // Max ~20 iterations for any block range (log2(billions) ≈ 30)
     let iterations = 0;
     const maxIterations = 25;
