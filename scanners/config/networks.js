@@ -374,7 +374,7 @@ const NETWORKS = {
     chainId: 1,
     name: 'Ethereum Mainnet',
     alchemyNetwork: 'eth-mainnet',
-    explorerApiUrl: 'https://api.etherscan.io/api',
+    // explorerApiUrl: 'https://api.etherscan.io/api', // v1 deprecated — fall through to Etherscan v2 unified API
 
     rpcUrls: envArray('ETHEREUM_RPC_URL', [
       // Alchemy RPC (prioritized for reliability)
@@ -429,7 +429,7 @@ const NETWORKS = {
     chainId: 56,
     name: 'BNB Smart Chain',
     alchemyNetwork: 'bnb-mainnet',
-    explorerApiUrl: 'https://api.bscscan.com/api',
+    // explorerApiUrl: 'https://api.bscscan.com/api', // v1 deprecated — fall through to Etherscan v2 unified API
 
     rpcUrls: envArray('BSC_RPC_URL', [
       // Alchemy RPC for BNB Smart Chain
@@ -470,7 +470,7 @@ const NETWORKS = {
     chainId: 137,
     name: 'Polygon',
     alchemyNetwork: 'polygon-mainnet',
-    explorerApiUrl: 'https://api.polygonscan.com/api',
+    // explorerApiUrl: 'https://api.polygonscan.com/api', // v1 deprecated — fall through to Etherscan v2 unified API
 
     rpcUrls: envArray('POLYGON_RPC_URL', [
       // Alchemy RPC
@@ -510,7 +510,7 @@ const NETWORKS = {
     chainId: 42161,
     name: 'Arbitrum One',
     alchemyNetwork: 'arb-mainnet',
-    explorerApiUrl: 'https://api.arbiscan.io/api',
+    // explorerApiUrl: 'https://api.arbiscan.io/api', // v1 deprecated — fall through to Etherscan v2 unified API
 
     rpcUrls: envArray('ARBITRUM_RPC_URL', [
       // Alchemy RPC
@@ -550,7 +550,7 @@ const NETWORKS = {
     chainId: 10,
     name: 'Optimism',
     alchemyNetwork: 'opt-mainnet',
-    explorerApiUrl: 'https://api-optimistic.etherscan.io/api',
+    // explorerApiUrl: 'https://api-optimistic.etherscan.io/api', // v1 deprecated — fall through to Etherscan v2 unified API
 
     rpcUrls: envArray('OPTIMISM_RPC_URL', [
       // Alchemy RPC
@@ -591,7 +591,7 @@ const NETWORKS = {
     chainId: 8453,
     name: 'Base',
     alchemyNetwork: 'base-mainnet',
-    explorerApiUrl: 'https://api.basescan.org/api',
+    // explorerApiUrl: 'https://api.basescan.org/api', // v1 deprecated — fall through to Etherscan v2 unified API
 
     rpcUrls: envArray('BASE_RPC_URL', [
       // Alchemy RPC
